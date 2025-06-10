@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Expenditure Tracker</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for the pie chart and bar chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        /* Custom scrollbar for the table container */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* Gray-300 */
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background-color: #e2e8f0; /* Gray-200 */
+        }
+        /* Chart container styling for responsiveness */
+        .chart-container {
+            position: relative;
+            height: 400px; /* Max height for charts */
+            width: 100%;
+            margin: auto; /* Center the charts */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center p-4 min-h-screen">
+    <div class="max-w-4xl w-full bg-white shadow-lg rounded-lg p-6 md:p-8 space-y-6">
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">Monthly Expenditure Tracker</h1>
+
+        <!-- Expense Input Form -->
+        <div class="bg-blue-50 p-5 rounded-lg border border-blue-200 shadow-sm">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Add New Expense</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" id="expenseDate" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+                <div>
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Amount (CAD)</label>
+                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+                <!-- Payment Method Field -->
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                    <select id="paymentMethod" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                        <option value="">Select Method</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Online Payment">Online Payment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <!-- Paid By Field -->
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paidBy" class="block text-sm font-medium text-gray-700 mb-1">Paid By</label>
+                    <input type="text" id="paidBy" placeholder="e.g., John, Sarah" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+                <!-- New: Has Bill Checkbox -->
+                <div class="col-span-full md:col-span-2 lg:col-span-1 flex items-center">
+                    <input type="checkbox" id="hasBill" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="hasBill" class="ml-2 block text-sm font-medium text-gray-700">Do you have the bill?</label>
+                </div>
+                <!-- New: Bill Type Dropdown (conditionally visible) -->
+                <div class="col-span-full md:col-span-2 lg:col-span-1" id="billTypeContainer" style="display: none;">
+                    <label for="billType" class="block text-sm font-medium text-gray-700 mb-1">Bill Type</label>
+                    <select id="billType" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                        <option value="">Select Type</option>
+                        <option value="Physical">Physical</option>
+                        <option value="Digital">Digital</option>
+                    </select>
+                </div>
+            </div>
+            <button id="addExpenseBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out">
+                Add Expense
+            </button>
+        </div>
+
+        <!-- Expense List Table -->
+        <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Your Expenses</h2>
+            <div class="overflow-x-auto rounded-lg border border-gray-300 table-container">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (CAD)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (AED)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (INR)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid By</th>
+                            <!-- New: Bill Headers -->
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Has Bill?</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bill Type</th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Delete</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Expense rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Total Expenditure Display -->
+        <div class="flex justify-end bg-green-50 p-4 rounded-lg border border-green-200 shadow-sm">
+            <h2 class="text-xl font-bold text-green-800">Total Expenditure: <span id="totalExpenditure" class="text-green-900">C$0.00</span></h2>
+        </div>
+
+        <!-- Gemini API Integration Section -->
+        <div class="bg-purple-50 p-5 rounded-lg border border-purple-200 shadow-sm">
+            <h2 class="text-xl font-semibold text-purple-800 mb-4">AI-Powered Insights</h2>
+            <button id="getInsightsBtn" class="w-full bg-purple-600 text-white py-2 px-4 rounded-md shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-200 ease-in-out">
+                Get Spending Insights ✨
+            </button>
+            <div id="insightsDisplay" class="mt-4 p-4 bg-purple-100 rounded-md text-purple-800 border border-purple-300 hidden">
+                <p class="font-medium">Analyzing your expenses...</p>
+            </div>
+        </div>
+
+        <!-- Pie Chart Section -->
+        <div class="bg-orange-50 p-5 rounded-lg border border-orange-200 shadow-sm">
+            <h2 class="text-xl font-semibold text-orange-800 mb-4 text-center">Spending Distribution by Category</h2>
+            <div class="chart-container">
+                <canvas id="expenseCategoryChart"></canvas>
+            </div>
+            <p class="text-sm text-center text-gray-600 mt-4">This pie chart visualizes how your spending is distributed across different categories.</p>
+        </div>
+
+        <!-- Bar Graph Section -->
+        <div class="bg-teal-50 p-5 rounded-lg border border-teal-200 shadow-sm">
+            <h2 class="text-xl font-semibold text-teal-800 mb-4 text-center">Monthly Total Expenditure</h2>
+            <div class="chart-container">
+                <canvas id="expenseMonthlyChart"></canvas>
+            </div>
+            <p class="text-sm text-center text-gray-600 mt-4">This bar graph shows your total expenditure for each month.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const expenseDateInput = document.getElementById('expenseDate');
+            const expenseCategoryInput = document.getElementById('expenseCategory');
+            const expenseDescriptionInput = document.getElementById('expenseDescription');
+            const expenseAmountInput = document.getElementById('expenseAmount');
+            const paymentMethodInput = document.getElementById('paymentMethod');
+            const paidByInput = document.getElementById('paidBy');
+            const hasBillInput = document.getElementById('hasBill'); // New: Has Bill checkbox
+            const billTypeContainer = document.getElementById('billTypeContainer'); // New: Container for bill type dropdown
+            const billTypeInput = document.getElementById('billType'); // New: Bill Type dropdown
+            const addExpenseBtn = document.getElementById('addExpenseBtn');
+            const expenseTableBody = document.getElementById('expenseTableBody');
+            const totalExpenditureSpan = document.getElementById('totalExpenditure');
+            const getInsightsBtn = document.getElementById('getInsightsBtn');
+            const insightsDisplay = document.getElementById('insightsDisplay');
+            const expenseCategoryChartCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+            const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
+
+            let expenses = [];
+            const LOCAL_STORAGE_KEY = 'monthlyExpenses';
+
+            const EXCHANGE_RATE_CAD_TO_AED = 2.70;
+            const EXCHANGE_RATE_CAD_TO_INR = 61.00;
+
+            let expenseCategoryPieChart;
+            let expenseMonthlyBarChart;
+
+            // Toggle visibility of Bill Type based on Has Bill checkbox
+            hasBillInput.addEventListener('change', () => {
+                if (hasBillInput.checked) {
+                    billTypeContainer.style.display = 'block';
+                } else {
+                    billTypeContainer.style.display = 'none';
+                    billTypeInput.value = ''; // Clear selection when unchecked
+                }
+            });
+
+            function generateColors(numColors) {
+                const colors = [];
+                for (let i = 0; i < numColors; i++) {
+                    const hue = (i * 137) % 360;
+                    colors.push(`hsl(${hue}, 70%, 60%)`);
+                }
+                return colors;
+            }
+
+            function renderCategoryPieChart() {
+                const categoryTotals = {};
+                expenses.forEach(expense => {
+                    const category = expense.category.toLowerCase();
+                    if (!categoryTotals[category]) {
+                        categoryTotals[category] = 0;
+                    }
+                    categoryTotals[category] += expense.amount;
+                });
+
+                const labels = Object.keys(categoryTotals);
+                const data = Object.values(categoryTotals);
+                const backgroundColors = generateColors(labels.length);
+
+                if (expenseCategoryPieChart) {
+                    expenseCategoryPieChart.data.labels = labels;
+                    expenseCategoryPieChart.data.datasets[0].data = data;
+                    expenseCategoryPieChart.data.datasets[0].backgroundColor = backgroundColors;
+                    expenseCategoryPieChart.update();
+                } else {
+                    expenseCategoryPieChart = new Chart(expenseCategoryChartCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: backgroundColors,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        font: {
+                                            family: 'Inter',
+                                            size: 14
+                                        }
+                                    }
+                                },
+                                title: {
+                                    display: false,
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function renderMonthlyBarChart() {
+                const monthlyTotals = {};
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+                expenses.forEach(expense => {
+                    const date = new Date(expense.date);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    if (!monthlyTotals[monthKey]) {
+                        monthlyTotals[monthKey] = { total: 0, displayMonth: `${monthNames[date.getMonth()]} ${date.getFullYear()}` };
+                    }
+                    monthlyTotals[monthKey].total += expense.amount;
+                });
+
+                const sortedMonthKeys = Object.keys(monthlyTotals).sort();
+                const labels = sortedMonthKeys.map(key => monthlyTotals[key].displayMonth);
+                const data = sortedMonthKeys.map(key => monthlyTotals[key].total);
+                
+                const barColor = 'rgb(75, 192, 192)';
+                const borderColor = 'rgb(54, 162, 235)';
+
+
+                if (expenseMonthlyBarChart) {
+                    expenseMonthlyBarChart.data.labels = labels;
+                    expenseMonthlyBarChart.data.datasets[0].data = data;
+                    expenseMonthlyBarChart.update();
+                } else {
+                    expenseMonthlyBarChart = new Chart(expenseMonthlyChartCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Total Expenditure (CAD)',
+                                data: data,
+                                backgroundColor: barColor,
+                                borderColor: borderColor,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top',
+                                    labels: {
+                                        font: {
+                                            family: 'Inter',
+                                            size: 14
+                                        }
+                                    }
+                                },
+                                title: {
+                                    display: false,
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Amount (CAD)',
+                                        font: {
+                                            family: 'Inter',
+                                            size: 14
+                                        }
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Month',
+                                        font: {
+                                            family: 'Inter',
+                                            size: 14
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+
+            function saveExpenses() {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(expenses));
+            }
+
+            function loadExpenses() {
+                const storedExpenses = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (storedExpenses) {
+                    expenses = JSON.parse(storedExpenses);
+                }
+            }
+
+            function renderExpenses() {
+                expenseTableBody.innerHTML = '';
+                let total = 0;
+
+                expenses.forEach((expense, index) => {
+                    const amountCAD = expense.amount;
+                    const amountAED = (amountCAD * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                    const amountINR = (amountCAD * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${expense.date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expense.category}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expense.description}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">C$${amountCAD.toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">AED ${amountAED}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">INR ${amountINR}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expense.paymentMethod}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expense.paidBy || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expense.hasBill ? 'Yes' : 'No'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expense.billType || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button data-index="${index}" class="delete-btn text-red-600 hover:text-red-900 transition duration-150 ease-in-out">
+                                Delete
+                            </button>
+                        </td>
+                    `;
+                    expenseTableBody.appendChild(row);
+                    total += amountCAD;
+                });
+
+                totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
+
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const indexToDelete = parseInt(event.target.dataset.index);
+                        deleteExpense(indexToDelete);
+                    });
+                });
+                saveExpenses();
+                renderCategoryPieChart();
+                renderMonthlyBarChart();
+            }
+
+            addExpenseBtn.addEventListener('click', () => {
+                const date = expenseDateInput.value;
+                const category = expenseCategoryInput.value.trim();
+                const description = expenseDescriptionInput.value.trim();
+                const amount = parseFloat(expenseAmountInput.value);
+                const paymentMethod = paymentMethodInput.value.trim();
+                const paidBy = paidByInput.value.trim();
+                const hasBill = hasBillInput.checked; // Get checkbox value
+                let billType = ''; // Initialize bill type
+
+                if (hasBill) { // If has bill is checked, validate billType
+                    billType = billTypeInput.value.trim();
+                    if (!billType) {
+                        showMessage('Please select a Bill Type or uncheck "Do you have the bill?".', 'error');
+                        return;
+                    }
+                }
+
+                if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod || !paidBy) {
+                    showMessage('Please fill in all required fields: Date, Category, Description, Amount, Payment Method, and Paid By.', 'error');
+                    return;
+                }
+
+                expenses.push({ date, category, description, amount, paymentMethod, paidBy, hasBill, billType });
+                renderExpenses();
+
+                // Clear input fields
+                expenseDateInput.value = '';
+                expenseCategoryInput.value = '';
+                expenseDescriptionInput.value = '';
+                expenseAmountInput.value = '';
+                paymentMethodInput.value = '';
+                paidByInput.value = '';
+                hasBillInput.checked = false; // Uncheck bill checkbox
+                billTypeContainer.style.display = 'none'; // Hide bill type dropdown
+                billTypeInput.value = ''; // Clear bill type selection
+
+                showMessage('Expense added successfully!', 'success');
+            });
+
+            function deleteExpense(index) {
+                if (index > -1 && index < expenses.length) {
+                    expenses.splice(index, 1);
+                    renderExpenses();
+                    showMessage('Expense deleted.', 'info');
+                }
+            }
+
+            function showMessage(message, type) {
+                let messageBox = document.getElementById('messageBox');
+                if (!messageBox) {
+                    messageBox = document.createElement('div');
+                    messageBox.id = 'messageBox';
+                    messageBox.className = 'fixed top-4 right-4 p-4 rounded-md shadow-lg text-white font-semibold z-50 transition-all duration-300 transform translate-x-full opacity-0';
+                    document.body.appendChild(messageBox);
+                }
+
+                messageBox.textContent = message;
+                messageBox.classList.remove('bg-red-500', 'bg-green-500', 'bg-blue-500');
+
+                if (type === 'error') {
+                    messageBox.classList.add('bg-red-500');
+                } else if (type === 'success') {
+                    messageBox.classList.add('bg-green-500');
+                } else if (type === 'info') {
+                    messageBox.classList.add('bg-blue-500');
+                }
+
+                messageBox.classList.remove('translate-x-full', 'opacity-0');
+                messageBox.classList.add('translate-x-0', 'opacity-100');
+
+                setTimeout(() => {
+                    messageBox.classList.remove('translate-x-0', 'opacity-100');
+                    messageBox.classList.add('translate-x-full', 'opacity-0');
+                }, 3000);
+            }
+
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            expenseDateInput.value = `${year}-${month}-${day}`;
+
+            loadExpenses();
+            renderExpenses();
+
+            // Gemini API Integration Logic
+            getInsightsBtn.addEventListener('click', async () => {
+                if (expenses.length === 0) {
+                    showMessage('Please add some expenses first to get insights!', 'info');
+                    return;
+                }
+
+                insightsDisplay.classList.remove('hidden');
+                insightsDisplay.innerHTML = '<p class="font-medium text-purple-800">Analyzing your expenses... This may take a moment.</p>';
+                insightsDisplay.classList.remove('bg-red-100', 'border-red-300');
+
+                let expensesText = expenses.map(e => {
+                    let billInfo = ``;
+                    if (e.hasBill) {
+                        billInfo = `, Has Bill: Yes, Bill Type: ${e.billType}`;
+                    } else {
+                        billInfo = `, Has Bill: No`;
+                    }
+                    return `Date: ${e.date}, Category: ${e.category}, Description: ${e.description}, Amount: C$${e.amount.toFixed(2)}, Paid Via: ${e.paymentMethod}, Paid By: ${e.paidBy || 'N/A'}${billInfo}`;
+                }).join('\n');
+
+                const prompt = `Analyze the following monthly expenses (amounts are in CAD) and provide insights into spending patterns, top categories, payment methods used, who made the payments, and bill tracking (whether a bill was available and its type). Also, suggest potential areas for saving money. Keep the analysis concise and actionable, without directly addressing the user (e.g., avoid "You spent a lot on..."). Just provide the analysis.
+                
+                Expenses:\n${expensesText}`;
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                console.log("Attempting to call Gemini API...");
+                console.log("Payload:", payload);
+                console.log("API URL:", apiUrl);
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    console.log("Response status:", response.status);
+                    console.log("Response OK:", response.ok);
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Gemini API request failed with status:', response.status, 'Error data:', errorData);
+                        insightsDisplay.innerHTML = `<p class="text-red-700">API request failed: ${response.status} - ${errorData.error.message || 'Unknown error'}.</p>`;
+                        insightsDisplay.classList.add('bg-red-100', 'border-red-300');
+                        return;
+                    }
+
+                    const result = await response.json();
+                    console.log("Gemini API raw result:", result);
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        insightsDisplay.innerHTML = `<p class="text-purple-800 whitespace-pre-wrap">${text}</p>`;
+                    } else {
+                        insightsDisplay.innerHTML = '<p class="text-red-700">Failed to get insights. Unexpected API response structure.</p>';
+                        insightsDisplay.classList.add('bg-red-100', 'border-red-300');
+                        console.error('Gemini API response structure unexpected:', result);
+                    }
+                } catch (error) {
+                    insightsDisplay.innerHTML = '<p class="text-red-700">An error occurred while fetching insights. Check your network connection and browser console for details.</p>';
+                    insightsDisplay.classList.add('bg-red-100', 'border-red-300');
+                    console.error('Error calling Gemini API:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
