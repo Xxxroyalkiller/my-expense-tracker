@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Expenditure Tracker</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        /* Custom scrollbar for the table container */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* Gray-300 */
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background-color: #e2e8f0; /* Gray-200 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center p-4 min-h-screen">
+    <div class="max-w-4xl w-full bg-white shadow-lg rounded-lg p-6 md:p-8 space-y-6">
+        <h1 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">Monthly Expenditure Tracker</h1>
+
+        <!-- Expense Input Form -->
+        <div class="bg-blue-50 p-5 rounded-lg border border-blue-200 shadow-sm">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Add New Expense</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" id="expenseDate" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+                <div>
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-800">
+                </div>
+            </div>
+            <button id="addExpenseBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out">
+                Add Expense
+            </button>
+        </div>
+
+        <!-- Expense List Table -->
+        <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Your Expenses</h2>
+            <div class="overflow-x-auto rounded-lg border border-gray-300 table-container">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount ($)</th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Delete</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Expense rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Total Expenditure Display -->
+        <div class="flex justify-end bg-green-50 p-4 rounded-lg border border-green-200 shadow-sm">
+            <h2 class="text-xl font-bold text-green-800">Total Expenditure: <span id="totalExpenditure" class="text-green-900">$0.00</span></h2>
+        </div>
+
+        <!-- Gemini API Integration Section -->
+        <div class="bg-purple-50 p-5 rounded-lg border border-purple-200 shadow-sm">
+            <h2 class="text-xl font-semibold text-purple-800 mb-4">AI-Powered Insights</h2>
+            <button id="getInsightsBtn" class="w-full bg-purple-600 text-white py-2 px-4 rounded-md shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-200 ease-in-out">
+                Get Spending Insights ✨
+            </button>
+            <div id="insightsDisplay" class="mt-4 p-4 bg-purple-100 rounded-md text-purple-800 border border-purple-300 hidden">
+                <p class="font-medium">Analyzing your expenses...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const expenseDateInput = document.getElementById('expenseDate');
+            const expenseCategoryInput = document.getElementById('expenseCategory');
+            const expenseDescriptionInput = document.getElementById('expenseDescription');
+            const expenseAmountInput = document.getElementById('expenseAmount');
+            const addExpenseBtn = document.getElementById('addExpenseBtn');
+            const expenseTableBody = document.getElementById('expenseTableBody');
+            const totalExpenditureSpan = document.getElementById('totalExpenditure');
+            const getInsightsBtn = document.getElementById('getInsightsBtn'); // New button
+            const insightsDisplay = document.getElementById('insightsDisplay'); // New div
+
+            let expenses = []; // Array to store expense objects
+
+            // Function to render expenses in the table
+            function renderExpenses() {
+                expenseTableBody.innerHTML = ''; // Clear existing rows
+                let total = 0;
+
+                expenses.forEach((expense, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50'; // Add hover effect to rows
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${expense.date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expense.category}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expense.description}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">$${expense.amount.toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button data-index="${index}" class="delete-btn text-red-600 hover:text-red-900 transition duration-150 ease-in-out">
+                                Delete
+                            </button>
+                        </td>
+                    `;
+                    expenseTableBody.appendChild(row);
+                    total += expense.amount;
+                });
+
+                totalExpenditureSpan.textContent = `$${total.toFixed(2)}`;
+
+                // Add event listeners to new delete buttons
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const indexToDelete = parseInt(event.target.dataset.index);
+                        deleteExpense(indexToDelete);
+                    });
+                });
+            }
+
+            // Function to add a new expense
+            addExpenseBtn.addEventListener('click', () => {
+                const date = expenseDateInput.value;
+                const category = expenseCategoryInput.value.trim();
+                const description = expenseDescriptionInput.value.trim();
+                const amount = parseFloat(expenseAmountInput.value);
+
+                if (!date || !category || !description || isNaN(amount) || amount <= 0) {
+                    showMessage('Please fill in all fields with valid data.', 'error');
+                    return;
+                }
+
+                expenses.push({ date, category, description, amount });
+                renderExpenses(); // Re-render the table with the new expense
+
+                // Clear input fields
+                expenseDateInput.value = '';
+                expenseCategoryInput.value = '';
+                expenseDescriptionInput.value = '';
+                expenseAmountInput.value = '';
+
+                showMessage('Expense added successfully!', 'success');
+            });
+
+            // Function to delete an expense
+            function deleteExpense(index) {
+                if (index > -1 && index < expenses.length) {
+                    expenses.splice(index, 1); // Remove expense from array
+                    renderExpenses(); // Re-render the table
+                    showMessage('Expense deleted.', 'info');
+                }
+            }
+
+            // Custom message box function (instead of alert)
+            function showMessage(message, type) {
+                let messageBox = document.getElementById('messageBox');
+                if (!messageBox) {
+                    messageBox = document.createElement('div');
+                    messageBox.id = 'messageBox';
+                    messageBox.className = 'fixed top-4 right-4 p-4 rounded-md shadow-lg text-white font-semibold z-50 transition-all duration-300 transform translate-x-full opacity-0';
+                    document.body.appendChild(messageBox);
+                }
+
+                messageBox.textContent = message;
+                messageBox.classList.remove('bg-red-500', 'bg-green-500', 'bg-blue-500');
+
+                if (type === 'error') {
+                    messageBox.classList.add('bg-red-500');
+                } else if (type === 'success') {
+                    messageBox.classList.add('bg-green-500');
+                } else if (type === 'info') {
+                    messageBox.classList.add('bg-blue-500');
+                }
+
+                // Show message box
+                messageBox.classList.remove('translate-x-full', 'opacity-0');
+                messageBox.classList.add('translate-x-0', 'opacity-100');
+
+                // Hide message box after 3 seconds
+                setTimeout(() => {
+                    messageBox.classList.remove('translate-x-0', 'opacity-100');
+                    messageBox.classList.add('translate-x-full', 'opacity-0');
+                }, 3000);
+            }
+
+            // Set today's date as default for the date input
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const day = String(today.getDate()).padStart(2, '0');
+            expenseDateInput.value = `${year}-${month}-${day}`;
+
+            renderExpenses(); // Initial render to display any pre-existing (empty) state
+
+            // Gemini API Integration Logic
+            getInsightsBtn.addEventListener('click', async () => {
+                if (expenses.length === 0) {
+                    showMessage('Please add some expenses first to get insights!', 'info');
+                    return;
+                }
+
+                insightsDisplay.classList.remove('hidden');
+                insightsDisplay.innerHTML = '<p class="font-medium text-purple-800">Analyzing your expenses... This may take a moment.</p>';
+                insightsDisplay.classList.remove('bg-red-100', 'border-red-300'); // Clear previous error styling
+
+                let expensesText = expenses.map(e => `Date: ${e.date}, Category: ${e.category}, Description: ${e.description}, Amount: $${e.amount.toFixed(2)}`).join('\n');
+                const prompt = `Analyze the following monthly expenses and provide insights into spending patterns, top categories, and general observations. Also, suggest potential areas for saving money. Keep the analysis concise and actionable, without directly addressing the user (e.g., avoid "You spent a lot on..."). Just provide the analysis.
+                
+                Expenses:\n${expensesText}`;
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // Canvas will automatically provide the API key
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        insightsDisplay.innerHTML = `<p class="text-purple-800 whitespace-pre-wrap">${text}</p>`; // Use pre-wrap to respect newlines
+                    } else {
+                        insightsDisplay.innerHTML = '<p class="text-red-700">Failed to get insights. Please try again.</p>';
+                        insightsDisplay.classList.add('bg-red-100', 'border-red-300');
+                        console.error('Gemini API response structure unexpected:', result);
+                    }
+                } catch (error) {
+                    insightsDisplay.innerHTML = '<p class="text-red-700">An error occurred while fetching insights. Check your network connection.</p>';
+                    insightsDisplay.classList.add('bg-red-100', 'border-red-300');
+                    console.error('Error calling Gemini API:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
