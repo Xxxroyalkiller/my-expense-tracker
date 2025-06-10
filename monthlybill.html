@@ -111,10 +111,24 @@
             const addExpenseBtn = document.getElementById('addExpenseBtn');
             const expenseTableBody = document.getElementById('expenseTableBody');
             const totalExpenditureSpan = document.getElementById('totalExpenditure');
-            const getInsightsBtn = document.getElementById('getInsightsBtn'); // New button
-            const insightsDisplay = document.getElementById('insightsDisplay'); // New div
+            const getInsightsBtn = document.getElementById('getInsightsBtn');
+            const insightsDisplay = document.getElementById('insightsDisplay');
 
             let expenses = []; // Array to store expense objects
+            const LOCAL_STORAGE_KEY = 'monthlyExpenses'; // Key for local storage
+
+            // Function to save expenses to Local Storage
+            function saveExpenses() {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(expenses));
+            }
+
+            // Function to load expenses from Local Storage
+            function loadExpenses() {
+                const storedExpenses = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (storedExpenses) {
+                    expenses = JSON.parse(storedExpenses);
+                }
+            }
 
             // Function to render expenses in the table
             function renderExpenses() {
@@ -148,6 +162,7 @@
                         deleteExpense(indexToDelete);
                     });
                 });
+                saveExpenses(); // Save expenses after rendering (which implies a change)
             }
 
             // Function to add a new expense
@@ -163,7 +178,7 @@
                 }
 
                 expenses.push({ date, category, description, amount });
-                renderExpenses(); // Re-render the table with the new expense
+                renderExpenses(); // Re-render the table with the new expense and save
 
                 // Clear input fields
                 expenseDateInput.value = '';
@@ -178,7 +193,7 @@
             function deleteExpense(index) {
                 if (index > -1 && index < expenses.length) {
                     expenses.splice(index, 1); // Remove expense from array
-                    renderExpenses(); // Re-render the table
+                    renderExpenses(); // Re-render the table and save
                     showMessage('Expense deleted.', 'info');
                 }
             }
@@ -222,7 +237,9 @@
             const day = String(today.getDate()).padStart(2, '0');
             expenseDateInput.value = `${year}-${month}-${day}`;
 
-            renderExpenses(); // Initial render to display any pre-existing (empty) state
+            // Load expenses when the page first loads
+            loadExpenses();
+            renderExpenses(); // Initial render to display loaded data
 
             // Gemini API Integration Logic
             getInsightsBtn.addEventListener('click', async () => {
