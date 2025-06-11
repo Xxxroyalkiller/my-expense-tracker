@@ -428,7 +428,7 @@
 
                 <div id="profileDropdownContent" class="profile-dropdown-content hidden">
                     <div class="profile-info">
-                        <div id="profileAvatar" class="profile-avatar">
+                        <div class="profile-avatar">
                             <span id="avatarInitial">G</span>
                         </div>
                         <div id="mainAppUserInfo" class="profile-email"></div>
@@ -593,14 +593,13 @@
                 <div>
                     <h3 class="sub-section-header text-xl mb-2">Data Management</h3>
                     <p class="text-gray-700 mb-4">Export or manage your data.</p>
-                    <button id="exportAllDataBtn" class="btn-secondary w-full">Export All Data (CSV)</button>
-                    <p class="text-gray-500 text-sm mt-2">More data options coming soon!</p>
+                    <button id="exportAllDataBtn" class="btn-secondary w-full">Export All Data (Excel)</button> <p class="text-gray-500 text-sm mt-2">More data options coming soon!</p>
                 </div>
 
                 <div>
                     <h3 class="sub-section-header text-xl mb-2">About</h3>
                     <p class="text-gray-700">Monthly Expenditure Tracker v1.0</p>
-                    <p class="text-gray-700">Developed by Hiranth</p>
+                    <p class="text-gray-700">Developed by Your Name/Company</p>
                 </div>
             </div>
             <button id="saveSettingsBtn" class="btn-primary w-full mt-8">Save Settings</button>
@@ -610,7 +609,7 @@
     <script type="module">
         // Import Firebase functions directly since we're in a single module script now
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // XLSX library is already imported via a separate <script type="module"> tag and attached to window
@@ -670,7 +669,7 @@
 
         const loadingOverlay = document.getElementById('loadingOverlay');
 
-        // NEW: Settings Modal DOM elements
+        // Settings Modal DOM elements
         const settingsModal = document.getElementById('settingsModal');
         const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
         const defaultCurrencySelect = document.getElementById('defaultCurrency');
@@ -682,9 +681,8 @@
         let expenses = [];
         let currentUserId = null;
         let unsubscribeFromExpenses = null;
-        // NEW: User settings (can be stored in localStorage or Firestore later)
         let userSettings = {
-            defaultCurrency: 'CAD' // Default value
+            defaultCurrency: 'CAD' 
         };
 
         const EXCHANGE_RATE_CAD_TO_AED = 2.70;
@@ -719,6 +717,8 @@
         authButton.addEventListener('click', async () => {
             try {
                 showLoading("Signing in with Google...");
+                // Set persistence to session storage before signing in
+                await auth.setPersistence(browserSessionPersistence); 
                 await signInWithPopup(auth, provider);
                 showMessage('Signed in successfully with Google!', 'success');
             } catch (error) {
@@ -738,6 +738,8 @@
         guestButton.addEventListener('click', async () => {
             try {
                 showLoading("Signing in as Guest...");
+                // Set persistence to session storage before signing in
+                await auth.setPersistence(browserSessionPersistence);
                 await signInAnonymously(auth);
                 showMessage('Signed in successfully as Guest!', 'success');
             } catch (error) {
@@ -770,18 +772,18 @@
 
         signOutButton.addEventListener('click', performSignOut);
 
-        // Automatically sign out when the page is closed/navigated away from
-        window.addEventListener('beforeunload', async () => {
-            if (auth.currentUser) {
-                await signOut(auth).catch(e => console.error("Error during automatic sign out on unload:", e));
-            }
-        });
+        // We no longer need to explicitly sign out on `beforeunload` if using `sessionStorage`
+        // as the session will naturally clear.
+        // window.addEventListener('beforeunload', async () => {
+        //     if (auth.currentUser) {
+        //         await signOut(auth).catch(e => console.error("Error during automatic sign out on unload:", e));
+        //     }
+        // });
 
-        // --- NEW: Settings Modal Functionality ---
+        // --- Settings Modal Functionality ---
         settingsButton.addEventListener('click', () => {
             profileDropdownContent.classList.add('hidden'); // Close main dropdown
             settingsModal.classList.remove('hidden'); // Show settings modal
-            // Populate settings fields with current user settings
             defaultCurrencySelect.value = userSettings.defaultCurrency;
         });
 
@@ -791,68 +793,49 @@
 
         // Close modal when clicking outside of the content
         settingsModal.addEventListener('click', (event) => {
-            if (event.target === settingsModal) { // Check if click is directly on the overlay
+            if (event.target === settingsModal) { 
                 settingsModal.classList.add('hidden');
             }
         });
 
         saveSettingsBtn.addEventListener('click', () => {
             userSettings.defaultCurrency = defaultCurrencySelect.value;
-            // In a real app, you'd save userSettings to Firestore/LocalStorage here.
-            localStorage.setItem('userSettings', JSON.stringify(userSettings)); // Example localStorage save
+            localStorage.setItem('userSettings', JSON.stringify(userSettings)); 
             showMessage('Settings saved!', 'success');
             settingsModal.classList.add('hidden');
-            renderExpenses(); // Re-render to reflect currency changes
+            renderExpenses(); 
         });
 
-        // NEW: Export all data to CSV (placeholder for settings modal)
+        // MODIFIED: Export all data to Excel (XLSX)
         exportAllDataBtn.addEventListener('click', () => {
             if (expenses.length === 0) {
                 showMessage('No data to export!', 'info');
                 return;
             }
 
-            // Define headers for CSV
-            const headers = [
-                "Date", "Category", "Description", "Amount (CAD)", "Amount (AED)", 
-                "Amount (INR)", "Payment Method", "Paid By", "Has Bill?", "Bill Type"
-            ];
-            
-            // Map expenses to CSV rows
-            const csvRows = [
-                headers.join(',') // Add header row
-            ];
+            // Prepare data for Excel
+            const dataToExport = expenses.map(expense => ({
+                Date: expense.date,
+                Category: expense.category,
+                Description: expense.description,
+                'Amount (CAD)': parseFloat(expense.amount).toFixed(2),
+                'Amount (AED)': (parseFloat(expense.amount) * EXCHANGE_RATE_CAD_TO_AED).toFixed(2),
+                'Amount (INR)': (parseFloat(expense.amount) * EXCHANGE_RATE_CAD_TO_INR).toFixed(2),
+                'Payment Method': expense.paymentMethod,
+                'Paid By': expense.paidBy,
+                'Has Bill?': expense.hasBill ? 'Yes' : 'No',
+                'Bill Type': expense.hasBill ? (expense.billType || 'N/A') : 'N/A'
+            }));
 
-            expenses.forEach(expense => {
-                const amountCad = parseFloat(expense.amount);
-                const amountAED = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
-                const amountINR = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+            // Create a new workbook and a worksheet
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "All Expenses"); // Sheet name
 
-                const row = [
-                    `"${expense.date}"`, // Enclose to handle commas in data
-                    `"${expense.category}"`,
-                    `"${expense.description}"`,
-                    amountCad.toFixed(2),
-                    amountAED,
-                    amountINR,
-                    `"${expense.paymentMethod || 'N/A'}"`,
-                    `"${expense.paidBy || 'N/A'}"`,
-                    `"${expense.hasBill ? 'Yes' : 'No'}"`,
-                    `"${expense.hasBill ? (expense.billType || 'N/A') : 'N/A'}"`
-                ].map(item => String(item).replace(/"/g, '""')).join(','); // Escape double quotes
-
-                csvRows.push(row);
-            });
-
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute('download', 'all_expenses.csv');
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showMessage('All expenses exported to CSV!', 'success');
+            // Generate and download the XLSX file
+            const fileName = `All_Expenses_${new Date().toISOString().slice(0,10)}.xlsx`; // e.g., All_Expenses_2023-10-27.xlsx
+            XLSX.writeFile(wb, fileName);
+            showMessage('All expenses exported to Excel!', 'success');
         });
 
 
@@ -867,7 +850,7 @@
                 let initial = displayName.charAt(0).toUpperCase();
 
                 if (user.isAnonymous) {
-                    displayEmail = 'guest@example.com'; // Placeholder email for guests
+                    displayEmail = 'guest@example.com'; 
                     displayName = 'Guest';
                     initial = 'G';
                     userInfoDiv.textContent = 'Welcome, Guest!';
@@ -875,9 +858,9 @@
                     userInfoDiv.textContent = `Welcome, ${displayName}!`;
                 }
 
-                mainAppUserInfo.textContent = displayEmail; // Display full email in dropdown
-                profileIconText.textContent = initial;      // Display initial on the toggle button
-                avatarInitial.textContent = initial;        // Display initial in the avatar circle
+                mainAppUserInfo.textContent = displayEmail; 
+                profileIconText.textContent = initial;      
+                avatarInitial.textContent = initial;        
 
                 loginScreen.classList.add('hidden');
                 mainAppContainer.classList.remove('hidden');
@@ -885,13 +868,13 @@
                 console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
                 
                 listenToExpenses(user.uid);
-                loadUserSettings(); // Load settings when user signs in
+                loadUserSettings(); 
             } else {
                 currentUserId = null;
                 userInfoDiv.textContent = 'Please sign in to save your data.';
-                mainAppUserInfo.textContent = ''; // Clear email in dropdown
-                profileIconText.textContent = 'G'; // Reset icon to Guest
-                avatarInitial.textContent = 'G';    // Reset avatar initial
+                mainAppUserInfo.textContent = ''; 
+                profileIconText.textContent = 'G'; 
+                avatarInitial.textContent = 'G';    
 
                 mainAppContainer.classList.add('hidden');
                 loginScreen.classList.remove('hidden');
@@ -902,12 +885,11 @@
                 renderExpenses();
                 if (unsubscribeFromExpenses) {
                     unsubscribeFromExpenses();
-                    unsubscribeFromExpenses = null; // Clear the reference after unsubscription
+                    unsubscribeFromExpenses = null; 
                 }
                 showMessage('Your data will be available when you sign in.', 'info');
-                // Reset settings to default if user signs out
                 userSettings = { defaultCurrency: 'CAD' }; 
-                localStorage.removeItem('userSettings'); // Clear localStorage settings
+                localStorage.removeItem('userSettings'); 
             }
             console.log("Auth state check complete, hiding loading overlay.");
             hideLoading();
@@ -915,9 +897,9 @@
 
         // --- Dropdown Toggle Logic ---
         profileToggleButton.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent document click from closing it immediately
+            event.stopPropagation(); 
             profileDropdownContent.classList.toggle('hidden');
-            profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
+            profileDropdownContent.classList.toggle('active'); 
         });
 
         // Close dropdown when clicking outside
@@ -965,7 +947,7 @@
             });
         }
 
-        // NEW: Load user settings from localStorage (can be extended to Firestore later)
+        // Load user settings from localStorage (can be extended to Firestore later)
         function loadUserSettings() {
             try {
                 const savedSettings = localStorage.getItem('userSettings');
@@ -974,7 +956,7 @@
                 }
             } catch (e) {
                 console.error("Error loading user settings from localStorage:", e);
-                localStorage.removeItem('userSettings'); // Clear corrupted settings
+                localStorage.removeItem('userSettings'); 
             }
         }
 
@@ -1003,6 +985,8 @@
                 const amountINR = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
 
                 let displayAmount;
+                // This part determines which currency is shown in the first amount column,
+                // but the CAD, AED, INR columns will still show their respective values.
                 switch(userSettings.defaultCurrency) {
                     case 'AED':
                         displayAmount = `AED ${amountAED}`;
@@ -1036,7 +1020,7 @@
                 `;
             });
 
-            totalExpenditureSpan.textContent = `C$${totalExpenditure.toFixed(2)}`; // Always show total in CAD for consistency
+            totalExpenditureSpan.textContent = `C$${totalExpenditure.toFixed(2)}`; 
             updateCharts(monthlyExpenses, categoryExpenses);
             populateMonthSelect();
         }
@@ -1389,7 +1373,7 @@
             const dd = String(today.getDate()).padStart(2, '0');
             expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
 
-            loadUserSettings(); // Load settings early on DOMContentLoaded
+            loadUserSettings(); 
             updateCharts({}, {});
             populateMonthSelect();
         });
