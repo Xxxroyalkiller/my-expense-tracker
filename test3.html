@@ -14,7 +14,7 @@
     <style>
         /* Apple-like font stack (system fonts with fallbacks) */
         body {
-            font-family: -apple-system, BlinkMacMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
             background-color: #f5f5f7; /* Very light gray, almost white */
             display: flex;
             justify-content: center;
@@ -481,11 +481,8 @@
             <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">My Dashboard</h1>
 
             <div class="flex items-center gap-4">
-                <!-- NEW: Main Settings Button (explicitly visible) -->
-                <button id="mainSettingsButton" class="btn-secondary">
-                    <i class="fas fa-cog"></i> Settings
-                </button>
-
+                <!-- Removed standalone Main Settings Button -->
+                <!-- The Settings button is now only in the profile dropdown -->
                 <div class="profile-dropdown-container">
                     <button id="profileToggleButton" class="profile-toggle-button">
                         <span id="profileIconText">G</span>
@@ -602,7 +599,7 @@
                 <i class="fas fa-magic"></i> Get Spending Insights ✨
             </button>
             <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
-                <p class="font-medium">Analyzing your expenses...</p>
+                <p class="font-medium">Analyzing your spending patterns...</p>
             </div>
         </div>
 
@@ -645,7 +642,7 @@
             <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses in either .xlsx (Excel) or .csv format.</p>
         </div>
 
-        <!-- NEW: Custom Data Management Section (Initially Hidden) -->
+        <!-- Custom Data Management Section (Initially Hidden) -->
         <div id="customDataSection" class="app-card hidden">
             <h2 class="section-header text-left">Your Custom Data Types</h2>
             <p class="text-gray-600 mb-6">Create and manage your own custom data categories. Each type acts like a separate table or sheet.</p>
@@ -664,7 +661,7 @@
             </button>
         </div>
 
-        <!-- NEW: All Custom Data Display Section (Initially Hidden) -->
+        <!-- All Custom Data Display Section (Initially Hidden) -->
         <div id="allCustomDataDisplaySection" class="app-card hidden">
             <h2 class="section-header text-left">All Your Custom Data</h2>
             <p class="text-gray-600 mb-6">A consolidated view of all entries across your custom data types.</p>
@@ -677,7 +674,7 @@
             </button>
         </div>
 
-        <!-- NEW: Settings Section (Initially Hidden) -->
+        <!-- Settings Section (Initially Hidden) -->
         <div id="settingsSection" class="app-card hidden">
             <h2 class="section-header text-left">Settings</h2>
             <p class="text-gray-600 mb-6">Manage your preferences and account.</p>
@@ -717,7 +714,7 @@
             </button>
         </div>
 
-        <!-- NEW: Modal for adding new data type -->
+        <!-- Modal for adding new data type -->
         <div id="addDataTypeModal" class="app-modal hidden">
             <div class="app-modal-content">
                 <button class="modal-close-btn" data-modal="addDataTypeModal"><i class="fas fa-times"></i></button>
@@ -733,7 +730,7 @@
             </div>
         </div>
 
-        <!-- NEW: Generic Modal for adding data entries to custom types -->
+        <!-- Generic Modal for adding data entries to custom types -->
         <!-- This modal will be dynamically populated based on the data type clicked -->
         <div id="addCustomEntryModal" class="app-modal hidden">
             <div class="app-modal-content">
@@ -754,7 +751,11 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, updateDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
+        // IMPORTANT: If you are running this in a Canvas environment,
+        // __app_id and __firebase_config might be provided automatically.
+        // If so, comment out or remove the static firebaseConfig object below.
+        // If not, ensure you replace ALL 'YOUR_...' placeholders with your actual Firebase project details.
+
         const firebaseConfig = {
             apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
   authDomain: "my-expenese-tracker.firebaseapp.com",
@@ -765,10 +766,34 @@
   measurementId: "G-1CF1ZNLPC2"
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // --- Canvas Environment Check (Highly Recommended) ---
+        // If running in Canvas, these variables may be globally available.
+        // Use them if they exist to automatically configure Firebase.
+        let app;
+        let auth;
+        let db;
+
+        if (typeof __firebase_config !== 'undefined' && typeof __app_id !== 'undefined') {
+            try {
+                const canvasFirebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(canvasFirebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                console.log("Firebase initialized using Canvas environment variables.");
+            } catch (e) {
+                console.error("Error parsing __firebase_config from Canvas environment:", e);
+                console.warn("Falling back to static firebaseConfig. Please ensure it's correctly set or address the Canvas config issue.");
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            }
+        } else {
+            console.log("Canvas environment variables for Firebase not found. Initializing with static firebaseConfig.");
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
+
         const provider = new GoogleAuthProvider();
 
         // --- DOM Elements ---
@@ -838,8 +863,6 @@
         const deleteAccountButton = document.getElementById('deleteAccountButton');
         const saveSettingsButton = document.getElementById('saveSettingsButton');
         const closeSettingsButton = document.getElementById('closeSettingsButton');
-        // NEW: Main Settings Button Reference
-        const mainSettingsButton = document.getElementById('mainSettingsButton');
 
 
         // NEW: Modal Elements
@@ -2077,17 +2100,8 @@
 
 
         // --- NEW: Settings Functions ---
-        if (mainSettingsButton) { // Ensure button exists
-            mainSettingsButton.addEventListener('click', () => {
-                if (!currentUserId) {
-                    showMessage('Please sign in to access settings.', 'info');
-                    return;
-                }
-                showSection('settingsSection');
-                loadUserSettings();
-            });
-        }
-
+        // Removed standalone mainSettingsButton listener
+        // The Settings button is now only in the profile dropdown
 
         closeSettingsButton.addEventListener('click', () => {
             showSection('expensesSection'); // Go back to default expenses view
@@ -2204,7 +2218,7 @@
                     <div class="app-modal-content">
                         <h3 class="text-xl font-bold text-red-700 mb-4">Confirm Account Deletion</h3>
                         <p class="text-gray-600 mb-6">WARNING: This action is irreversible and all your data will be permanently lost.</p>
-                        <p class="text-gray-600 mb-6">Are you absolutely sure you want to delete your account?</p>
+                        <p class="text-600 mb-6">Are you absolutely sure you want to delete your account?</p>
                         <div class="flex justify-end gap-3">
                             <button id="cancelDeleteAccountBtn" class="btn-secondary">Cancel</button>
                             <button id="confirmDeleteAccountBtn" class="btn-danger">Delete My Account</button>
@@ -2334,6 +2348,7 @@
             profileDropdownContent.classList.add('hidden');
         });
 
+        // Re-added the "Settings" button to the profile dropdown
         const navToSettingsBtn = document.createElement('button');
         navToSettingsBtn.className = 'btn-secondary w-full text-left';
         navToSettingsBtn.innerHTML = '<i class="fas fa-cog"></i> Settings';
@@ -2343,8 +2358,8 @@
             profileDropdownContent.classList.add('hidden');
         });
 
-        // Insert these navigation buttons into the profile dropdown before the sign out button
-        profileDropdownContent.insertBefore(navToSettingsBtn, signOutButton);
+        // Insert navigation buttons into the profile dropdown before the sign out button
+        profileDropdownContent.insertBefore(navToSettingsBtn, signOutButton); // Settings first
         profileDropdownContent.insertBefore(navToCustomDataBtn, navToSettingsBtn);
         profileDropdownContent.insertBefore(navToExpensesBtn, navToCustomDataBtn);
 
