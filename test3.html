@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
+    <!-- SheetJS CDN for XLSX export -->
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -420,7 +421,7 @@
         .data-display-table tbody tr:hover {
             background-color: #f4f4f6;
         }
-        
+
         /* Account settings specific styling */
         .setting-group {
             padding: 20px;
@@ -479,29 +480,38 @@
         <div class="app-card flex flex-col md:flex-row items-center justify-between">
             <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">My Dashboard</h1>
 
-            <div class="profile-dropdown-container">
-                <button id="profileToggleButton" class="profile-toggle-button">
-                    <span id="profileIconText">G</span>
+            <div class="flex items-center gap-4">
+                <!-- NEW: Main Settings Button (explicitly visible) -->
+                <button id="mainSettingsButton" class="btn-secondary">
+                    <i class="fas fa-cog"></i> Settings
                 </button>
 
-                <div id="profileDropdownContent" class="profile-dropdown-content hidden">
-                    <div class="profile-info">
-                        <div id="profileAvatar" class="profile-avatar">
-                            <span id="avatarInitial">G</span>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-gray-800" id="profileDisplayName">Guest User</div>
-                            <div id="mainAppUserInfo" class="text-gray-500 text-sm">guest@example.com</div>
-                        </div>
-                    </div>
-                    <hr class="border-gray-200 my-2">
-                    <button id="signOutButton" class="dropdown-signout-btn">
-                        <i class="fas fa-sign-out-alt"></i> Sign Out
+                <div class="profile-dropdown-container">
+                    <button id="profileToggleButton" class="profile-toggle-button">
+                        <span id="profileIconText">G</span>
                     </button>
+
+                    <div id="profileDropdownContent" class="profile-dropdown-content hidden">
+                        <div class="profile-info">
+                            <div id="profileAvatar" class="profile-avatar">
+                                <span id="avatarInitial">G</span>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-800" id="profileDisplayName">Guest User</div>
+                                <div id="mainAppUserInfo" class="text-gray-500 text-sm">guest@example.com</div>
+                            </div>
+                        </div>
+                        <hr class="border-gray-200 my-2">
+                        <!-- Navigation buttons will be inserted here by JS -->
+                        <button id="signOutButton" class="dropdown-signout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Sign Out
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Main Content Area - Initially visible for expenses -->
         <div id="expensesSection" class="app-card">
             <h2 class="sub-section-header">Add New Expense</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -635,6 +645,7 @@
             <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses in either .xlsx (Excel) or .csv format.</p>
         </div>
 
+        <!-- NEW: Custom Data Management Section (Initially Hidden) -->
         <div id="customDataSection" class="app-card hidden">
             <h2 class="section-header text-left">Your Custom Data Types</h2>
             <p class="text-gray-600 mb-6">Create and manage your own custom data categories. Each type acts like a separate table or sheet.</p>
@@ -644,6 +655,7 @@
             </button>
 
             <div id="dataCategoriesList" class="space-y-4">
+                <!-- Dynamic list of custom data types will be rendered here -->
                 <p class="text-gray-500 italic" id="noCustomDataMessage">No custom data types added yet. Click "Add New Data Type" to get started!</p>
             </div>
 
@@ -652,10 +664,12 @@
             </button>
         </div>
 
+        <!-- NEW: All Custom Data Display Section (Initially Hidden) -->
         <div id="allCustomDataDisplaySection" class="app-card hidden">
             <h2 class="section-header text-left">All Your Custom Data</h2>
             <p class="text-gray-600 mb-6">A consolidated view of all entries across your custom data types.</p>
             <div id="allCustomDataContent">
+                <!-- Aggregated data tables will be rendered here -->
                 <p class="text-gray-500 italic">Loading all custom data...</p>
             </div>
             <button id="closeAllCustomDataBtn" class="btn-secondary w-full mt-6">
@@ -663,6 +677,7 @@
             </button>
         </div>
 
+        <!-- NEW: Settings Section (Initially Hidden) -->
         <div id="settingsSection" class="app-card hidden">
             <h2 class="section-header text-left">Settings</h2>
             <p class="text-gray-600 mb-6">Manage your preferences and account.</p>
@@ -702,6 +717,7 @@
             </button>
         </div>
 
+        <!-- NEW: Modal for adding new data type -->
         <div id="addDataTypeModal" class="app-modal hidden">
             <div class="app-modal-content">
                 <button class="modal-close-btn" data-modal="addDataTypeModal"><i class="fas fa-times"></i></button>
@@ -717,12 +733,15 @@
             </div>
         </div>
 
+        <!-- NEW: Generic Modal for adding data entries to custom types -->
+        <!-- This modal will be dynamically populated based on the data type clicked -->
         <div id="addCustomEntryModal" class="app-modal hidden">
             <div class="app-modal-content">
                 <button class="modal-close-btn" data-modal="addCustomEntryModal"><i class="fas fa-times"></i></button>
                 <h3 class="text-xl font-bold text-gray-800 mb-4" id="addCustomEntryModalTitle">Add New Entry</h3>
                 <form id="customEntryForm" class="space-y-4">
-                    </form>
+                    <!-- Dynamic form fields will be injected here based on data type -->
+                </form>
                 <button id="saveCustomEntryBtn" class="btn-primary w-full mt-6">
                     <i class="fas fa-save"></i> Save Entry
                 </button>
@@ -737,13 +756,13 @@
 
         // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
         const firebaseConfig = {
-            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
-  authDomain: "my-expenese-tracker.firebaseapp.com",
-  projectId: "my-expenese-tracker",
-  storageBucket: "my-expenese-tracker.firebasestorage.app",
-  messagingSenderId: "466782350290",
-  appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
-  measurementId: "G-1CF1ZNLPC2"
+            apiKey: "YOUR_API_KEY", // <--- REPLACE THIS WITH YOUR API KEY
+            authDomain: "YOUR_AUTH_DOMAIN", // <--- REPLACE THIS WITH YOUR AUTH DOMAIN
+            projectId: "YOUR_PROJECT_ID", // <--- REPLACE THIS WITH YOUR PROJECT ID
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID", // <--- REPLACE THIS WITH YOUR APP ID
+            measurementId: "YOUR_MEASUREMENT_ID"
         };
 
         // Initialize Firebase
@@ -819,6 +838,9 @@
         const deleteAccountButton = document.getElementById('deleteAccountButton');
         const saveSettingsButton = document.getElementById('saveSettingsButton');
         const closeSettingsButton = document.getElementById('closeSettingsButton');
+        // NEW: Main Settings Button Reference
+        const mainSettingsButton = document.getElementById('mainSettingsButton');
+
 
         // NEW: Modal Elements
         const addDataTypeModal = document.getElementById('addDataTypeModal');
@@ -1141,9 +1163,36 @@
                 showMessage('Please sign in to delete expenses.', 'info');
                 return;
             }
-            if (!confirm('Are you sure you want to delete this expense?')) {
+            // Using a custom modal for confirmation
+            const confirmed = await new Promise(resolve => {
+                const confirmationModal = document.createElement('div');
+                confirmationModal.className = 'app-modal';
+                confirmationModal.innerHTML = `
+                    <div class="app-modal-content">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Confirm Deletion</h3>
+                        <p class="text-gray-600 mb-6">Are you sure you want to delete this expense?</p>
+                        <div class="flex justify-end gap-3">
+                            <button id="cancelDeleteBtn" class="btn-secondary">Cancel</button>
+                            <button id="confirmDeleteBtn" class="btn-danger">Delete</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(confirmationModal);
+
+                document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+                    resolve(true);
+                    confirmationModal.remove();
+                });
+                document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+                    resolve(false);
+                    confirmationModal.remove();
+                });
+            });
+
+            if (!confirmed) {
                 return;
             }
+
             try {
                 showLoading("Deleting expense...");
                 await deleteDoc(doc(db, `users/${currentUserId}/expenses`, id));
@@ -1363,7 +1412,7 @@
         function populateMonthSelect() {
             const months = new Set();
             expenses.forEach(exp => {
-                months.add(new Date(exp.date).toISOString().substring(0, 7)); // YYYY-MM format
+                months.add(new Date(exp.date).toISOString().substring(0, 7)); //yyyy-MM format
             });
 
             monthSelect.innerHTML = '<option value="">Select a month...</option>';
@@ -1487,10 +1536,10 @@
                        .replace(/([A-Z])/g, ' $1').trim();
         }
 
-        // Helper to format display name to collection name
+        // Helper to format display name to collection name (Firestore friendly)
         function formatDisplayNameToCollectionName(name) {
             if (!name) return '';
-            return name.toLowerCase().replace(/\s/g, ''); // Simple camelCase like
+            return name.toLowerCase().replace(/\s/g, ''); // Simple conversion to 'camelCase'
         }
 
         addDataTypeBtn.addEventListener('click', () => {
@@ -1516,7 +1565,7 @@
                 return;
             }
 
-            if (!currentUserId) { // Should be covered by addDataTypeBtn guard, but good to double check
+            if (!currentUserId) {
                 showMessage('User not authenticated for this action.', 'error');
                 return;
             }
@@ -1526,7 +1575,7 @@
                 const userDocRef = doc(db, 'users', currentUserId);
                 const userDocSnap = await getDoc(userDocRef);
 
-                let updatedCustomDataTypes = userDocSnap.data().customDataTypes || [];
+                let updatedCustomDataTypes = userDocSnap.exists() && userDocSnap.data().customDataTypes ? userDocSnap.data().customDataTypes : [];
                 updatedCustomDataTypes.push(collectionName);
 
                 await updateDoc(userDocRef, { customDataTypes: updatedCustomDataTypes });
@@ -1562,13 +1611,13 @@
                             <i class="fas fa-trash-alt"></i> Delete
                         </button>
                     </h4>
-                    <p class="text-sm text-gray-500 mb-3">Entries for this type:</p>
+                    <p class="text-sm text-gray-500 mb-3">Entries for this type (preview):</p>
                     <div id="${dataType}-entries-preview" class="mb-4 overflow-x-auto table-container" style="max-height: 200px;">
                         <p class="text-gray-400 italic">Loading entries...</p>
                     </div>
-                    <div class="flex gap-3">
+                    <div class="flex flex-wrap gap-3">
                         <button class="btn-secondary btn-sm add-custom-entry-btn" data-type="${dataType}">
-                            <i class="fas fa-plus-circle"></i> Add New Entry to ${displayTypeName}
+                            <i class="fas fa-plus-circle"></i> Add New Entry
                         </button>
                         <button class="btn-secondary btn-sm refresh-custom-entry-btn" data-type="${dataType}">
                             <i class="fas fa-sync-alt"></i> Refresh
@@ -1622,10 +1671,15 @@
                 } else {
                     let tableHtml = `<table class="data-display-table"><thead><tr>`;
                     const firstDoc = querySnapshot.docs[0];
-                    const dataKeys = Object.keys(firstDoc.data()).filter(key => key !== 'timestamp'); // Exclude timestamp
-                    
+                    // Get all unique keys from all docs for comprehensive headers
+                    const allKeys = new Set();
+                    querySnapshot.forEach(doc => {
+                        Object.keys(doc.data()).filter(key => key !== 'timestamp').forEach(key => allKeys.add(key));
+                    });
+                    const dataKeys = Array.from(allKeys).sort(); // Sort keys for consistent order
+
                     // Limit to first few columns for preview
-                    const previewKeys = dataKeys.slice(0, 3); 
+                    const previewKeys = dataKeys.slice(0, 3);
 
                     previewKeys.forEach(key => {
                         tableHtml += `<th>${formatCollectionNameForDisplay(key)}</th>`;
@@ -1660,7 +1714,32 @@
                 showMessage('Please sign in to delete custom data types.', 'info');
                 return;
             }
-            if (!confirm(`Are you sure you want to delete the "${formatCollectionNameForDisplay(dataType)}" data type and ALL its entries? This cannot be undone!`)) {
+            const confirmed = await new Promise(resolve => {
+                const confirmationModal = document.createElement('div');
+                confirmationModal.className = 'app-modal';
+                confirmationModal.innerHTML = `
+                    <div class="app-modal-content">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Confirm Deletion</h3>
+                        <p class="text-gray-600 mb-6">Are you sure you want to delete the "${formatCollectionNameForDisplay(dataType)}" data type and ALL its entries? This cannot be undone!</p>
+                        <div class="flex justify-end gap-3">
+                            <button id="cancelDeleteTypeBtn" class="btn-secondary">Cancel</button>
+                            <button id="confirmDeleteTypeBtn" class="btn-danger">Delete All</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(confirmationModal);
+
+                document.getElementById('confirmDeleteTypeBtn').addEventListener('click', () => {
+                    resolve(true);
+                    confirmationModal.remove();
+                });
+                document.getElementById('cancelDeleteTypeBtn').addEventListener('click', () => {
+                    resolve(false);
+                    confirmationModal.remove();
+                });
+            });
+
+            if (!confirmed) {
                 return;
             }
 
@@ -1698,8 +1777,11 @@
             const displayTypeName = formatCollectionNameForDisplay(dataType);
             addCustomEntryModalTitle.textContent = `Add New ${displayTypeName} Entry`;
             customEntryForm.innerHTML = ''; // Clear previous form fields
+            dynamicFieldCounter = 2; // Reset dynamic field counter for a new modal (starts from Field 2)
 
             // Define schema for common data types (you can extend this!)
+            // These schemas will determine the default fields for each custom data type.
+            // If a data type is not defined here, it will default to flexible key-value pairs.
             const schema = {
                 'workoutlogs': [
                     { label: 'Date', id: 'workoutDate', type: 'date', required: true },
@@ -1712,34 +1794,72 @@
                     { label: 'Date Finished', id: 'dateFinished', type: 'date', required: false },
                     { label: 'Rating (1-5)', id: 'bookRating', type: 'number', min: '1', max: '5', required: false }
                 ],
+                'projects': [
+                    { label: 'Project Name', id: 'projectName', type: 'text', required: true },
+                    { label: 'Status', id: 'projectStatus', type: 'select', options: ['Planning', 'In Progress', 'Completed', 'On Hold'], required: true },
+                    { label: 'Due Date', id: 'projectDueDate', type: 'date', required: false },
+                    { label: 'Notes', id: 'projectNotes', type: 'textarea', required: false } // Added textarea for multi-line
+                ]
                 // Add more schemas for other default data types as needed
-                // If a type is not in schema, allow dynamic text fields
             };
 
-            const typeFields = schema[dataType] || [
-                { label: 'Field 1 Name', id: 'field1Name', type: 'text', required: true, isDynamicField: true },
-                { label: 'Field 1 Value', id: 'field1Value', type: 'text', required: true, isDynamicField: true },
-                { label: 'Field 2 Name (Optional)', id: 'field2Name', type: 'text', required: false, isDynamicField: true },
-                { label: 'Field 2 Value (Optional)', id: 'field2Value', type: 'text', required: false, isDynamicField: true }
-            ];
+            const typeFields = schema[dataType];
 
-            typeFields.forEach(field => {
+            if (typeFields) {
+                typeFields.forEach(field => {
+                    const div = document.createElement('div');
+                    if (field.type === 'select') {
+                        let optionsHtml = field.options.map(option => `<option value="${option}">${option}</option>`).join('');
+                        div.innerHTML = `
+                            <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
+                            <select id="${field.id}" class="app-input app-select" ${field.required ? 'required' : ''}>
+                                <option value="">Select an option</option>
+                                ${optionsHtml}
+                            </select>
+                        `;
+                    } else if (field.type === 'textarea') {
+                         div.innerHTML = `
+                            <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
+                            <textarea id="${field.id}" class="app-input" rows="3"
+                                ${field.required ? 'required' : ''}
+                                ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}>
+                            </textarea>
+                        `;
+                    }
+                    else {
+                        div.innerHTML = `
+                            <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
+                            <input type="${field.type}" id="${field.id}" class="app-input"
+                                   ${field.required ? 'required' : ''}
+                                   ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
+                                   ${field.step ? `step="${field.step}"` : ''}
+                                   ${field.min ? `min="${field.min}"` : ''}
+                                   ${field.max ? `max="${field.max}"` : ''}>
+                        `;
+                    }
+                    customEntryForm.appendChild(div);
+                });
+            } else {
+                // Default flexible key-value pair input
+                // Start with one pair of dynamic fields (Field 1 Name, Field 1 Value)
                 const div = document.createElement('div');
+                div.className = 'flex items-end gap-2';
                 div.innerHTML = `
-                    <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
-                    <input type="${field.type}" id="${field.id}" class="app-input"
-                           ${field.required ? 'required' : ''}
-                           ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
-                           ${field.step ? `step="${field.step}"` : ''}
-                           ${field.min ? `min="${field.min}"` : ''}
-                           ${field.max ? `max="${field.max}"` : ''}
-                           ${field.isDynamicField ? `data-is-dynamic="true"` : ''}>
+                    <div class="flex-1">
+                        <label for="field1Name" class="block text-sm font-medium text-gray-600 mb-1">Field 1 Name:</label>
+                        <input type="text" id="field1Name" class="app-input" required data-is-dynamic="true" placeholder="e.g., Task">
+                    </div>
+                    <div class="flex-1">
+                        <label for="field1Value" class="block text-sm font-medium text-gray-600 mb-1">Field 1 Value:</label>
+                        <input type="text" id="field1Value" class="app-input" required data-is-dynamic="true" placeholder="e.g., Complete Report">
+                    </div>
+                    <button type="button" class="btn-danger p-2 h-10 w-10 flex-shrink-0 remove-dynamic-field-btn hidden">
+                        <i class="fas fa-minus"></i>
+                    </button>
                 `;
                 customEntryForm.appendChild(div);
-            });
 
-            // Add a "Add More Fields" button for dynamic fields if applicable
-            if (typeFields[0].isDynamicField) {
+
                 const addFieldBtn = document.createElement('button');
                 addFieldBtn.type = 'button';
                 addFieldBtn.className = 'btn-secondary btn-sm mt-3';
@@ -1751,33 +1871,40 @@
             showModal(addCustomEntryModal);
         }
 
-        let dynamicFieldCounter = 3; // Start from Field 3 for dynamic additions
+        let dynamicFieldCounter = 2; // Starts from Field 2 for dynamic additions if using flexible input
 
         function addDynamicFieldToForm(formElement) {
             const div = document.createElement('div');
-            div.className = 'flex items-end gap-2'; // Use flexbox for horizontal alignment
+            div.className = 'flex items-end gap-2';
             div.innerHTML = `
                 <div class="flex-1">
                     <label for="field${dynamicFieldCounter}Name" class="block text-sm font-medium text-gray-600 mb-1">Field ${dynamicFieldCounter} Name:</label>
-                    <input type="text" id="field${dynamicFieldCounter}Name" class="app-input" required data-is-dynamic="true">
+                    <input type="text" id="field${dynamicFieldCounter}Name" class="app-input" required data-is-dynamic="true" placeholder="e.g., Priority">
                 </div>
                 <div class="flex-1">
                     <label for="field${dynamicFieldCounter}Value" class="block text-sm font-medium text-gray-600 mb-1">Field ${dynamicFieldCounter} Value:</label>
-                    <input type="text" id="field${dynamicFieldCounter}Value" class="app-input" required data-is-dynamic="true">
+                    <input type="text" id="field${dynamicFieldCounter}Value" class="app-input" required data-is-dynamic="true" placeholder="e.g., High">
                 </div>
-                <button type="button" class="btn-danger p-2 h-10 w-10 flex-shrink-0" onclick="this.parentNode.remove()">
+                <button type="button" class="btn-danger p-2 h-10 w-10 flex-shrink-0 remove-dynamic-field-btn">
                     <i class="fas fa-minus"></i>
                 </button>
             `;
+
+            // Add event listener for the new remove button
+            div.querySelector('.remove-dynamic-field-btn').addEventListener('click', () => {
+                div.remove();
+            });
+
             // Insert before the Save button or "Add Another Field" button
+            const addFieldBtn = formElement.querySelector('.btn-secondary.mt-3'); // Assuming this button is at the end of dynamic fields
             const saveBtn = formElement.querySelector('#saveCustomEntryBtn');
-            const addFieldBtn = formElement.querySelector('.btn-secondary.mt-3');
+
             if (addFieldBtn) {
                  formElement.insertBefore(div, addFieldBtn);
             } else if (saveBtn) {
                  formElement.insertBefore(div, saveBtn.parentNode); // Assuming save button is wrapped in a div/flex container
             } else {
-                 formElement.appendChild(div);
+                 formElement.appendChild(div); // Fallback if structure is unexpected
             }
 
             dynamicFieldCounter++;
@@ -1791,21 +1918,24 @@
 
             const formData = {};
             let isValid = true;
-            const inputElements = customEntryForm.querySelectorAll('input, select');
+            const inputElements = customEntryForm.querySelectorAll('input, select, textarea'); // Include textarea
 
             // Collect data based on fields in the form
-            let dynamicFieldName = null;
+            const dynamicFieldsGroup = {}; // Group dynamic fields by their number
+
             inputElements.forEach(input => {
                 if (input.dataset.isDynamic === 'true') {
-                    if (input.id.includes('Name')) {
-                        dynamicFieldName = input.value.trim();
-                    } else if (input.id.includes('Value')) {
-                        if (dynamicFieldName) {
-                            formData[dynamicFieldName] = input.value.trim();
-                            dynamicFieldName = null; // Reset for next pair
-                        }
+                    const fieldNumMatch = input.id.match(/^field(\d+)(Name|Value)$/);
+                    if (fieldNumMatch) {
+                        const fieldNum = fieldNumMatch[1];
+                        const fieldType = fieldNumMatch[2]; // 'Name' or 'Value'
+                        if (!dynamicFieldsGroup[fieldNum]) dynamicFieldsGroup[fieldNum] = {};
+                        dynamicFieldsGroup[fieldNum][fieldType] = input.value.trim();
                     }
                 } else {
+                    if (input.required && !input.value.trim()) {
+                        isValid = false;
+                    }
                     if (input.type === 'number') {
                         formData[input.id] = parseFloat(input.value);
                     } else if (input.type === 'checkbox') {
@@ -1814,14 +1944,21 @@
                         formData[input.id] = input.value.trim();
                     }
                 }
-
-                if (input.required && !input.value.trim()) {
-                    isValid = false;
-                }
             });
 
+            // Process grouped dynamic fields
+            for (const fieldNum in dynamicFieldsGroup) {
+                const fieldData = dynamicFieldsGroup[fieldNum];
+                if (fieldData.Name && fieldData.Value) {
+                    formData[fieldData.Name] = fieldData.Value;
+                } else if (fieldData.Name || fieldData.Value) { // If one is present but not the other
+                    isValid = false; // Mark as invalid
+                }
+            }
+
+
             if (!isValid) {
-                showMessage('Please fill in all required fields.', 'error');
+                showMessage('Please fill in all required fields and ensure all dynamic field pairs have both a name and a value.', 'error');
                 return;
             }
 
@@ -1920,14 +2057,17 @@
 
 
         // --- NEW: Settings Functions ---
-        settingsButton.addEventListener('click', () => {
-            if (!currentUserId) {
-                showMessage('Please sign in to access settings.', 'info');
-                return;
-            }
-            showSection('settingsSection');
-            loadUserSettings();
-        });
+        if (mainSettingsButton) { // Ensure button exists
+            mainSettingsButton.addEventListener('click', () => {
+                if (!currentUserId) {
+                    showMessage('Please sign in to access settings.', 'info');
+                    return;
+                }
+                showSection('settingsSection');
+                loadUserSettings();
+            });
+        }
+
 
         closeSettingsButton.addEventListener('click', () => {
             showSection('expensesSection'); // Go back to default expenses view
@@ -1990,7 +2130,7 @@
                 return;
             }
             if (!auth.currentUser.email) {
-                 showMessage('You signed in without an email, cannot change password. Try Google Sign-In.', 'error');
+                 showMessage('You signed in without an email, cannot change password. Try Google Sign-In or set an email first.', 'error');
                  return;
             }
 
@@ -2022,6 +2162,8 @@
                     errorMessage = 'User not found. Please sign in again.';
                 } else if (error.code === 'auth/requires-recent-login') {
                     errorMessage = 'Please sign out and sign back in before changing your password.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email for authentication. This should not happen if signed in via Google.';
                 }
                 showMessage(errorMessage, "error");
             } finally {
@@ -2035,31 +2177,60 @@
                 return;
             }
 
-            if (!confirm("WARNING: Are you absolutely sure you want to delete your account? This action is irreversible and all your data will be lost.")) {
+            const confirmed = await new Promise(resolve => {
+                const confirmationModal = document.createElement('div');
+                confirmationModal.className = 'app-modal';
+                confirmationModal.innerHTML = `
+                    <div class="app-modal-content">
+                        <h3 class="text-xl font-bold text-red-700 mb-4">Confirm Account Deletion</h3>
+                        <p class="text-gray-600 mb-6">WARNING: This action is irreversible and all your data will be permanently lost.</p>
+                        <p class="text-gray-600 mb-6">Are you absolutely sure you want to delete your account?</p>
+                        <div class="flex justify-end gap-3">
+                            <button id="cancelDeleteAccountBtn" class="btn-secondary">Cancel</button>
+                            <button id="confirmDeleteAccountBtn" class="btn-danger">Delete My Account</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(confirmationModal);
+
+                document.getElementById('confirmDeleteAccountBtn').addEventListener('click', () => {
+                    resolve(true);
+                    confirmationModal.remove();
+                });
+                document.getElementById('cancelDeleteAccountBtn').addEventListener('click', () => {
+                    resolve(false);
+                    confirmationModal.remove();
+                });
+            });
+
+            if (!confirmed) {
                 return;
             }
 
             let currentPassword = null;
-            if (!auth.currentUser.isAnonymous) {
-                currentPassword = prompt("Enter your current password to confirm account deletion:");
+            if (!auth.currentUser.isAnonymous && auth.currentUser.providerData.some(p => p.providerId === 'password')) { // Only prompt for password if it's an email/password user
+                currentPassword = prompt("Enter your password to confirm account deletion:");
                 if (!currentPassword) {
-                    showMessage("Current password is required to confirm deletion.", "error");
+                    showMessage("Password is required to confirm deletion.", "error");
                     return;
                 }
+            } else if (!auth.currentUser.isAnonymous) {
+                // For Google/other providers, re-authentication might be handled by Firebase automatically,
+                // or might require a recent sign-in (auth/requires-recent-login).
+                // No password prompt needed here for these providers, but reauthenticateWithCredential might still be necessary.
             }
 
 
             showLoading("Deleting account and data...");
             try {
                 // Reauthenticate for non-anonymous users
-                if (!auth.currentUser.isAnonymous) {
-                    if (!auth.currentUser.email) { // Handle cases where Google/etc login doesn't provide an email easily
-                        showMessage("Cannot verify identity without an email. Please use Google Sign-In to confirm deletion, or contact support.", "error");
-                        hideLoading();
-                        return;
-                    }
+                if (!auth.currentUser.isAnonymous && auth.currentUser.email && currentPassword) {
                     const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
                     await reauthenticateWithCredential(auth.currentUser, credential);
+                } else if (!auth.currentUser.isAnonymous && !auth.currentUser.email) {
+                    // For Google users without email/password, a recent login is often sufficient.
+                    // If 'auth/requires-recent-login' error occurs, user needs to re-login just before deleting.
+                    // We'll let the catch block handle that specific error.
                 }
 
                 // Delete all subcollections first
@@ -2073,7 +2244,9 @@
                     querySnapshot.forEach((doc) => {
                         batch.delete(doc.ref);
                     });
-                    await batch.commit();
+                    if (querySnapshot.docs.length > 0) { // Only commit if there are documents to delete
+                       await batch.commit();
+                    }
                     console.log(`Deleted all documents from /users/${currentUserId}/${colName}`);
                 }
                 // Finally, delete the user document itself
@@ -2103,6 +2276,8 @@
                     errorMessage = 'Please sign out and sign back in immediately before attempting to delete your account.';
                 } else if (error.code === 'permission-denied') {
                     errorMessage = 'Permission denied. Ensure your Firestore rules allow deletion.';
+                } else if (error.code === 'auth/invalid-credential') {
+                    errorMessage = 'Invalid credentials for re-authentication.';
                 }
                 showMessage(errorMessage, "error");
             } finally {
@@ -2122,18 +2297,7 @@
         });
 
         // --- Navigation from Profile Dropdown ---
-        // This makes the dropdown buttons control which main content section is visible
-        const profileNavButtons = [
-            { id: 'viewExpenses', section: 'expensesSection' }, // Not a button, but implied default view
-            { id: 'viewCustomData', section: 'customDataSection', button: 'viewCustomDataBtn' }, // Example: if you had a direct button in dropdown
-            { id: 'viewSettings', section: 'settingsSection', button: 'settingsButton' },
-            // Add more as needed
-        ];
-
-        // Instead of having direct buttons in dropdown for each section,
-        // the general "Settings" button and the "Add New Data Type" / "View All Custom Data" buttons
-        // now control which section is visible.
-        // We'll link the profile dropdown to these main buttons.
+        // These buttons are dynamically added to the profile dropdown
         const navToExpensesBtn = document.createElement('button');
         navToExpensesBtn.className = 'btn-secondary w-full text-left';
         navToExpensesBtn.innerHTML = '<i class="fas fa-money-bill-wave"></i> My Expenses';
@@ -2166,7 +2330,13 @@
 
 
         // Default to expenses section when app loads
-        showSection('expensesSection');
+        // The onAuthStateChanged observer will eventually call showSection('expensesSection');
+        // This is a fallback to ensure something is visible if auth is quick
+        if (!currentUserId) {
+            showSection('loginScreen'); // Ensure login screen is visible if not authenticated
+        } else {
+            showSection('expensesSection'); // Otherwise, show expenses
+        }
     </script>
 </body>
 </html>
