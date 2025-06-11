@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- SheetJS library for Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 
     <style>
         /* Apple-like font stack (system fonts with fallbacks) */
@@ -15,7 +17,7 @@
             background-color: #f5f5f7; /* Very light gray, almost white */
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center; /* Center the login card vertically */
             min-height: 100vh;
             padding: 20px;
             box-sizing: border-box;
@@ -130,6 +132,20 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.5);
         }
+        
+        .btn-delete {
+            background-color: #ffebeb;
+            color: #ff3b30;
+            border: 1px solid #ff3b30;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+        .btn-delete:hover {
+            background-color: #ff3b30;
+            color: white;
+        }
 
         /* Input field styling */
         .app-input {
@@ -166,6 +182,38 @@
             margin-bottom: 24px; /* Consistent spacing */
         }
 
+        /* Styles for the login card with a background image */
+        .login-card {
+            position: relative;
+            overflow: hidden;
+            color: white; /* Default text color for contrast */
+            background-color: #333; /* Fallback color */
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('https://storage.googleapis.com/context-artifact-storage/uploaded:image_03d73f.jpg-c387c9ab-6bf6-43d8-af2a-4f982676f90b');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .login-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+            z-index: 1;
+        }
+
+        .login-content {
+            position: relative;
+            z-index: 2;
+        }
+
+
         /* Table styling */
         .app-table {
             border-collapse: separate; /* Allows for rounded corners on cells/rows */
@@ -191,6 +239,7 @@
             border-bottom: 1px solid #efefef; /* Lighter divider */
             color: #333;
             font-size: 0.95rem;
+            vertical-align: middle;
         }
 
         .app-table tbody tr:last-child td {
@@ -200,22 +249,37 @@
         .app-table tbody tr:hover {
             background-color: #f9f9f9; /* Subtle hover effect */
         }
+        
+        #messageBox {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+        }
+
+        #messageBox.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
 
         /* Specific overrides for messages and totals */
         .message-success {
-            background-color: #e6f7ed; /* Soft green */
-            color: #1a6438; /* Dark green text */
-            border-color: #8ce1a7;
+            background-color: #34c759;
         }
         .message-error {
-            background-color: #ffebe6; /* Soft red */
-            color: #b32f2f; /* Dark red text */
-            border-color: #ff8c8c;
+            background-color: #ff3b30;
         }
         .message-info {
-            background-color: #e6f0ff; /* Soft blue */
-            color: #004d99; /* Dark blue text */
-            border-color: #8cbaff;
+            background-color: #007aff;
         }
 
         #totalExpenditure {
@@ -327,35 +391,34 @@
     </style>
 </head>
 <body class="flex flex-col items-center p-4 min-h-screen">
-    <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
-        <p class="text-gray-700 text-lg">Initializing app...</p>
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p class="text-gray-700 text-lg">Loading...</p>
     </div>
+    
+    <div id="messageBox"></div>
 
-    <div id="appMessageContainer" class="fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-center z-[1001] w-11/12 md:w-auto max-w-md hidden" role="alert">
-    </div>
-
-    <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
-        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
-        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
-        <div class="space-y-4">
-            <button id="authButton" class="btn-primary w-full">
-                Sign In with Google
-            </button>
-            <button id="guestButton" class="btn-secondary w-full">
-                Continue as Guest
-            </button>
+    <div id="loginScreen" class="app-card login-card max-w-md w-full text-center hidden">
+        <div class="login-content">
+            <h1 class="text-4xl font-bold text-white mb-6">Welcome to your Expense Tracker</h1>
+            <p class="text-gray-200 text-lg mb-8">Sign in to save and sync your expenses across devices, or continue as a guest.</p>
+            <div class="space-y-4">
+                <button id="authButton" class="btn-primary w-full">Sign In</button>
+                <button id="guestButton" class="btn-secondary w-full">Continue as Guest</button>
+            </div>
+            <p class="text-gray-300 text-xs mt-4">Guest data is stored locally and may be lost. Sign in for permanent, cloud-synced storage.</p>
+            <div id="userInfo" class="text-gray-300 mt-6 text-sm"></div>
         </div>
-        <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
-        <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
     </div>
 
-    <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
+    <div id="mainAppContainer" class="max-w-6xl w-full space-y-6 hidden">
         <div class="app-card flex flex-col md:flex-row items-center justify-between">
             <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
             
             <div class="profile-dropdown-container">
                 <button id="profileToggleButton" class="profile-toggle-button">
-                    <span id="profileIconText">G</span> </button>
+                    <span id="profileIconText">G</span> 
+                </button>
 
                 <div id="profileDropdownContent" class="profile-dropdown-content hidden">
                     <div class="profile-info">
@@ -364,9 +427,7 @@
                         </div>
                         <div id="mainAppUserInfo" class="profile-email"></div>
                     </div>
-                    <button id="signOutButton" class="dropdown-signout-btn">
-                        Sign Out
-                    </button>
+                    <button id="signOutButton" class="dropdown-signout-btn">Sign Out</button>
                 </div>
             </div>
         </div>
@@ -419,9 +480,7 @@
                     </select>
                 </div>
             </div>
-            <button id="addExpenseBtn" class="btn-primary w-full">
-                Add Expense
-            </button>
+            <button id="addExpenseBtn" class="btn-primary w-full">Add Expense</button>
         </div>
 
         <div class="app-card">
@@ -440,13 +499,12 @@
                             <th scope="col">Paid By</th>
                             <th scope="col">Has Bill?</th>
                             <th scope="col">Bill Type</th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">Delete</span>
-                            </th>
+                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Delete</span></th>
                         </tr>
                     </thead>
                     <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
-                        </tbody>
+                        <!-- Expense rows will be injected here -->
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -457,9 +515,7 @@
 
         <div class="app-card">
             <h2 class="sub-section-header">AI-Powered Insights</h2>
-            <button id="getInsightsBtn" class="btn-primary w-full">
-                Get Spending Insights ✨
-            </button>
+            <button id="getInsightsBtn" class="btn-primary w-full">Get Spending Insights ✨</button>
             <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
                 <p class="font-medium">Analyzing your expenses...</p>
             </div>
@@ -469,11 +525,11 @@
             <h2 class="section-header">Spending Visualizations</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                    <h3 class="sub-section-header text-center mb-4">Spending Distribution by Category</h3>
+                    <h3 class="sub-section-header text-center mb-4">Distribution by Category</h3>
                     <div class="chart-container">
                         <canvas id="expenseCategoryChart"></canvas>
                     </div>
-                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed across different categories.</p>
+                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed.</p>
                 </div>
                 <div>
                     <h3 class="sub-section-header text-center mb-4">Monthly Total Expenditure</h3>
@@ -486,7 +542,7 @@
         </div>
 
         <div class="app-card">
-            <h2 class="sub-section-header">Download Data (CSV)</h2>
+            <h2 class="sub-section-header">Download Data (Excel)</h2>
             <div class="flex flex-col md:flex-row items-center gap-4">
                 <div class="flex-grow w-full md:w-auto">
                     <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
@@ -494,31 +550,21 @@
                         <option value="">Select a month...</option>
                     </select>
                 </div>
-                <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
-                    Download CSV
-                </button>
+                <button id="downloadExcelBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">Download Excel (.xlsx)</button>
             </div>
-            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a CSV file, compatible with Excel/Google Sheets.</p>
+            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a native Excel file.</p>
         </div>
     </div>
 
     <script type="module">
-        // Import Firebase functions directly since we're in a single module script now
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
-        const firebaseConfig = {
-            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
-            authDomain: "my-expenese-tracker.firebaseapp.com",
-            projectId: "my-expenese-tracker",
-            storageBucket: "my-expenese-tracker.firebasestorage.app",
-            messagingSenderId: "466782350290",
-            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com", // Double-check this appId!
-            measurementId: "G-1CF1ZNLPC2"
-        };
-
+        // Use environment variables for Firebase config
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-expense-tracker';
+        
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -526,6 +572,15 @@
         const provider = new GoogleAuthProvider();
 
         // DOM element references
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const messageBox = document.getElementById('messageBox');
+        
+        const loginScreen = document.getElementById('loginScreen');
+        const authButton = document.getElementById('authButton');
+        const guestButton = document.getElementById('guestButton');
+        const userInfoDiv = document.getElementById('userInfo');
+        
+        const mainAppContainer = document.getElementById('mainAppContainer');
         const expenseDateInput = document.getElementById('expenseDate');
         const expenseCategoryInput = document.getElementById('expenseCategory');
         const expenseDescriptionInput = document.getElementById('expenseDescription');
@@ -538,45 +593,35 @@
         const addExpenseBtn = document.getElementById('addExpenseBtn');
         const expenseTableBody = document.getElementById('expenseTableBody');
         const totalExpenditureSpan = document.getElementById('totalExpenditure');
+        
         const getInsightsBtn = document.getElementById('getInsightsBtn');
         const insightsDisplay = document.getElementById('insightsDisplay');
+        
         const expenseCategoryChartCtx = document.getElementById('expenseCategoryChart').getContext('2d');
         const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
         const monthSelect = document.getElementById('monthSelect');
-        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+        const downloadExcelBtn = document.getElementById('downloadExcelBtn');
 
-        const authButton = document.getElementById('authButton');
-        const guestButton = document.getElementById('guestButton');
-        const userInfoDiv = document.getElementById('userInfo');
-
-        const mainAppContainer = document.getElementById('mainAppContainer');
-        const loginScreen = document.getElementById('loginScreen');
-        
-        // --- NEW DOM Elements for Dropdown ---
         const profileToggleButton = document.getElementById('profileToggleButton');
         const profileDropdownContent = document.getElementById('profileDropdownContent');
-        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); // This is now inside the dropdown
-        const signOutButton = document.getElementById('signOutButton');      // This is now inside the dropdown
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo');
+        const signOutButton = document.getElementById('signOutButton');
         const profileIconText = document.getElementById('profileIconText');
         const avatarInitial = document.getElementById('avatarInitial');
 
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const appMessageContainer = document.getElementById('appMessageContainer'); // NEW: Message container reference
-
-        // Global state variables
+        // Global state
         let expenses = [];
         let currentUserId = null;
         let unsubscribeFromExpenses = null;
-
-        // Exchange rates (CAD as base) - these are hardcoded for simplicity
-        const EXCHANGE_RATE_CAD_TO_AED = 2.70;
-        const EXCHANGE_RATE_CAD_TO_INR = 61.00;
-
-        // Chart instances
         let expenseCategoryPieChart;
         let expenseMonthlyBarChart;
+        
+        // Hardcoded exchange rates for demonstration
+        const EXCHANGE_RATE_CAD_TO_AED = 2.70;
+        const EXCHANGE_RATE_CAD_TO_INR = 61.50; // Updated for June 2025
 
-        // --- Loading Overlay Functions ---
+        // --- UI & Utility Functions ---
+        
         function showLoading(message = "Loading...") {
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.querySelector('p').textContent = message;
@@ -584,198 +629,151 @@
 
         function hideLoading() {
             loadingOverlay.classList.add('hidden');
-            console.log("hideLoading function executed.");
         }
 
-        // --- Message Display Function ---
-        let messageTimeout;
         function showMessage(message, type = 'info') {
-            appMessageContainer.textContent = message;
-            appMessageContainer.className = 'fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-center z-[1001] w-11/12 md:w-auto max-w-md'; // Reset classes
-            appMessageContainer.classList.remove('hidden');
-
-            if (type === 'success') {
-                appMessageContainer.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-300', 'message-success');
-            } else if (type === 'error') {
-                appMessageContainer.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-300', 'message-error');
-            } else { // info
-                appMessageContainer.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-300', 'message-info');
-            }
-
-            clearTimeout(messageTimeout);
-            messageTimeout = setTimeout(() => {
-                appMessageContainer.classList.add('hidden');
-            }, 5000); // Hide after 5 seconds
+            messageBox.textContent = message;
+            messageBox.className = `message-${type} show`;
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
         }
 
-        // --- Authentication Functions ---
-        authButton.addEventListener('click', async () => {
-            try {
-                showLoading("Signing in with Google...");
-                await signInWithPopup(auth, provider);
-                showMessage('Signed in successfully with Google!', 'success');
-            } catch (error) {
-                console.error('Error signing in with Google:', error);
-                let errorMessage = 'Failed to sign in with Google.';
-                if (error.code === 'auth/popup-closed-by-user') {
-                    errorMessage = 'Sign-in cancelled by user.';
-                } else if (error.message) {
-                    errorMessage += ` Error: ${error.message}`;
+        function setTodaysDate() {
+            const today = new Date();
+            // Adjust for timezone offset to get the correct local date string
+            today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+            expenseDateInput.value = today.toISOString().split('T')[0];
+        }
+
+        // --- Authentication ---
+        
+        onAuthStateChanged(auth, (user) => {
+            hideLoading();
+            if (user) {
+                currentUserId = user.uid;
+                let displayEmail = 'Guest';
+                let displayName = 'Guest';
+                let initial = 'G';
+
+                if (!user.isAnonymous) {
+                    displayEmail = user.email || 'User';
+                    displayName = user.displayName || 'User';
+                    initial = displayName.charAt(0).toUpperCase();
                 }
-                showMessage(errorMessage, 'error');
-            } finally {
-                hideLoading();
+
+                mainAppUserInfo.textContent = displayEmail;
+                profileIconText.textContent = initial;
+                avatarInitial.textContent = initial;
+                
+                loginScreen.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+                
+                // Adjust body alignment for the main app
+                document.body.style.alignItems = 'flex-start';
+
+                listenToExpenses(user.uid);
+            } else {
+                currentUserId = null;
+                if (unsubscribeFromExpenses) unsubscribeFromExpenses();
+                expenses = [];
+                renderExpenses();
+                
+                mainAppContainer.classList.add('hidden');
+                loginScreen.classList.remove('hidden');
+
+                // Adjust body alignment for the login screen
+                document.body.style.alignItems = 'center';
             }
         });
+        
+        const handleSignIn = async () => {
+             showLoading("Redirecting to sign-in...");
+             try {
+                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                 } else {
+                    // Fallback for local development
+                    await signInWithPopup(auth, provider);
+                 }
+                 showMessage('Signed in successfully!', 'success');
+             } catch (error) {
+                 console.error('Sign-in error:', error);
+                 showMessage(`Sign-in failed: ${error.message}`, 'error');
+                 hideLoading();
+             }
+        };
+        
+        authButton.addEventListener('click', handleSignIn);
 
         guestButton.addEventListener('click', async () => {
+            showLoading("Signing in as Guest...");
             try {
-                showLoading("Signing in as Guest...");
                 await signInAnonymously(auth);
-                showMessage('Signed in successfully as Guest!', 'success');
+                showMessage('Continuing as Guest.', 'info');
             } catch (error) {
-                console.error('Error signing in anonymously:', error);
-                showMessage('Failed to sign in as guest. Please try again.', 'error');
-            } finally {
+                console.error('Guest sign-in error:', error);
+                showMessage('Could not sign in as guest.', 'error');
                 hideLoading();
             }
         });
 
         signOutButton.addEventListener('click', async () => {
+            showLoading("Signing out...");
             try {
-                showLoading("Signing out...");
                 await signOut(auth);
-                showMessage('Signed out successfully!', 'success');
+                showMessage('You have been signed out.', 'success');
             } catch (error) {
-                console.error('Error signing out:', error);
-                showMessage('Error signing out. Please try again.', 'error');
+                console.error('Sign-out error:', error);
+                showMessage('Error signing out.', 'error');
             } finally {
                 hideLoading();
             }
-            // Ensure dropdown is closed after sign out
-            profileDropdownContent.classList.add('hidden');
         });
 
-        // --- Firebase Auth State Listener ---
-        onAuthStateChanged(auth, (user) => {
-            console.log("onAuthStateChanged fired. User:", user);
-            if (user) {
-                currentUserId = user.uid;
-                
-                let displayEmail = user.email || 'Guest User';
-                let displayName = user.displayName || 'Guest';
-                let initial = displayName.charAt(0).toUpperCase();
-
-                if (user.isAnonymous) {
-                    displayEmail = 'guest@example.com'; // Placeholder email for guests
-                    displayName = 'Guest';
-                    initial = 'G';
-                    userInfoDiv.textContent = 'Welcome, Guest!';
-                } else {
-                    userInfoDiv.textContent = `Welcome, ${displayName}!`;
-                }
-
-                mainAppUserInfo.textContent = displayEmail; // Display full email in dropdown
-                profileIconText.textContent = initial;       // Display initial on the toggle button
-                avatarInitial.textContent = initial;         // Display initial in the avatar circle
-
-                loginScreen.classList.add('hidden');
-                mainAppContainer.classList.remove('hidden');
-
-                console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
-                
-                listenToExpenses(user.uid);
-            } else {
-                currentUserId = null;
-                userInfoDiv.textContent = 'Please sign in to save your data.';
-                mainAppUserInfo.textContent = ''; // Clear email in dropdown
-                profileIconText.textContent = 'G'; // Reset icon to Guest
-                avatarInitial.textContent = 'G';   // Reset avatar initial
-
-                mainAppContainer.classList.add('hidden');
-                loginScreen.classList.remove('hidden');
-
-                console.log('User signed out.');
-
-                expenses = [];
-                renderExpenses(); // Render with empty array to clear table and charts
-                if (unsubscribeFromExpenses) {
-                    unsubscribeFromExpenses();
-                }
-                showMessage('Your data will be available when you sign in.', 'info');
-            }
-            console.log("Auth state check complete, hiding loading overlay.");
-            hideLoading();
-        });
-
-        // --- Dropdown Toggle Logic ---
+        // --- Dropdown Menu Logic ---
+        
         profileToggleButton.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent document click from closing it immediately
+            event.stopPropagation();
             profileDropdownContent.classList.toggle('hidden');
-            profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
+            profileDropdownContent.classList.toggle('active');
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', (event) => {
             if (!profileDropdownContent.contains(event.target) && !profileToggleButton.contains(event.target)) {
                 profileDropdownContent.classList.add('hidden');
                 profileDropdownContent.classList.remove('active');
             }
         });
+        
+        hasBillInput.addEventListener('change', () => {
+            billTypeContainer.style.display = hasBillInput.checked ? 'block' : 'none';
+        });
 
-        // --- Firestore Data Listener ---
+        // --- Firestore & Expense Logic ---
+        
         function listenToExpenses(userId) {
-            if (unsubscribeFromExpenses) {
-                unsubscribeFromExpenses();
-            }
-            
-            showLoading("Loading your expenses...");
-            const q = query(collection(db, `users/${userId}/expenses`));
-            
+            if (unsubscribeFromExpenses) unsubscribeFromExpenses();
+            const expensesCollectionPath = `artifacts/${appId}/users/${userId}/expenses`;
+            const q = query(collection(db, expensesCollectionPath));
+
+            showLoading("Syncing your expenses...");
             unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
                 const fetchedExpenses = [];
                 snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    fetchedExpenses.push({
-                        id: doc.id,
-                        date: data.date,
-                        category: data.category,
-                        description: data.description,
-                        amount: data.amount,
-                        paymentMethod: data.paymentMethod,
-                        paidBy: data.paidBy,
-                        hasBill: data.hasBill,
-                        billType: data.billType
-                    });
+                    fetchedExpenses.push({ id: doc.id, ...doc.data() });
                 });
                 expenses = fetchedExpenses;
-                renderExpenses(); // This will now also update charts and AI insights button
+                renderExpenses();
                 hideLoading();
-                showMessage('Expenses synchronized from cloud!', 'success');
             }, (error) => {
-                console.error("Error fetching Firestore expenses:", error);
-                showMessage("Error loading expenses. Check console for details.", "error");
+                console.error("Error fetching expenses:", error);
+                showMessage("Could not load your expenses.", "error");
+                hideLoading();
             });
         }
 
-        // --- Expense CRUD Operations (from your previous code) ---
-
-        // Toggle Bill Type visibility
-        hasBillInput.addEventListener('change', () => {
-            if (hasBillInput.checked) {
-                billTypeContainer.style.display = 'block';
-            } else {
-                billTypeContainer.style.display = 'none';
-                billTypeInput.value = ''; // Clear bill type if checkbox is unchecked
-            }
-        });
-
         addExpenseBtn.addEventListener('click', async () => {
-            if (!currentUserId) {
-                showMessage("Please sign in to add expenses.", "info");
-                return;
-            }
-
             const date = expenseDateInput.value;
             const category = expenseCategoryInput.value.trim();
             const description = expenseDescriptionInput.value.trim();
@@ -783,62 +781,47 @@
             const paymentMethod = paymentMethodInput.value;
             const paidBy = paidByInput.value.trim();
             const hasBill = hasBillInput.checked;
-            const billType = hasBill ? billTypeInput.value : '';
+            const billType = billTypeInput.value;
 
-            if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod) {
-                showMessage('Please fill in all required fields (Date, Category, Description, Amount, Payment Method) with valid data.', 'error');
+            if (!date || !category || !description || isNaN(amount) || amount <= 0) {
+                showMessage('Please fill all fields with valid data.', 'error');
                 return;
             }
 
+            const newExpense = { date, category, description, amount, paymentMethod, paidBy, hasBill, billType: hasBill ? billType : '' };
+            
             showLoading("Adding expense...");
             try {
-                await addDoc(collection(db, `users/${currentUserId}/expenses`), {
-                    date,
-                    category,
-                    description,
-                    amount,
-                    paymentMethod,
-                    paidBy,
-                    hasBill,
-                    billType,
-                    timestamp: new Date() // Add a timestamp for consistent ordering
-                });
+                const expensesCollectionPath = `artifacts/${appId}/users/${currentUserId}/expenses`;
+                await addDoc(collection(db, expensesCollectionPath), newExpense);
                 showMessage('Expense added successfully!', 'success');
-                // Clear form
-                expenseDateInput.value = '';
+                // Clear inputs
                 expenseCategoryInput.value = '';
                 expenseDescriptionInput.value = '';
                 expenseAmountInput.value = '';
-                paymentMethodInput.value = '';
                 paidByInput.value = '';
                 hasBillInput.checked = false;
                 billTypeContainer.style.display = 'none';
-                billTypeInput.value = '';
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                showMessage('Error adding expense. Please try again.', 'error');
+            } catch (error) {
+                console.error('Error adding expense:', error);
+                showMessage('Failed to add expense.', 'error');
             } finally {
                 hideLoading();
             }
         });
 
-        // Event delegation for delete buttons
-        expenseTableBody.addEventListener('click', async (event) => {
-            if (event.target.classList.contains('delete-btn') || event.target.closest('.delete-btn')) {
-                if (!currentUserId) {
-                    showMessage("Please sign in to delete expenses.", "info");
-                    return;
-                }
-                const button = event.target.closest('.delete-btn');
-                const expenseId = button.dataset.id;
+        expenseTableBody.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-btn')) {
+                const docId = e.target.dataset.id;
                 if (confirm('Are you sure you want to delete this expense?')) {
                     showLoading("Deleting expense...");
                     try {
-                        await deleteDoc(doc(db, `users/${currentUserId}/expenses`, expenseId));
-                        showMessage('Expense deleted successfully!', 'success');
-                    } catch (e) {
-                        console.error("Error deleting document: ", e);
-                        showMessage('Error deleting expense. Please try again.', 'error');
+                        const docPath = `artifacts/${appId}/users/${currentUserId}/expenses/${docId}`;
+                        await deleteDoc(doc(db, docPath));
+                        showMessage('Expense deleted.', 'success');
+                    } catch (error) {
+                        console.error('Error deleting expense:', error);
+                        showMessage('Failed to delete expense.', 'error');
                     } finally {
                         hideLoading();
                     }
@@ -846,89 +829,200 @@
             }
         });
 
-        // CSV Download & Month Select
-        function updateMonthSelect(currentExpenses) {
-            monthSelect.innerHTML = '<option value="">Select a month...</option>';
-            const months = new Set();
-            currentExpenses.forEach(exp => {
-                const date = new Date(exp.date);
-                const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`; // YYYY-MM
-                months.add(monthYear);
-            });
+        function renderExpenses() {
+            expenseTableBody.innerHTML = '';
+            if (!expenses || expenses.length === 0) {
+                 expenseTableBody.innerHTML = '<tr><td colspan="11" class="text-center text-gray-500 py-8">No expenses recorded yet. Add one to get started!</td></tr>';
+            }
 
-            Array.from(months).sort().forEach(monthYear => {
-                const [year, month] = monthYear.split('-');
-                const option = document.createElement('option');
-                option.value = monthYear;
-                option.textContent = `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}`;
-                monthSelect.appendChild(option);
+            let total = 0;
+            const categoryTotals = {};
+            const monthlyTotals = {};
+            const availableMonths = new Set();
+            
+            // Sort expenses by date descending
+            expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            expenses.forEach(exp => {
+                total += exp.amount;
+                
+                // Populate data for charts
+                categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+                const month = exp.date.substring(0, 7); // yyyy-MM
+                monthlyTotals[month] = (monthlyTotals[month] || 0) + exp.amount;
+                availableMonths.add(month);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${exp.date}</td>
+                    <td>${exp.category}</td>
+                    <td>${exp.description}</td>
+                    <td>${exp.amount.toFixed(2)}</td>
+                    <td>${(exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2)}</td>
+                    <td>${(exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2)}</td>
+                    <td>${exp.paymentMethod}</td>
+                    <td>${exp.paidBy}</td>
+                    <td>${exp.hasBill ? '✔️' : '❌'}</td>
+                    <td>${exp.hasBill ? exp.billType : 'N/A'}</td>
+                    <td><button class="btn-delete delete-btn" data-id="${exp.id}">Delete</button></td>
+                `;
+                expenseTableBody.appendChild(row);
+            });
+            
+            totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
+            
+            updateCharts(categoryTotals, monthlyTotals);
+            updateMonthSelector(Array.from(availableMonths));
+        }
+        
+        function updateCharts(categoryData, monthlyData) {
+            // Category Pie Chart
+            if (expenseCategoryPieChart) expenseCategoryPieChart.destroy();
+            expenseCategoryPieChart = new Chart(expenseCategoryChartCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(categoryData),
+                    datasets: [{
+                        data: Object.values(categoryData),
+                        backgroundColor: ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#5856d6', '#5ac8fa', '#ff2d55', '#af52de'],
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            
+            // Monthly Bar Chart
+            const sortedMonths = Object.keys(monthlyData).sort();
+            if (expenseMonthlyBarChart) expenseMonthlyBarChart.destroy();
+            expenseMonthlyBarChart = new Chart(expenseMonthlyChartCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedMonths.map(m => new Date(m + '-02').toLocaleString('default', { month: 'long', year: 'numeric' })),
+                    datasets: [{
+                        label: 'Total Spent (CAD)',
+                        data: sortedMonths.map(m => monthlyData[m]),
+                        backgroundColor: '#007aff',
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
             });
         }
+        
+        function updateMonthSelector(months) {
+            const currentSelection = monthSelect.value;
+            monthSelect.innerHTML = '<option value="">Select a month...</option>';
+            months.sort().reverse().forEach(monthValue => {
+                const option = document.createElement('option');
+                option.value = monthValue;
+                option.textContent = new Date(monthValue + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
+                monthSelect.appendChild(option);
+            });
+            monthSelect.value = currentSelection;
+        }
 
-        downloadCsvBtn.addEventListener('click', () => {
-            const selectedMonthYear = monthSelect.value;
-            if (!selectedMonthYear) {
-                showMessage("Please select a month to download.", "info");
+        // --- Excel Download Logic ---
+        downloadExcelBtn.addEventListener('click', () => {
+            const selectedMonthValue = monthSelect.value;
+            if (!selectedMonthValue) {
+                showMessage('Please select a month to download.', 'error');
                 return;
             }
 
-            const filteredExpenses = expenses.filter(exp => {
-                const expenseDate = new Date(exp.date);
-                const expenseMonthYear = `${expenseDate.getFullYear()}-${(expenseDate.getMonth() + 1).toString().padStart(2, '0')}`;
-                return expenseMonthYear === selectedMonthYear;
-            });
+            const selectedOption = monthSelect.options[monthSelect.selectedIndex];
+            const monthName = selectedOption.text.replace(/ /g, '-');
 
-            if (filteredExpenses.length === 0) {
-                showMessage("No expenses found for the selected month.", "info");
+            const monthlyExpenses = expenses.filter(expense => expense.date.startsWith(selectedMonthValue));
+            if (monthlyExpenses.length === 0) {
+                showMessage(`No expenses recorded for ${selectedOption.text}.`, 'info');
                 return;
             }
 
-            const headers = ["Date", "Category", "Description", "Amount (CAD)", "Amount (AED)", "Amount (INR)", "Payment Method", "Paid By", "Has Bill?", "Bill Type"];
-            const rows = filteredExpenses.map(exp => {
-                const amountCad = parseFloat(exp.amount).toFixed(2);
-                const amountAed = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
-                const amountInr = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
-
-                return [
-                    exp.date,
-                    exp.category,
-                    exp.description,
-                    amountCad,
-                    amountAed,
-                    amountInr,
-                    exp.paymentMethod,
-                    exp.paidBy,
-                    exp.hasBill ? 'Yes' : 'No',
-                    exp.billType || 'N/A'
-                ];
-            });
-
-            let csvContent = headers.map(header => `"${header.replace(/"/g, '""')}"`).join(',') + '\n';
-            rows.forEach(row => {
-                csvContent += row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
+            const dataForSheet = monthlyExpenses.map(exp => ({
+                'Date': exp.date,
+                'Category': exp.category,
+                'Description': exp.description,
+                'Amount (CAD)': exp.amount,
+                'Amount (AED)': parseFloat((exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2)),
+                'Amount (INR)': parseFloat((exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2)),
+                'Payment Method': exp.paymentMethod,
+                'Paid By': exp.paidBy,
+                'Has Bill?': exp.hasBill ? 'Yes' : 'No',
+                'Bill Type': exp.billType || 'N/A'
+            }));
             
-            const [year, month] = selectedMonthYear.split('-');
-            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-            
-            link.setAttribute('href', url);
-            link.setAttribute('download', `expenses_${monthName}-${year}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showMessage(`Expenses for ${monthName} ${year} downloaded successfully!`, 'success');
+            const totalCad = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            dataForSheet.push({}); 
+            dataForSheet.push({ 'Category': 'TOTAL', 'Amount (CAD)': totalCad });
+
+            const worksheet = XLSX.utils.json_to_sheet(dataForSheet);
+            worksheet['!cols'] = [
+                { wch: 12 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
+                { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 10 }, { wch: 12 }
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+            const fileName = `Expense-Report-${monthName}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+            showMessage('Excel file downloaded successfully!', 'success');
+        });
+        
+        getInsightsBtn.addEventListener('click', async () => {
+            if (expenses.length < 3) {
+                showMessage("Need at least 3 expenses for a meaningful insight.", "info");
+                return;
+            }
+
+            showLoading("Generating AI Insights...");
+            const prompt = `Based on the following JSON data of my expenses, provide a brief, friendly, and actionable analysis of my spending habits. Identify the top spending category and suggest one specific area where I could potentially save money. Keep the tone encouraging. Data: ${JSON.stringify(expenses)}`;
+
+            try {
+                // Gemini API Call
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = "" 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                let text = "Could not generate insights at this time.";
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    text = result.candidates[0].content.parts[0].text;
+                }
+                
+                insightsDisplay.innerHTML = text.replace(/\n/g, '<br>'); // Format for HTML
+                insightsDisplay.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error getting insights:", error);
+                showMessage("Sorry, couldn't fetch AI insights right now.", "error");
+                insightsDisplay.innerHTML = "An error occurred while generating insights. Please try again later.";
+                insightsDisplay.classList.remove('hidden');
+            } finally {
+                hideLoading();
+            }
         });
 
-        // Initialize charts and AI button state on first load (before data comes from Firestore)
-        // They will be updated once data streams in via onAuthStateChanged -> listenToExpenses -> renderExpenses
-        updateCategoryChart([]); // Initialize empty charts
-        updateMonthlyChart([]);
-        getInsightsBtn.disabled = true; // Disable until data is loaded
+
+        // --- Initial Load ---
+        function startApp() {
+            setTodaysDate();
+            showLoading("Initializing app...");
+            // onAuthStateChanged will handle the rest
+        }
+
+        startApp();
+
     </script>
 </body>
 </html>
