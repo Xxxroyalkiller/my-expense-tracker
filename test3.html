@@ -756,13 +756,13 @@
 
         // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
         const firebaseConfig = {
-            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
-  authDomain: "my-expenese-tracker.firebaseapp.com",
-  projectId: "my-expenese-tracker",
-  storageBucket: "my-expenese-tracker.firebasestorage.app",
-  messagingSenderId: "466782350290",
-  appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
-  measurementId: "G-1CF1ZNLPC2"
+            apiKey: "YOUR_API_KEY", // <--- REPLACE THIS WITH YOUR API KEY
+            authDomain: "YOUR_AUTH_DOMAIN", // <--- REPLACE THIS WITH YOUR AUTH DOMAIN
+            projectId: "YOUR_PROJECT_ID", // <--- REPLACE THIS WITH YOUR PROJECT ID
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID", // <--- REPLACE THIS WITH YOUR APP ID
+            measurementId: "YOUR_MEASUREMENT_ID"
         };
 
         // Initialize Firebase
@@ -879,6 +879,7 @@
         }
 
         function showSection(sectionId) {
+            console.log(`Attempting to show section: ${sectionId}`);
             const sections = [
                 expensesSection, expenseListSection, expenseTotalSection, aiInsightsSection,
                 visualizationsSection, downloadSection, customDataSection, allCustomDataDisplaySection,
@@ -888,7 +889,12 @@
                 if (sec) sec.classList.add('hidden');
             });
             const targetSection = document.getElementById(sectionId);
-            if (targetSection) targetSection.classList.remove('hidden');
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                console.log(`Section '${sectionId}' is now visible.`);
+            } else {
+                console.error(`Error: Section with ID '${sectionId}' not found.`);
+            }
         }
 
         function showMessage(message, type = 'info', duration = 3000) {
@@ -1017,20 +1023,28 @@
 
                 // Fetch user data from Firestore to get customDataTypes and settings
                 const userDocRef = doc(db, 'users', currentUserId);
-                const userDocSnap = await getDoc(userDocRef);
-                if (!userDocSnap.exists()) {
-                    // Create basic user document if it doesn't exist (e.g., for new users/guests)
-                    await updateDoc(userDocRef, {
-                        email: displayEmail,
-                        displayName: displayName,
-                        createdAt: new Date(),
-                        customDataTypes: [],
-                        settings: { theme: 'light', notifications: true }
-                    }, { merge: true }); // Use merge:true to avoid overwriting if doc already exists
-                    console.log("User document created/updated with defaults.");
-                } else {
-                    currentUserCustomDataTypes = userDocSnap.data().customDataTypes || [];
+                try {
+                    const userDocSnap = await getDoc(userDocRef);
+                    if (!userDocSnap.exists()) {
+                        console.log("User document does not exist, creating with defaults.");
+                        // Create basic user document if it doesn't exist (e.g., for new users/guests)
+                        await updateDoc(userDocRef, {
+                            email: displayEmail,
+                            displayName: displayName,
+                            createdAt: new Date(),
+                            customDataTypes: [],
+                            settings: { theme: 'light', notifications: true }
+                        }, { merge: true }); // Use merge:true to avoid overwriting if doc already exists
+                        console.log("User document created/updated with defaults.");
+                    } else {
+                        console.log("User document exists, fetching customDataTypes.");
+                        currentUserCustomDataTypes = userDocSnap.data().customDataTypes || [];
+                    }
+                } catch (error) {
+                    console.error("Error fetching/creating user document:", error);
+                    showMessage(`Error preparing user data: ${error.message}`, 'error');
                 }
+
 
                 listenToExpenses(user.uid);
                 renderCustomDataTypes(); // Load existing custom data types
@@ -1054,6 +1068,7 @@
                 renderCustomDataTypes(); // Clear custom data display
                 if (unsubscribeFromExpenses) {
                     unsubscribeFromExpenses();
+                    console.log("Unsubscribed from expenses listener.");
                 }
                 showMessage('Your data will be available when you sign in.', 'info');
             }
@@ -1079,7 +1094,7 @@
             if (unsubscribeFromExpenses) {
                 unsubscribeFromExpenses();
             }
-
+            console.log(`Starting to listen to expenses for user: ${userId}`);
             showLoading("Loading your expenses...");
             const q = query(collection(db, `users/${userId}/expenses`));
 
@@ -1100,6 +1115,7 @@
                     });
                 });
                 expenses = fetchedExpenses;
+                console.log(`onSnapshot triggered. Fetched expenses count: ${expenses.length}`);
                 renderExpenses();
                 hideLoading();
                 showMessage('Expenses synchronized from cloud!', 'success');
@@ -1218,6 +1234,7 @@
         }
 
         function renderExpenses() {
+            console.log("Rendering expenses...");
             expenseTableBody.innerHTML = '';
             let total = 0;
 
@@ -1257,6 +1274,7 @@
 
         // --- Chart Functions ---
         function updateCharts() {
+            console.log("Updating charts...");
             updateCategoryChart();
             updateMonthlyChart();
         }
@@ -1593,6 +1611,7 @@
         });
 
         async function renderCustomDataTypes() {
+            console.log("Rendering custom data types...");
             dataCategoriesList.innerHTML = '';
             if (currentUserCustomDataTypes.length === 0) {
                 noCustomDataMessage.classList.remove('hidden');
@@ -1653,6 +1672,7 @@
         }
 
         async function loadSpecificDataTypeEntriesPreview(dataType, forceRefresh = false) {
+            console.log(`Loading entries preview for data type: ${dataType}`);
             if (!currentUserId) return;
 
             const entriesPreviewDiv = document.getElementById(`${dataType}-entries-preview`);
