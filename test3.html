@@ -313,19 +313,22 @@
         }
         
         /* Specific button styling for dropdown */
-        .dropdown-button {
-            background-color: #f0f0f0; /* Light gray for general dropdown buttons */
+        .dropdown-button { /* General style for buttons within dropdown */
+            background-color: transparent;
             color: #333;
-            padding: 10px 20px;
+            padding: 10px 15px;
             border-radius: 8px;
             font-weight: 500;
-            transition: background-color 0.2s ease;
-            width: 100%; /* Full width within dropdown */
-            text-align: center;
-            border: 1px solid #d1d1d6;
+            text-align: left;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
+
         .dropdown-button:hover {
-            background-color: #e0e0e0;
+            background-color: #f0f0f0;
+            color: #000;
         }
 
         .dropdown-signout-btn {
@@ -337,31 +340,62 @@
             transition: background-color 0.2s ease;
             width: 100%; /* Full width within dropdown */
             text-align: center;
+            margin-top: 10px; /* Space above sign out */
         }
         .dropdown-signout-btn:hover {
             background-color: #cc0000;
         }
 
-        /* Data Management Section */
-        #dataManagementSection {
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-            margin-top: 15px;
-            display: none; /* Hidden by default */
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
         }
-        #dataManagementSection.active {
-            display: block; /* Show when active */
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
         }
 
-        .current-dataset-display {
-            background-color: #e6f0ff; /* Soft blue background */
-            color: #004d99; /* Dark blue text */
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9em;
-            font-weight: 600;
-            text-align: center;
-            margin-bottom: 15px;
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            max-width: 500px;
+            width: 90%;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .modal-close-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #888;
+            transition: color 0.2s ease;
+        }
+        .modal-close-button:hover {
+            color: #333;
         }
     </style>
 </head>
@@ -401,36 +435,12 @@
                         </div>
                         <div id="mainAppUserInfo" class="profile-email"></div>
                     </div>
-
-                    <div id="currentDataSetDisplay" class="current-dataset-display">
-                        Active Data Set: <span id="activeDataSetName">Default</span>
-                    </div>
-
-                    <button id="manageDataSetsBtn" class="dropdown-button">
-                        Manage Data Sets
+                    <button id="settingsButton" class="dropdown-button">
+                        <i class="fas fa-cog mr-2"></i>Settings
                     </button>
                     <button id="signOutButton" class="dropdown-signout-btn">
                         Sign Out
                     </button>
-
-                    <div id="dataManagementSection" class="hidden space-y-4">
-                        <h4 class="text-md font-semibold text-gray-700">Data Set Management</h4>
-                        <div>
-                            <label for="dataSetSelect" class="block text-sm font-medium text-gray-600 mb-1">Switch Data Set</label>
-                            <select id="dataSetSelect" class="app-input app-select"></select>
-                            <button id="switchDataSetBtn" class="btn-secondary w-full text-sm mt-2">Switch</button>
-                        </div>
-                        <div>
-                            <label for="newDataSetNameInput" class="block text-sm font-medium text-gray-600 mb-1">Create New Data Set</label>
-                            <input type="text" id="newDataSetNameInput" placeholder="New data set name" class="app-input mb-2">
-                            <button id="createDataSetBtn" class="btn-primary w-full text-sm">Create & Switch</button>
-                        </div>
-                         <div>
-                            <label for="renameDataSetInput" class="block text-sm font-medium text-gray-600 mb-1">Rename Current Data Set</label>
-                            <input type="text" id="renameDataSetInput" placeholder="New name for current" class="app-input mb-2">
-                            <button id="renameDataSetBtn" class="btn-secondary w-full text-sm">Rename</button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -569,11 +579,36 @@
         </div>
     </div>
 
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content relative">
+            <button class="modal-close-button" id="closeSettingsModal"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Settings</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="currencyPreference" class="block text-sm font-medium text-gray-700 mb-2">Default Currency Display:</label>
+                    <select id="currencyPreference" class="app-input app-select">
+                        <option value="CAD">Canadian Dollar (CAD)</option>
+                        <option value="AED">United Arab Emirates Dirham (AED)</option>
+                        <option value="INR">Indian Rupee (INR)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-8 flex flex-col md:flex-row gap-4">
+                <button id="saveSettingsBtn" class="btn-primary w-full">Save Settings</button>
+                <button id="clearGuestSettingsBtn" class="btn-secondary w-full">Clear Guest Settings (Local)</button>
+            </div>
+            <p class="text-xs text-gray-500 mt-4 text-center">Note: Guest settings are saved locally in your browser. Logged-in user settings are saved to your account.</p>
+        </div>
+    </div>
+
+
     <script type="module">
         // Import Firebase functions directly since we're in a single module script now
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
         const firebaseConfig = {
@@ -611,7 +646,7 @@
         const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
         const monthSelect = document.getElementById('monthSelect');
         const downloadCsvBtn = document.getElementById('downloadCsvBtn');
-        const downloadXlsxBtn = document.getElementById('downloadXlsxBtn');
+        const downloadXlsxBtn = document.getElementById('downloadXlsxBtn'); 
 
         const authButton = document.getElementById('authButton');
         const guestButton = document.getElementById('guestButton');
@@ -620,36 +655,45 @@
         const mainAppContainer = document.getElementById('mainAppContainer');
         const loginScreen = document.getElementById('loginScreen');
         
-        // --- NEW DOM Elements for Dropdown and Data Management ---
+        // --- NEW DOM Elements for Dropdown and Settings ---
         const profileToggleButton = document.getElementById('profileToggleButton');
         const profileDropdownContent = document.getElementById('profileDropdownContent');
-        const mainAppUserInfo = document.getElementById('mainAppUserInfo');
-        const signOutButton = document.getElementById('signOutButton');
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); 
+        const signOutButton = document.getElementById('signOutButton');      
         const profileIconText = document.getElementById('profileIconText');
         const avatarInitial = document.getElementById('avatarInitial');
-        const manageDataSetsBtn = document.getElementById('manageDataSetsBtn');
-        const dataManagementSection = document.getElementById('dataManagementSection');
-        const dataSetSelect = document.getElementById('dataSetSelect');
-        const switchDataSetBtn = document.getElementById('switchDataSetBtn');
-        const newDataSetNameInput = document.getElementById('newDataSetNameInput');
-        const createDataSetBtn = document.getElementById('createDataSetBtn');
-        const renameDataSetInput = document.getElementById('renameDataSetInput');
-        const renameDataSetBtn = document.getElementById('renameDataSetBtn');
-        const activeDataSetNameDisplay = document.getElementById('activeDataSetName');
+        const settingsButton = document.getElementById('settingsButton'); // New Settings button
 
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
+        const currencyPreferenceSelect = document.getElementById('currencyPreference');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const clearGuestSettingsBtn = document.getElementById('clearGuestSettingsBtn');
 
         const loadingOverlay = document.getElementById('loadingOverlay');
 
         // Global state variables
         let expenses = [];
         let currentUserId = null;
+        let currentUserIsGuest = false;
         let unsubscribeFromExpenses = null;
-        let currentUserDataSets = []; // Stores the list of collection names
-        let activeDataSet = 'default_expenses'; // Default data set collection name
+        let unsubscribeFromSettings = null; // New for settings listener
 
         // Exchange rates (CAD as base) - these are hardcoded for simplicity
         const EXCHANGE_RATE_CAD_TO_AED = 2.70;
         const EXCHANGE_RATE_CAD_TO_INR = 61.00;
+
+        // Default settings
+        let userSettings = {
+            defaultCurrency: 'CAD' // Default to CAD
+        };
+
+        // Currency symbols for display
+        const currencySymbols = {
+            CAD: 'C$',
+            AED: 'AED ',
+            INR: '₹'
+        };
 
         // Chart instances
         let expenseCategoryPieChart;
@@ -663,6 +707,7 @@
 
         function hideLoading() {
             loadingOverlay.classList.add('hidden');
+            console.log("hideLoading function executed.");
         }
 
         // --- Authentication Functions ---
@@ -711,27 +756,28 @@
             }
             // Ensure dropdown is closed after sign out
             profileDropdownContent.classList.add('hidden');
-            profileDropdownContent.classList.remove('active');
-            dataManagementSection.classList.add('hidden'); // Hide data management on sign out
         });
 
         // --- Firebase Auth State Listener ---
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             console.log("onAuthStateChanged fired. User:", user);
             if (user) {
                 currentUserId = user.uid;
+                currentUserIsGuest = user.isAnonymous;
                 
                 let displayEmail = user.email || 'Guest User';
                 let displayName = user.displayName || 'Guest';
                 let initial = displayName.charAt(0).toUpperCase();
 
-                if (user.isAnonymous) {
+                if (currentUserIsGuest) {
                     displayEmail = 'guest@example.com'; // Placeholder email for guests
                     displayName = 'Guest';
                     initial = 'G';
-                    userInfoDiv.textContent = 'Welcome, Guest! Your data is temporary.';
+                    userInfoDiv.textContent = 'Welcome, Guest!';
+                    clearGuestSettingsBtn.classList.remove('hidden'); // Show clear button for guests
                 } else {
                     userInfoDiv.textContent = `Welcome, ${displayName}!`;
+                    clearGuestSettingsBtn.classList.add('hidden'); // Hide for authenticated users
                 }
 
                 mainAppUserInfo.textContent = displayEmail; // Display full email in dropdown
@@ -743,20 +789,17 @@
 
                 console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
                 
-                // Load user's data sets and set active one
-                await loadUserDataSets(user.uid);
-                
+                // Start listening for expenses and settings based on user type
+                listenToExpenses(user.uid);
+                loadUserSettings(); // Load settings when user changes
             } else {
                 currentUserId = null;
-                currentUserDataSets = []; // Clear data sets
-                activeDataSet = 'default_expenses'; // Reset to default
-                localStorage.removeItem('activeDataSet'); // Clear stored active data set
-                activeDataSetNameDisplay.textContent = 'Default'; // Update display
-                dataSetSelect.innerHTML = ''; // Clear dropdown
+                currentUserIsGuest = false;
                 userInfoDiv.textContent = 'Please sign in to save your data.';
                 mainAppUserInfo.textContent = ''; // Clear email in dropdown
                 profileIconText.textContent = 'G'; // Reset icon to Guest
                 avatarInitial.textContent = 'G';   // Reset avatar initial
+                clearGuestSettingsBtn.classList.add('hidden'); // Hide for signed out
 
                 mainAppContainer.classList.add('hidden');
                 loginScreen.classList.remove('hidden');
@@ -764,11 +807,16 @@
                 console.log('User signed out.');
 
                 expenses = [];
-                renderExpenses();
+                // Reset settings to default for signed out state
+                userSettings = { defaultCurrency: 'CAD' }; 
+                renderExpenses(); // Re-render table with default currency display
                 if (unsubscribeFromExpenses) {
                     unsubscribeFromExpenses();
-                    unsubscribeFromExpenses = null; // Clear listener
                 }
+                if (unsubscribeFromSettings) {
+                    unsubscribeFromSettings();
+                }
+                loadGuestSettings(); // Load any locally stored guest settings
                 showMessage('Your data will be available when you sign in.', 'info');
             }
             console.log("Auth state check complete, hiding loading overlay.");
@@ -780,11 +828,6 @@
             event.stopPropagation(); // Prevent document click from closing it immediately
             profileDropdownContent.classList.toggle('hidden');
             profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
-            if (profileDropdownContent.classList.contains('active')) {
-                // When opening the dropdown, ensure data management is hidden initially
-                dataManagementSection.classList.remove('active');
-                dataManagementSection.classList.add('hidden');
-            }
         });
 
         // Close dropdown when clicking outside
@@ -792,202 +835,111 @@
             if (!profileDropdownContent.contains(event.target) && !profileToggleButton.contains(event.target)) {
                 profileDropdownContent.classList.add('hidden');
                 profileDropdownContent.classList.remove('active');
-                dataManagementSection.classList.add('hidden'); // Hide data management when closing dropdown
             }
         });
 
-        // --- Data Set Management Logic ---
-        manageDataSetsBtn.addEventListener('click', () => {
-            dataManagementSection.classList.toggle('hidden');
-            dataManagementSection.classList.toggle('active');
-            populateDataSetSelect(); // Refresh list when showing
-            renameDataSetInput.value = activeDataSet; // Pre-fill rename field
+        // --- Settings Modal Logic ---
+        settingsButton.addEventListener('click', () => {
+            profileDropdownContent.classList.add('hidden'); // Close profile dropdown
+            currencyPreferenceSelect.value = userSettings.defaultCurrency; // Set current preference
+            settingsModal.classList.add('active'); // Show modal
         });
 
-        async function loadUserDataSets(userId) {
-            showLoading("Loading data sets...");
-            const docRef = doc(db, `users/${userId}/app_metadata/collections`);
+        closeSettingsModalBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('active'); // Hide modal
+        });
+
+        saveSettingsBtn.addEventListener('click', async () => {
+            const selectedCurrency = currencyPreferenceSelect.value;
+            userSettings.defaultCurrency = selectedCurrency;
+
             try {
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().list) {
-                    currentUserDataSets = docSnap.data().list;
+                if (currentUserIsGuest) {
+                    localStorage.setItem('guestSettings', JSON.stringify(userSettings));
+                    showMessage('Guest settings saved locally!', 'success');
                 } else {
-                    // Initialize with default if no data sets exist
-                    currentUserDataSets = ['default_expenses'];
-                    await setDoc(docRef, { list: currentUserDataSets });
+                    // For authenticated users, save to Firestore
+                    const settingsRef = doc(db, `users/${currentUserId}/settings`, 'userPreferences');
+                    await setDoc(settingsRef, userSettings, { merge: true }); // Use merge to avoid overwriting other settings
+                    showMessage('Settings saved to your account!', 'success');
                 }
-                populateDataSetSelect(); // Populate the dropdown
-                
-                // Restore active data set from localStorage, or use 'default_expenses'
-                const storedDataSet = localStorage.getItem('activeDataSet');
-                if (storedDataSet && currentUserDataSets.includes(storedDataSet)) {
-                    activeDataSet = storedDataSet;
-                } else {
-                    activeDataSet = 'default_expenses'; // Fallback
-                    localStorage.setItem('activeDataSet', activeDataSet);
-                }
-                activeDataSetNameDisplay.textContent = activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); // Update display name
-                
-                // Ensure the select box reflects the active data set
-                dataSetSelect.value = activeDataSet;
-
-                listenToExpenses(userId, activeDataSet); // Start listening to the active data set
+                settingsModal.classList.remove('active'); // Close modal
+                renderExpenses(); // Re-render the expense table with new currency
             } catch (error) {
-                console.error("Error loading user data sets:", error);
-                showMessage("Error loading your data sets.", "error");
-                currentUserDataSets = ['default_expenses']; // Fallback to default
-                activeDataSet = 'default_expenses';
-                localStorage.setItem('activeDataSet', activeDataSet);
-                activeDataSetNameDisplay.textContent = 'Default Expenses';
-                populateDataSetSelect();
-                listenToExpenses(userId, activeDataSet);
-            } finally {
-                hideLoading();
+                console.error("Error saving settings:", error);
+                showMessage('Failed to save settings. Please try again.', 'error');
+            }
+        });
+
+        clearGuestSettingsBtn.addEventListener('click', () => {
+            if (currentUserIsGuest) {
+                localStorage.removeItem('guestSettings');
+                userSettings = { defaultCurrency: 'CAD' }; // Reset to default
+                currencyPreferenceSelect.value = userSettings.defaultCurrency; // Update modal UI
+                renderExpenses(); // Re-render with default currency
+                showMessage('Guest settings cleared!', 'info');
+            }
+        });
+
+        // --- Load User Settings ---
+        function loadUserSettings() {
+            if (currentUserIsGuest) {
+                loadGuestSettings();
+            } else if (currentUserId) {
+                listenToUserSettings(currentUserId);
             }
         }
 
-        function populateDataSetSelect() {
-            dataSetSelect.innerHTML = '';
-            currentUserDataSets.forEach(dataSet => {
-                const option = document.createElement('option');
-                option.value = dataSet;
-                option.textContent = dataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); // Make it user-friendly
-                dataSetSelect.appendChild(option);
-            });
-            dataSetSelect.value = activeDataSet; // Set the current active dataset
-        }
-
-        switchDataSetBtn.addEventListener('click', async () => {
-            const newDataSet = dataSetSelect.value;
-            if (newDataSet && newDataSet !== activeDataSet) {
-                activeDataSet = newDataSet;
-                localStorage.setItem('activeDataSet', activeDataSet);
-                activeDataSetNameDisplay.textContent = activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                showMessage(`Switched to data set: ${activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`, 'info');
-                listenToExpenses(currentUserId, activeDataSet); // Change listener to new collection
-                profileDropdownContent.classList.add('hidden'); // Close dropdown
-                profileDropdownContent.classList.remove('active');
-                dataManagementSection.classList.add('hidden');
-            } else if (newDataSet === activeDataSet) {
-                 showMessage('This data set is already active.', 'info');
+        function loadGuestSettings() {
+            const storedSettings = localStorage.getItem('guestSettings');
+            if (storedSettings) {
+                try {
+                    userSettings = JSON.parse(storedSettings);
+                    console.log("Loaded guest settings:", userSettings);
+                } catch (e) {
+                    console.error("Error parsing guest settings from localStorage:", e);
+                    userSettings = { defaultCurrency: 'CAD' }; // Fallback to default
+                }
             } else {
-                showMessage('Please select a valid data set.', 'error');
+                userSettings = { defaultCurrency: 'CAD' }; // Default if nothing found
             }
-        });
+            // Immediately apply settings to UI
+            currencyPreferenceSelect.value = userSettings.defaultCurrency;
+            renderExpenses(); // Re-render to apply currency changes
+        }
 
-        createDataSetBtn.addEventListener('click', async () => {
-            const newName = newDataSetNameInput.value.trim();
-            if (!newName) {
-                showMessage('Please enter a name for the new data set.', 'error');
-                return;
-            }
-            const cleanName = newName.toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
-            if (!cleanName) {
-                showMessage('Invalid data set name. Please use alphanumeric characters.', 'error');
-                return;
-            }
-            if (currentUserDataSets.includes(cleanName)) {
-                showMessage('A data set with this name already exists.', 'error');
-                return;
+        function listenToUserSettings(userId) {
+            if (unsubscribeFromSettings) {
+                unsubscribeFromSettings();
             }
 
-            try {
-                showLoading(`Creating data set "${newName}"...`);
-                const docRef = doc(db, `users/${currentUserId}/app_metadata/collections`);
-                currentUserDataSets.push(cleanName);
-                await updateDoc(docRef, { list: currentUserDataSets });
-                
-                // Switch to the new data set immediately
-                activeDataSet = cleanName;
-                localStorage.setItem('activeDataSet', activeDataSet);
-                activeDataSetNameDisplay.textContent = activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                
-                populateDataSetSelect(); // Update the dropdown
-                newDataSetNameInput.value = ''; // Clear input
-                listenToExpenses(currentUserId, activeDataSet); // Start listening to new collection
-                showMessage(`New data set "${newName}" created and activated!`, 'success');
-                profileDropdownContent.classList.add('hidden'); // Close dropdown
-                profileDropdownContent.classList.remove('active');
-                dataManagementSection.classList.add('hidden');
-            } catch (error) {
-                console.error("Error creating data set:", error);
-                showMessage('Error creating data set. Please try again.', 'error');
-            } finally {
-                hideLoading();
-            }
-        });
-
-        renameDataSetBtn.addEventListener('click', async () => {
-            if (activeDataSet === 'default_expenses') {
-                showMessage('The "Default Expenses" data set cannot be renamed.', 'error');
-                return;
-            }
-
-            const newName = renameDataSetInput.value.trim();
-            if (!newName) {
-                showMessage('Please enter a new name for the data set.', 'error');
-                return;
-            }
-            const cleanNewName = newName.toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
-            if (!cleanNewName) {
-                showMessage('Invalid new name. Please use alphanumeric characters.', 'error');
-                return;
-            }
-            if (currentUserDataSets.includes(cleanNewName)) {
-                showMessage('A data set with this new name already exists.', 'error');
-                return;
-            }
-
-            try {
-                showLoading(`Renaming data set to "${newName}"...`);
-                // Firestore doesn't directly support renaming collections.
-                // We'll create a new collection, copy all documents, then delete the old one.
-                // This is a complex operation and can be slow for large datasets.
-                // A simpler approach for *this client-side app* is to just rename the *reference*
-                // in the `app_metadata/collections` document. The old collection data will remain
-                // in Firebase but will become "orphaned" (no longer accessible via the UI).
-                // For a robust app, this would require a server-side function.
-
-                // For now, we'll implement the "soft rename" (update the list of names)
-                const docRef = doc(db, `users/${currentUserId}/app_metadata/collections`);
-                const oldIndex = currentUserDataSets.indexOf(activeDataSet);
-                if (oldIndex > -1) {
-                    currentUserDataSets[oldIndex] = cleanNewName;
-                    await updateDoc(docRef, { list: currentUserDataSets });
+            const settingsRef = doc(db, `users/${userId}/settings`, 'userPreferences');
+            unsubscribeFromSettings = onSnapshot(settingsRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    userSettings = docSnap.data();
+                    console.log("Loaded cloud settings:", userSettings);
+                } else {
+                    console.log("No cloud settings found, using defaults.");
+                    userSettings = { defaultCurrency: 'CAD' }; // Use default if no document exists
                 }
-                
-                // Update active data set
-                activeDataSet = cleanNewName;
-                localStorage.setItem('activeDataSet', activeDataSet);
-                activeDataSetNameDisplay.textContent = activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-                populateDataSetSelect(); // Update the dropdown
-                renameDataSetInput.value = cleanNewName; // Update input field
-                showMessage(`Data set renamed to "${newName}". Note: Existing data in the old name is not moved.`, 'info');
-                // Importantly, we need to re-listen to the new collection name
-                listenToExpenses(currentUserId, activeDataSet);
-                profileDropdownContent.classList.add('hidden'); // Close dropdown
-                profileDropdownContent.classList.remove('active');
-                dataManagementSection.classList.add('hidden');
-
-            } catch (error) {
-                console.error("Error renaming data set:", error);
-                showMessage('Error renaming data set. Please try again.', 'error');
-            } finally {
-                hideLoading();
-            }
-        });
+                // Apply settings to UI and re-render expenses
+                currencyPreferenceSelect.value = userSettings.defaultCurrency;
+                renderExpenses();
+            }, (error) => {
+                console.error("Error fetching Firestore settings:", error);
+                showMessage("Error loading settings. Check console for details.", "error");
+            });
+        }
 
 
         // --- Firestore Data Listener ---
-        function listenToExpenses(userId, collectionName) {
+        function listenToExpenses(userId) {
             if (unsubscribeFromExpenses) {
-                unsubscribeFromExpenses(); // Unsubscribe from previous listener
-                unsubscribeFromExpenses = null;
+                unsubscribeFromExpenses();
             }
             
-            showLoading(`Loading expenses for "${collectionName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}"...`);
-            const q = query(collection(db, `users/${userId}/${collectionName}`));
+            showLoading("Loading your expenses...");
+            const q = query(collection(db, `users/${userId}/expenses`));
             
             unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
                 const fetchedExpenses = [];
@@ -1006,9 +958,9 @@
                     });
                 });
                 expenses = fetchedExpenses;
-                renderExpenses();
+                renderExpenses(); // This will now use the current userSettings.defaultCurrency
                 hideLoading();
-                showMessage(`Expenses for "${collectionName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}" synchronized!`, 'success');
+                showMessage('Expenses synchronized from cloud!', 'success');
             }, (error) => {
                 console.error("Error fetching Firestore expenses:", error);
                 showMessage("Error loading expenses. Check console for details.", "error");
@@ -1043,7 +995,7 @@
 
             try {
                 showLoading("Adding expense...");
-                await addDoc(collection(db, `users/${currentUserId}/${activeDataSet}`), {
+                await addDoc(collection(db, `users/${currentUserId}/expenses`), {
                     date,
                     category,
                     description,
@@ -1074,7 +1026,7 @@
             }
             try {
                 showLoading("Deleting expense...");
-                await deleteDoc(doc(db, `users/${currentUserId}/${activeDataSet}`, id));
+                await deleteDoc(doc(db, `users/${currentUserId}/expenses`, id));
                 showMessage('Expense deleted successfully!', 'success');
             } catch (e) {
                 console.error("Error deleting document: ", e);
@@ -1103,18 +1055,39 @@
             // Sort expenses by date in descending order
             const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            sortedExpenses.forEach(exp => {
-                total += exp.amount;
+            const defaultCurrencySymbol = currencySymbols[userSettings.defaultCurrency] || currencySymbols['CAD']; // Fallback
+            let totalInDefaultCurrency = 0;
 
-                const amountAED = (exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
-                const amountINR = (exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+            sortedExpenses.forEach(exp => {
+                total += exp.amount; // CAD total
+
+                let amountAED = (exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                let amountINR = (exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+                let amountCAD = exp.amount.toFixed(2);
+
+                let displayAmount;
+                switch (userSettings.defaultCurrency) {
+                    case 'AED':
+                        displayAmount = `AED ${amountAED}`;
+                        totalInDefaultCurrency += parseFloat(amountAED);
+                        break;
+                    case 'INR':
+                        displayAmount = `₹${amountINR}`;
+                        totalInDefaultCurrency += parseFloat(amountINR);
+                        break;
+                    case 'CAD':
+                    default:
+                        displayAmount = `C$${amountCAD}`;
+                        totalInDefaultCurrency += parseFloat(amountCAD);
+                        break;
+                }
 
                 const row = expenseTableBody.insertRow();
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">${exp.date}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${exp.category}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${exp.description}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">C$${exp.amount.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${displayAmount}</td>
                     <td class="px-6 py-4 whitespace-nowrap">AED ${amountAED}</td>
                     <td class="px-6 py-4 whitespace-nowrap">₹${amountINR}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${exp.paymentMethod}</td>
@@ -1128,7 +1101,7 @@
                     </td>
                 `;
             });
-            totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
+            totalExpenditureSpan.textContent = `${defaultCurrencySymbol}${totalInDefaultCurrency.toFixed(2)}`;
             updateCharts();
             populateMonthSelect();
         }
@@ -1209,7 +1182,7 @@
                 data: {
                     labels: sortedMonths,
                     datasets: [{
-                        label: 'Total Expenditure (CAD)',
+                        label: `Total Expenditure (${userSettings.defaultCurrency})`, // Dynamic label
                         data: monthlyAmounts,
                         backgroundColor: '#007aff', // Apple Blue
                         borderColor: '#0066cc',
@@ -1234,7 +1207,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Amount (CAD)'
+                                text: `Amount (${userSettings.defaultCurrency})` // Dynamic label
                             }
                         },
                         x: {
@@ -1391,7 +1364,7 @@
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const monthName = new Date(selectedMonth + '-01').toLocaleString('en-US', { month: 'long', year: 'numeric' });
-            const filename = `${activeDataSet.replace(/_/g, '-')}_expenses_${monthName.replace(/ /g, '_')}.csv`; // Add data set name to filename
+            const filename = `expenses_${monthName.replace(/ /g, '_')}.csv`; 
             
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -1421,8 +1394,8 @@
                 Category: exp.category,
                 Description: exp.description,
                 'Amount (CAD)': exp.amount,
-                'Amount (AED)': parseFloat((exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2)), // Convert to number
-                'Amount (INR)': parseFloat((exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2)), // Convert to number
+                'Amount (AED)': (exp.amount * EXCHANGE_RATE_CAD_TO_AED), // Keep as number for XLSX
+                'Amount (INR)': (exp.amount * EXCHANGE_RATE_CAD_TO_INR), // Keep as number for XLSX
                 'Payment Method': exp.paymentMethod,
                 'Paid By': exp.paidBy,
                 'Has Bill?': exp.hasBill ? 'Yes' : 'No',
@@ -1430,11 +1403,27 @@
             }));
 
             const ws = XLSX.utils.json_to_sheet(data);
+
+            // Optional: Auto-fit column widths (basic attempt)
+            const columnWidths = [
+                {wch: 12}, // Date
+                {wch: 15}, // Category
+                {wch: 25}, // Description
+                {wch: 15}, // Amount (CAD)
+                {wch: 15}, // Amount (AED)
+                {wch: 15}, // Amount (INR)
+                {wch: 15}, // Payment Method
+                {wch: 12}, // Paid By
+                {wch: 12}, // Has Bill?
+                {wch: 12}  // Bill Type
+            ];
+            ws['!cols'] = columnWidths;
+
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Expenses");
 
             const monthName = new Date(selectedMonth + '-01').toLocaleString('en-US', { month: 'long', year: 'numeric' });
-            const filename = `${activeDataSet.replace(/_/g, '-')}_expenses_${monthName.replace(/ /g, '_')}.xlsx`; // Add data set name to filename
+            const filename = `expenses_${monthName.replace(/ /g, '_')}.xlsx`;
 
             XLSX.writeFile(wb, filename);
             showMessage(`Downloaded expenses for ${monthName} as an Excel (.xlsx) file!`, 'success');
