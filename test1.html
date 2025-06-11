@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Expenditure Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
+            authDomain: "my-expenese-tracker.firebaseapp.com",
+            projectId: "my-expenese-tracker",
+            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            messagingSenderId: "466782350290",
+            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
+            measurementId: "G-1CF1ZNLPC2"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // Global variables for Firebase instances (accessible by other scripts)
+        window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.googleAuthProvider = provider;
+
+        // Export Firebase functions to make them available globally for use in the main script
+        window.onFirebaseAuthChanged = onAuthStateChanged;
+        window.firebaseSignInWithPopup = signInWithPopup;
+        window.firebaseSignOut = signOut;
+        window.firebaseAddDoc = addDoc;
+        window.firebaseCollection = collection;
+        window.firebaseQuery = query;
+        window.firebaseOnSnapshot = onSnapshot;
+        window.firebaseDeleteDoc = deleteDoc;
+        window.firebaseDoc = doc;
+    </script>
+    <style>
+        /* Apple-like font stack (system fonts with fallbacks) */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f5f5f7; /* Very light gray, almost white */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333; /* Darker text for better readability */
+        }
+
+        /* Custom scrollbar for the table container - subtle grays */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background-color: #d1d1d6; /* Light gray */
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background-color: #e8e8ed; /* Even lighter gray */
+        }
+        
+        /* Chart container styling for responsiveness */
+        .chart-container {
+            position: relative;
+            height: 400px; /* Max height for charts */
+            width: 100%;
+            margin: auto; /* Center the charts */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+        
+        /* Loading overlay - clean and simple */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95); /* More opaque white */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007aff; /* Apple blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* General button styling for a softer, Apple-like look */
+        .btn-primary {
+            background-color: #007aff; /* Apple Blue */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px; /* More rounded */
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .btn-primary:hover {
+            background-color: #0066cc; /* Slightly darker blue on hover */
+            transform: translateY(-1px); /* Slight lift */
+        }
+        .btn-primary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.5); /* Blue ring focus */
+        }
+
+        .btn-secondary {
+            background-color: #f0f0f0; /* Light gray background */
+            color: #333;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            border: 1px solid #d1d1d6; /* Subtle border */
+        }
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-1px);
+        }
+        .btn-secondary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-danger {
+            background-color: #ff3b30; /* Apple Red */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-danger:hover {
+            background-color: #cc0000;
+            transform: translateY(-1px);
+        }
+        .btn-danger:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.5);
+        }
+
+        /* Input field styling */
+        .app-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d1d6; /* Light gray border */
+            border-radius: 8px; /* Slightly rounded */
+            background-color: white;
+            color: #333;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .app-input:focus {
+            outline: none;
+            border-color: #007aff; /* Blue border on focus */
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2); /* Soft blue glow */
+        }
+        .app-select {
+            appearance: none; /* Remove default arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Space for the custom arrow */
+        }
+        
+        /* Card/Container styling */
+        .app-card {
+            background-color: white;
+            border-radius: 18px; /* More pronounced rounding for main cards */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05); /* Softer, more diffuse shadow */
+            padding: 32px; /* Increased padding */
+            margin-bottom: 24px; /* Consistent spacing */
+        }
+
+        /* Table styling */
+        .app-table {
+            border-collapse: separate; /* Allows for rounded corners on cells/rows */
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .app-table thead {
+            background-color: #f8f8fa; /* Very light gray for table header */
+        }
+
+        .app-table th {
+            padding: 16px 24px;
+            text-align: left;
+            font-weight: 600; /* Slightly bolder header text */
+            font-size: 0.85rem;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .app-table td {
+            padding: 14px 24px;
+            border-bottom: 1px solid #efefef; /* Lighter divider */
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .app-table tbody tr:last-child td {
+            border-bottom: none; /* No border on the last row */
+        }
+
+        .app-table tbody tr:hover {
+            background-color: #f9f9f9; /* Subtle hover effect */
+        }
+
+        /* Specific overrides for messages and totals */
+        .message-success {
+            background-color: #e6f7ed; /* Soft green */
+            color: #1a6438; /* Dark green text */
+            border-color: #8ce1a7;
+        }
+        .message-error {
+            background-color: #ffebe6; /* Soft red */
+            color: #b32f2f; /* Dark red text */
+            border-color: #ff8c8c;
+        }
+        .message-info {
+            background-color: #e6f0ff; /* Soft blue */
+            color: #004d99; /* Dark blue text */
+            border-color: #8cbaff;
+        }
+
+        #totalExpenditure {
+            font-size: 1.6rem; /* Larger total amount */
+            font-weight: 700;
+            color: #007aff; /* Apple Blue for total */
+        }
+
+        .section-header {
+            font-size: 1.8rem; /* Larger, bolder headers */
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .sub-section-header {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+    </style>
+</head>
+<body class="flex flex-col items-center p-4 min-h-screen">
+    <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
+        <p class="text-gray-700 text-lg">Initializing app...</p>
+    </div>
+
+    <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
+        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
+        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending.</p>
+        <button id="authButton" class="btn-primary w-full">
+            Sign In with Google
+        </button>
+        <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
+    </div>
+
+    <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
+        <div class="app-card flex flex-col md:flex-row items-center justify-between">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4 md:mb-0 section-header md:text-left">Expense Tracker</h1>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+                <div id="mainAppUserInfo" class="text-gray-600 text-center md:text-left text-sm"></div>
+                <button id="signOutButton" class="btn-danger">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Add New Expense</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+                    <input type="date" id="expenseDate" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-600 mb-1">Amount (CAD)</label>
+                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>
+                    <select id="paymentMethod" class="app-input app-select">
+                        <option value="">Select Method</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Online Payment">Online Payment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paidBy" class="block text-sm font-medium text-gray-600 mb-1">Paid By</label>
+                    <input type="text" id="paidBy" placeholder="e.g., John, Sarah" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1 flex items-center mt-3">
+                    <input type="checkbox" id="hasBill" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="hasBill" class="ml-2 block text-sm font-medium text-gray-600">Do you have the bill?</label>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1" id="billTypeContainer" style="display: none;">
+                    <label for="billType" class="block text-sm font-medium text-gray-600 mb-1">Bill Type</label>
+                    <select id="billType" class="app-input app-select">
+                        <option value="">Select Type</option>
+                        <option value="Physical">Physical</option>
+                        <option value="Digital">Digital</option>
+                    </select>
+                </div>
+            </div>
+            <button id="addExpenseBtn" class="btn-primary w-full">
+                Add Expense
+            </button>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Your Expenses</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 table-container">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Amount (CAD)</th>
+                            <th scope="col">Amount (AED)</th>
+                            <th scope="col">Amount (INR)</th>
+                            <th scope="col">Method</th>
+                            <th scope="col">Paid By</th>
+                            <th scope="col">Has Bill?</th>
+                            <th scope="col">Bill Type</th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Delete</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="app-card flex justify-end">
+            <h2 class="text-xl font-bold text-gray-800">Total Expenditure: <span id="totalExpenditure">C$0.00</span></h2>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">AI-Powered Insights</h2>
+            <button id="getInsightsBtn" class="btn-primary w-full">
+                Get Spending Insights ✨
+            </button>
+            <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
+                <p class="font-medium">Analyzing your expenses...</p>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="section-header">Spending Visualizations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Spending Distribution by Category</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseCategoryChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed across different categories.</p>
+                </div>
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Monthly Total Expenditure</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseMonthlyChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This bar graph shows your total expenditure for each month.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Download Data (CSV)</h2>
+            <div class="flex flex-col md:flex-row items-center gap-4">
+                <div class="flex-grow w-full md:w-auto">
+                    <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
+                    <select id="monthSelect" class="app-input app-select">
+                        <option value="">Select a month...</option>
+                    </select>
+                </div>
+                <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
+                    Download CSV
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a CSV file, compatible with Excel/Google Sheets.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import firebase dependencies that were made global by the first script tag
+        const auth = window.firebaseAuth;
+        const db = window.firebaseDb;
+        const provider = window.googleAuthProvider;
+        const signInWithPopup = window.firebaseSignInWithPopup;
+        const signOut = window.firebaseSignOut;
+        const onAuthStateChanged = window.onFirebaseAuthChanged;
+        const addDoc = window.firebaseAddDoc;
+        const collection = window.firebaseCollection;
+        const query = window.firebaseQuery;
+        const onSnapshot = window.firebaseOnSnapshot;
+        const deleteDoc = window.firebaseDeleteDoc;
+        const docRef = window.firebaseDoc;
+
+        // DOM element references
+        const expenseDateInput = document.getElementById('expenseDate');
+        const expenseCategoryInput = document.getElementById('expenseCategory');
+        const expenseDescriptionInput = document.getElementById('expenseDescription');
+        const expenseAmountInput = document.getElementById('expenseAmount');
+        const paymentMethodInput = document.getElementById('paymentMethod');
+        const paidByInput = document.getElementById('paidBy');
+        const hasBillInput = document.getElementById('hasBill');
+        const billTypeContainer = document.getElementById('billTypeContainer');
+        const billTypeInput = document.getElementById('billType');
+        const addExpenseBtn = document.getElementById('addExpenseBtn');
+        const expenseTableBody = document.getElementById('expenseTableBody');
+        const totalExpenditureSpan = document.getElementById('totalExpenditure');
+        const getInsightsBtn = document.getElementById('getInsightsBtn');
+        const insightsDisplay = document.getElementById('insightsDisplay');
+        const expenseCategoryChartCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+        const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
+        const monthSelect = document.getElementById('monthSelect');
+        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+
+        const authButton = document.getElementById('authButton'); // Button on login screen
+        const userInfoDiv = document.getElementById('userInfo'); // User info on login screen
+
+        const mainAppContainer = document.getElementById('mainAppContainer'); // Main application content
+        const loginScreen = document.getElementById('loginScreen'); // Login screen container
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); // User info display in main app
+        const signOutButton = document.getElementById('signOutButton'); // Sign Out button in main app
+
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // Global state variables
+        let expenses = [];
+        let currentUserId = null;
+        let unsubscribeFromExpenses = null;
+
+        // Exchange rates (CAD as base) - these are hardcoded for simplicity
+        const EXCHANGE_RATE_CAD_TO_AED = 2.70;
+        const EXCHANGE_RATE_CAD_TO_INR = 61.00;
+
+        // Chart instances
+        let expenseCategoryPieChart;
+        let expenseMonthlyBarChart;
+
+        // --- Loading Overlay Functions ---
+        function showLoading(message = "Loading...") {
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.querySelector('p').textContent = message;
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
+
+        // --- Authentication Functions ---
+        // Listener for the Sign In/Sign Out button on the login screen
+        authButton.addEventListener('click', async () => {
+            // This button is only visible when logged out, so it always performs sign-in
+            try {
+                showLoading("Signing in...");
+                await signInWithPopup(auth, provider);
+                showMessage('Signed in successfully!', 'success');
+            } catch (error) {
+                console.error('Error signing in with Google:', error);
+                let errorMessage = 'Failed to sign in.';
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign-in cancelled by user.';
+                } else if (error.message) {
+                    errorMessage += ` Error: ${error.message}`;
+                }
+                showMessage(errorMessage, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Listener for the Sign Out button within the main application
+        signOutButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing out...");
+                await signOut(auth);
+                showMessage('Signed out successfully!', 'success');
+            } catch (error) {
+                console.error('Error signing out:', error);
+                showMessage('Error signing out. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+
+        // --- Firebase Auth State Listener ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in
+                currentUserId = user.uid;
+                // Update user info for both login screen (which will be hidden) and main app
+                userInfoDiv.textContent = `Welcome, ${user.displayName || user.email}!`; // For login screen (will be hidden)
+                mainAppUserInfo.textContent = `Logged in as: ${user.displayName || user.email}`; // For main app
+
+                // Hide login screen, show main application
+                loginScreen.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+
+                console.log('User signed in:', user.uid);
+                
+                // Start listening to expenses for this user
+                listenToExpenses(user.uid);
+            } else {
+                // User is signed out
+                currentUserId = null;
+                userInfoDiv.textContent = 'Please sign in to save your data.'; // For login screen
+                mainAppUserInfo.textContent = ''; // Clear user info in main app
+
+                // Hide main application, show login screen
+                mainAppContainer.classList.add('hidden');
+                loginScreen.classList.remove('hidden');
+
+                console.log('User signed out.');
+
+                // Clear expenses from the UI and stop listening to Firestore
+                expenses = [];
+                renderExpenses(); // Re-render to clear table and charts
+                if (unsubscribeFromExpenses) {
+                    unsubscribeFromExpenses(); // Detach any existing Firestore listener
+                }
+                showMessage('Your data will be available when you sign in.', 'info');
+            }
+            // Ensure loading overlay is hidden after initial auth check
+            hideLoading();
+        });
+
+        // --- Firestore Data Listener ---
+        function listenToExpenses(userId) {
+            if (unsubscribeFromExpenses) {
+                unsubscribeFromExpenses();
+            }
+            
+            showLoading("Loading your expenses...");
+            const q = query(collection(db, `users/${userId}/expenses`));
+            
+            unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
+                const fetchedExpenses = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    fetchedExpenses.push({
+                        id: doc.id,
+                        date: data.date,
+                        category: data.category,
+                        description: data.description,
+                        amount: data.amount,
+                        paymentMethod: data.paymentMethod,
+                        paidBy: data.paidBy,
+                        hasBill: data.hasBill,
+                        billType: data.billType
+                    });
+                });
+                expenses = fetchedExpenses;
+                renderExpenses();
+                hideLoading();
+                showMessage('Expenses synchronized from cloud!', 'success');
+            }, (error) => {
+                console.error("Error fetching Firestore expenses:", error);
+                showMessage("Error loading expenses. Check console for details.", "error");
+                hideLoading();
+            });
+        }
+
+        // --- UI Logic ---
+        hasBillInput.addEventListener('change', () => {
+            if (hasBillInput.checked) {
+                billTypeContainer.style.display = 'block';
+            } else {
+                billTypeContainer.style.display = 'none';
+                billTypeInput.value = '';
+            }
+        });
+
+        function generateColors(numColors) {
+            const colors = [];
+            // Using a palette that leans towards Apple's default chart colors (blues, greens, purples)
+            const appleLikeColors = [
+                'rgb(0, 122, 255)',  // Blue
+                'rgb(52, 199, 89)',  // Green
+                'rgb(175, 82, 222)', // Purple
+                'rgb(255, 149, 0)',  // Orange
+                'rgb(255, 59, 48)',  // Red
+                'rgb(88, 86, 214)',  // Indigo
+                'rgb(94, 92, 230)',  // Gray-ish Blue
+                'rgb(0, 199, 190)',  // Teal
+            ];
+
+            for (let i = 0; i < numColors; i++) {
+                colors.push(appleLikeColors[i % appleLikeColors.length]);
+            }
+            return colors;
+        }
+
+        function renderCategoryPieChart() {
+            const categoryTotals = {};
+            expenses.forEach(expense => {
+                const category = expense.category.toLowerCase();
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = 0;
+                }
+                categoryTotals[category] += expense.amount;
+            });
+
+            const labels = Object.keys(categoryTotals);
+            const data = Object.values(categoryTotals);
+            const backgroundColors = generateColors(labels.length);
+
+            if (expenseCategoryPieChart) {
+                expenseCategoryPieChart.data.labels = labels;
+                expenseCategoryPieChart.data.datasets[0].data = data;
+                expenseCategoryPieChart.data.datasets[0].backgroundColor = backgroundColors;
+                expenseCategoryPieChart.update();
+            } else {
+                expenseCategoryPieChart = new Chart(expenseCategoryChartCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            hoverOffset: 8, /* Slightly larger hover offset */
+                            borderColor: 'white', /* White border for slices */
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right', /* Legend on the right for more space */
+                                labels: {
+                                    font: {
+                                        family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                                        size: 14,
+                                        weight: '500'
+                                    },
+                                    color: '#333'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                titleFont: { size: 14, weight: '600' },
+                                bodyFont: { size: 13 },
+                                padding: 10,
+                                displayColors: true,
+                                bodyColor: 'white',
+                                titleColor: 'white',
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += 'C$' + context.parsed.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderMonthlyBarChart() {
+            const monthlyTotals = {};
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+            expenses.forEach(expense => {
+                const date = new Date(expense.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!monthlyTotals[monthKey]) {
+                    monthlyTotals[monthKey] = { total: 0, displayMonth: `${monthNames[date.getMonth()]} ${date.getFullYear()}` };
+                }
+                monthlyTotals[monthKey].total += expense.amount;
+            });
+
+            const sortedMonthKeys = Object.keys(monthlyTotals).sort();
+            const labels = sortedMonthKeys.map(key => monthlyTotals[key].displayMonth);
+            const data = sortedMonthKeys.map(key => monthlyTotals[key].total);
+            
+            const barColor = 'rgb(0, 122, 255, 0.7)'; // Semi-transparent Apple Blue
+            const borderColor = 'rgb(0, 122, 255)';
+
+            if (expenseMonthlyBarChart) {
+                expenseMonthlyBarChart.data.labels = labels;
+                expenseMonthlyBarChart.data.datasets[0].data = data;
+                expenseMonthlyBarChart.update();
+            } else {
+                expenseMonthlyBarChart = new Chart(expenseMonthlyChartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Expenditure (CAD)',
+                            data: data,
+                            backgroundColor: barColor,
+                            borderColor: borderColor,
+                            borderWidth: 1,
+                            borderRadius: 6 /* Rounded bar corners */
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false, /* No legend needed for single dataset */
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                titleFont: { size: 14, weight: '600' },
+                                bodyFont: { size: 13 },
+                                padding: 10,
+                                displayColors: false,
+                                bodyColor: 'white',
+                                titleColor: 'white',
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'C$' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#e8e8ed', /* Lighter grid lines */
+                                    drawBorder: false /* No border on the grid */
+                                },
+                                ticks: {
+                                    color: '#666',
+                                    font: { family: '-apple-system', size: 12 },
+                                    callback: function(value) {
+                                        return 'C$' + value;
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Amount (CAD)',
+                                    color: '#333',
+                                    font: { family: '-apple-system', size: 14, weight: '500' }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false /* No vertical grid lines */
+                                },
+                                ticks: {
+                                    color: '#666',
+                                    font: { family: '-apple-system', size: 12 }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Month',
+                                    color: '#333',
+                                    font: { family: '-apple-system', size: 14, weight: '500' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderExpenses() {
+            expenseTableBody.innerHTML = '';
+            let total = 0;
+
+            expenses.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+
+            expenses.forEach((expense) => {
+                const amountCAD = expense.amount;
+                const amountAED = (amountCAD * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountINR = (amountCAD * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+
+                total += amountCAD; // Sum up for total expenditure
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50'; // Subtle hover
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${expense.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize">${expense.category}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${expense.description}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">C$${amountCAD.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">AED ${amountAED}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">INR ${amountINR}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${expense.paymentMethod || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${expense.paidBy || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${expense.hasBill ? 'Yes' : 'No'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${expense.hasBill && expense.billType ? expense.billType : 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button data-id="${expense.id}" class="delete-btn text-red-500 hover:text-red-700 focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm6 10a1 1 0 100-2H7a1 1 0 100 2h6z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                expenseTableBody.appendChild(row);
+            });
+
+            totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
+            updateMonthDropdown();
+            renderCategoryPieChart();
+            renderMonthlyBarChart();
+
+            // Add event listeners for delete buttons
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', (e) => deleteExpense(e.currentTarget.dataset.id));
+            });
+        }
+
+        async function addExpense() {
+            if (!currentUserId) {
+                showMessage("Please sign in to add expenses.", "error");
+                return;
+            }
+
+            const date = expenseDateInput.value;
+            const category = expenseCategoryInput.value.trim();
+            const description = expenseDescriptionInput.value.trim();
+            const amount = parseFloat(expenseAmountInput.value);
+            const paymentMethod = paymentMethodInput.value;
+            const paidBy = paidByInput.value.trim();
+            const hasBill = hasBillInput.checked;
+            const billType = hasBill ? billTypeInput.value : '';
+
+            if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod) {
+                showMessage("Please fill in all required expense fields (Date, Category, Description, valid Amount, Payment Method).", "error");
+                return;
+            }
+
+            try {
+                showLoading("Adding expense...");
+                await addDoc(collection(db, `users/${currentUserId}/expenses`), {
+                    date,
+                    category,
+                    description,
+                    amount,
+                    paymentMethod,
+                    paidBy,
+                    hasBill,
+                    billType,
+                    timestamp: new Date() // Add a timestamp for ordering, if needed
+                });
+                showMessage("Expense added successfully!", "success");
+                clearForm();
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage("Failed to add expense. Please try again.", "error");
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function deleteExpense(expenseId) {
+            if (!currentUserId) {
+                showMessage("You must be signed in to delete expenses.", "error");
+                return;
+            }
+
+            if (confirm("Are you sure you want to delete this expense?")) {
+                try {
+                    showLoading("Deleting expense...");
+                    await deleteDoc(docRef(db, `users/${currentUserId}/expenses`, expenseId));
+                    showMessage("Expense deleted successfully!", "success");
+                } catch (e) {
+                    console.error("Error deleting document: ", e);
+                    showMessage("Failed to delete expense. Please try again.", "error");
+                } finally {
+                    hideLoading();
+                }
+            }
+        }
+
+        function clearForm() {
+            expenseDateInput.value = '';
+            expenseCategoryInput.value = '';
+            expenseDescriptionInput.value = '';
+            expenseAmountInput.value = '';
+            paymentMethodInput.value = '';
+            paidByInput.value = '';
+            hasBillInput.checked = false;
+            billTypeContainer.style.display = 'none';
+            billTypeInput.value = '';
+        }
+
+        function showMessage(message, type) {
+            // A simple message display. You might want a more sophisticated UI element.
+            const existingMessage = document.getElementById('appMessage');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'appMessage';
+            messageDiv.textContent = message;
+            messageDiv.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg text-white font-medium text-sm z-50 transition-all duration-300 ease-in-out transform translate-y-0`;
+
+            if (type === 'success') {
+                messageDiv.classList.add('bg-green-500', 'message-success');
+            } else if (type === 'error') {
+                messageDiv.classList.add('bg-red-500', 'message-error');
+            } else if (type === 'info') {
+                messageDiv.classList.add('bg-blue-500', 'message-info');
+            } else {
+                messageDiv.classList.add('bg-gray-700');
+            }
+            
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.classList.add('translate-y-full', 'opacity-0');
+                messageDiv.addEventListener('transitionend', () => messageDiv.remove());
+            }, 3000); // Message disappears after 3 seconds
+        }
+
+        // --- Insights (Gemini API Call) ---
+        getInsightsBtn.addEventListener('click', async () => {
+            if (expenses.length === 0) {
+                insightsDisplay.textContent = "Add some expenses first to get insights!";
+                insightsDisplay.classList.remove('hidden');
+                insightsDisplay.classList.add('bg-orange-100', 'text-orange-800', 'border-orange-300'); // Warning style
+                return;
+            }
+
+            insightsDisplay.classList.remove('hidden', 'bg-orange-100', 'text-orange-800', 'border-orange-300', 'bg-red-100', 'text-red-800', 'border-red-300');
+            insightsDisplay.classList.add('bg-purple-100', 'text-purple-800', 'border-purple-300');
+            insightsDisplay.innerHTML = '<p class="font-medium">Analyzing your expenses...</p>';
+
+            // Prepare expenses for Gemini API
+            const expensesForGemini = expenses.map(e => ({
+                date: e.date,
+                category: e.category,
+                amount: e.amount,
+                description: e.description
+            }));
+
+            const prompt = `Analyze the following monthly expenses and provide key insights, trends, or advice.
+            Focus on categories where spending is highest, potential areas for savings, and any unusual patterns.
+            Consider that the user lives in Ontario, Canada, and amounts are in CAD.
+            
+            Expenses:
+            ${JSON.stringify(expensesForGemini, null, 2)}`;
+
+            try {
+                // Using a proxy server for the Gemini API call to avoid CORS issues and expose the API key safely.
+                // You would need to set up a simple server (e.g., Node.js with Express) that
+                // takes this prompt and calls the actual Gemini API.
+                // For example:
+                // server.js:
+                // const express = require('express');
+                // const { GoogleGenerativeAI } = require('@google/generative-ai');
+                // const app = express();
+                // app.use(express.json());
+                // app.post('/generate-content', async (req, res) => {
+                //   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                //   const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+                //   const result = await model.generateContent(req.body.prompt);
+                //   res.json(result.response.text());
+                // });
+                // app.listen(3000); // Run this on localhost:3000 or your deployment URL
+
+                const response = await fetch('http://localhost:3000/generate-content', { // IMPORTANT: Replace with your actual proxy server URL
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                insightsDisplay.innerHTML = `<p class="font-medium">${data}</p>`;
+                insightsDisplay.classList.remove('hidden');
+                insightsDisplay.classList.remove('bg-purple-100', 'text-purple-800', 'border-purple-300');
+                insightsDisplay.classList.add('bg-green-50', 'text-green-800', 'border-green-200'); // Success style
+            } catch (error) {
+                console.error('Error fetching insights from Gemini API:', error);
+                insightsDisplay.innerHTML = '<p class="font-medium">Failed to fetch insights. Please ensure your Gemini API proxy server is running and accessible.</p>';
+                insightsDisplay.classList.remove('hidden', 'bg-purple-100', 'text-purple-800', 'border-purple-300');
+                insightsDisplay.classList.add('bg-red-100', 'text-red-800', 'border-red-300'); // Error style
+            }
+        });
+
+        // --- Download CSV ---
+        function updateMonthDropdown() {
+            monthSelect.innerHTML = '<option value="">Select a month...</option>';
+            const uniqueMonths = new Set();
+            expenses.forEach(expense => {
+                const date = new Date(expense.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const monthName = new Date(date.getFullYear(), date.getMonth(), 1).toLocaleString('en-CA', { month: 'long', year: 'numeric' });
+                uniqueMonths.add(`${monthKey}|${monthName}`);
+            });
+
+            Array.from(uniqueMonths).sort().forEach(item => {
+                const [value, text] = item.split('|');
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                monthSelect.appendChild(option);
+            });
+        }
+
+        downloadCsvBtn.addEventListener('click', () => {
+            const selectedMonthKey = monthSelect.value;
+            if (!selectedMonthKey) {
+                showMessage("Please select a month to download.", "info");
+                return;
+            }
+
+            const filteredExpenses = expenses.filter(expense => {
+                const date = new Date(expense.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                return monthKey === selectedMonthKey;
+            });
+
+            if (filteredExpenses.length === 0) {
+                showMessage("No expenses found for the selected month.", "info");
+                return;
+            }
+
+            let csvContent = "Date,Category,Description,Amount (CAD),Amount (AED),Amount (INR),Payment Method,Paid By,Has Bill?,Bill Type\n";
+            filteredExpenses.forEach(expense => {
+                const amountCAD = expense.amount.toFixed(2);
+                const amountAED = (expense.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountINR = (expense.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+                const hasBillText = expense.hasBill ? 'Yes' : 'No';
+                const billTypeText = expense.hasBill && expense.billType ? expense.billType : '';
+
+                // Escape commas within strings by wrapping in quotes
+                const row = [
+                    expense.date,
+                    `"${expense.category.replace(/"/g, '""')}"`,
+                    `"${expense.description.replace(/"/g, '""')}"`,
+                    amountCAD,
+                    amountAED,
+                    amountINR,
+                    `"${expense.paymentMethod.replace(/"/g, '""')}"`,
+                    `"${expense.paidBy.replace(/"/g, '""')}"`,
+                    hasBillText,
+                    `"${billTypeText.replace(/"/g, '""')}"`
+                ].join(',');
+                csvContent += row + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const monthNameForFile = new Date(selectedMonthKey.split('-')[0], parseInt(selectedMonthKey.split('-')[1]) - 1, 1).toLocaleString('en-CA', { month: 'long', year: 'numeric' });
+            link.setAttribute('href', url);
+            link.setAttribute('download', `expenses_${monthNameForFile.replace(/\s/g, '_')}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showMessage(`Expenses for ${monthNameForFile} downloaded!`, 'success');
+        });
+
+        // Initialize current date input with today's date
+        expenseDateInput.value = new Date().toISOString().split('T')[0];
+
+        // Initial setup for the loading overlay (ensure it's shown before auth check completes)
+        showLoading("Initializing app...");
+    </script>
+</body>
+</html>
