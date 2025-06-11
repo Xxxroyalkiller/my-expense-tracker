@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- SheetJS library for Excel export -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
     <style>
         /* Apple-like font stack (system fonts with fallbacks) */
@@ -17,7 +17,7 @@
             background-color: #f5f5f7; /* Very light gray, almost white */
             display: flex;
             justify-content: center;
-            align-items: center; /* Center the login card vertically */
+            align-items: flex-start;
             min-height: 100vh;
             padding: 20px;
             box-sizing: border-box;
@@ -132,20 +132,6 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.5);
         }
-        
-        .btn-delete {
-            background-color: #ffebeb;
-            color: #ff3b30;
-            border: 1px solid #ff3b30;
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            transition: all 0.2s ease;
-        }
-        .btn-delete:hover {
-            background-color: #ff3b30;
-            color: white;
-        }
 
         /* Input field styling */
         .app-input {
@@ -182,38 +168,6 @@
             margin-bottom: 24px; /* Consistent spacing */
         }
 
-        /* Styles for the login card with a background image */
-        .login-card {
-            position: relative;
-            overflow: hidden;
-            color: white; /* Default text color for contrast */
-            background-color: #333; /* Fallback color */
-        }
-
-        .login-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image: url('https://storage.googleapis.com/context-artifact-storage/uploaded:image_03d73f.jpg-c387c9ab-6bf6-43d8-af2a-4f982676f90b');
-            background-size: cover;
-            background-position: center;
-            z-index: 0;
-        }
-
-        .login-card::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
-            z-index: 1;
-        }
-
-        .login-content {
-            position: relative;
-            z-index: 2;
-        }
-
-
         /* Table styling */
         .app-table {
             border-collapse: separate; /* Allows for rounded corners on cells/rows */
@@ -239,7 +193,6 @@
             border-bottom: 1px solid #efefef; /* Lighter divider */
             color: #333;
             font-size: 0.95rem;
-            vertical-align: middle;
         }
 
         .app-table tbody tr:last-child td {
@@ -249,37 +202,22 @@
         .app-table tbody tr:hover {
             background-color: #f9f9f9; /* Subtle hover effect */
         }
-        
-        #messageBox {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 2000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
-        }
-
-        #messageBox.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(0);
-        }
 
         /* Specific overrides for messages and totals */
         .message-success {
-            background-color: #34c759;
+            background-color: #e6f7ed; /* Soft green */
+            color: #1a6438; /* Dark green text */
+            border-color: #8ce1a7;
         }
         .message-error {
-            background-color: #ff3b30;
+            background-color: #ffebe6; /* Soft red */
+            color: #b32f2f; /* Dark red text */
+            border-color: #ff8c8c;
         }
         .message-info {
-            background-color: #007aff;
+            background-color: #e6f0ff; /* Soft blue */
+            color: #004d99; /* Dark blue text */
+            border-color: #8cbaff;
         }
 
         #totalExpenditure {
@@ -375,6 +313,21 @@
         }
         
         /* Specific button styling for dropdown */
+        .dropdown-button {
+            background-color: #f0f0f0; /* Light gray for general dropdown buttons */
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            width: 100%; /* Full width within dropdown */
+            text-align: center;
+            border: 1px solid #d1d1d6;
+        }
+        .dropdown-button:hover {
+            background-color: #e0e0e0;
+        }
+
         .dropdown-signout-btn {
             background-color: #ff3b30;
             color: white;
@@ -388,36 +341,57 @@
         .dropdown-signout-btn:hover {
             background-color: #cc0000;
         }
+
+        /* Data Management Section */
+        #dataManagementSection {
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            margin-top: 15px;
+            display: none; /* Hidden by default */
+        }
+        #dataManagementSection.active {
+            display: block; /* Show when active */
+        }
+
+        .current-dataset-display {
+            background-color: #e6f0ff; /* Soft blue background */
+            color: #004d99; /* Dark blue text */
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center p-4 min-h-screen">
-    <div id="loadingOverlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
-        <p class="text-gray-700 text-lg">Loading...</p>
+    <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
+        <p class="text-gray-700 text-lg">Initializing app...</p>
     </div>
-    
-    <div id="messageBox"></div>
 
-    <div id="loginScreen" class="app-card login-card max-w-md w-full text-center hidden">
-        <div class="login-content">
-            <h1 class="text-4xl font-bold text-white mb-6">Welcome to your Expense Tracker</h1>
-            <p class="text-gray-200 text-lg mb-8">Sign in to save and sync your expenses across devices, or continue as a guest.</p>
-            <div class="space-y-4">
-                <button id="authButton" class="btn-primary w-full">Sign In</button>
-                <button id="guestButton" class="btn-secondary w-full">Continue as Guest</button>
-            </div>
-            <p class="text-gray-300 text-xs mt-4">Guest data is stored locally and may be lost. Sign in for permanent, cloud-synced storage.</p>
-            <div id="userInfo" class="text-gray-300 mt-6 text-sm"></div>
+    <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
+        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
+        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
+        <div class="space-y-4">
+            <button id="authButton" class="btn-primary w-full">
+                Sign In with Google
+            </button>
+            <button id="guestButton" class="btn-secondary w-full">
+                Continue as Guest
+            </button>
         </div>
+        <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
+        <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
     </div>
 
-    <div id="mainAppContainer" class="max-w-6xl w-full space-y-6 hidden">
+    <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
         <div class="app-card flex flex-col md:flex-row items-center justify-between">
             <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
             
             <div class="profile-dropdown-container">
                 <button id="profileToggleButton" class="profile-toggle-button">
-                    <span id="profileIconText">G</span> 
+                    <span id="profileIconText">G</span>
                 </button>
 
                 <div id="profileDropdownContent" class="profile-dropdown-content hidden">
@@ -427,7 +401,36 @@
                         </div>
                         <div id="mainAppUserInfo" class="profile-email"></div>
                     </div>
-                    <button id="signOutButton" class="dropdown-signout-btn">Sign Out</button>
+
+                    <div id="currentDataSetDisplay" class="current-dataset-display">
+                        Active Data Set: <span id="activeDataSetName">Default</span>
+                    </div>
+
+                    <button id="manageDataSetsBtn" class="dropdown-button">
+                        Manage Data Sets
+                    </button>
+                    <button id="signOutButton" class="dropdown-signout-btn">
+                        Sign Out
+                    </button>
+
+                    <div id="dataManagementSection" class="hidden space-y-4">
+                        <h4 class="text-md font-semibold text-gray-700">Data Set Management</h4>
+                        <div>
+                            <label for="dataSetSelect" class="block text-sm font-medium text-gray-600 mb-1">Switch Data Set</label>
+                            <select id="dataSetSelect" class="app-input app-select"></select>
+                            <button id="switchDataSetBtn" class="btn-secondary w-full text-sm mt-2">Switch</button>
+                        </div>
+                        <div>
+                            <label for="newDataSetNameInput" class="block text-sm font-medium text-gray-600 mb-1">Create New Data Set</label>
+                            <input type="text" id="newDataSetNameInput" placeholder="New data set name" class="app-input mb-2">
+                            <button id="createDataSetBtn" class="btn-primary w-full text-sm">Create & Switch</button>
+                        </div>
+                         <div>
+                            <label for="renameDataSetInput" class="block text-sm font-medium text-gray-600 mb-1">Rename Current Data Set</label>
+                            <input type="text" id="renameDataSetInput" placeholder="New name for current" class="app-input mb-2">
+                            <button id="renameDataSetBtn" class="btn-secondary w-full text-sm">Rename</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -480,7 +483,9 @@
                     </select>
                 </div>
             </div>
-            <button id="addExpenseBtn" class="btn-primary w-full">Add Expense</button>
+            <button id="addExpenseBtn" class="btn-primary w-full">
+                Add Expense
+            </button>
         </div>
 
         <div class="app-card">
@@ -499,12 +504,13 @@
                             <th scope="col">Paid By</th>
                             <th scope="col">Has Bill?</th>
                             <th scope="col">Bill Type</th>
-                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Delete</span></th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Delete</span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
-                        <!-- Expense rows will be injected here -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
@@ -515,7 +521,9 @@
 
         <div class="app-card">
             <h2 class="sub-section-header">AI-Powered Insights</h2>
-            <button id="getInsightsBtn" class="btn-primary w-full">Get Spending Insights ✨</button>
+            <button id="getInsightsBtn" class="btn-primary w-full">
+                Get Spending Insights ✨
+            </button>
             <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
                 <p class="font-medium">Analyzing your expenses...</p>
             </div>
@@ -525,11 +533,11 @@
             <h2 class="section-header">Spending Visualizations</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                    <h3 class="sub-section-header text-center mb-4">Distribution by Category</h3>
+                    <h3 class="sub-section-header text-center mb-4">Spending Distribution by Category</h3>
                     <div class="chart-container">
                         <canvas id="expenseCategoryChart"></canvas>
                     </div>
-                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed.</p>
+                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed across different categories.</p>
                 </div>
                 <div>
                     <h3 class="sub-section-header text-center mb-4">Monthly Total Expenditure</h3>
@@ -542,7 +550,7 @@
         </div>
 
         <div class="app-card">
-            <h2 class="sub-section-header">Download Data (Excel)</h2>
+            <h2 class="sub-section-header">Download Data</h2>
             <div class="flex flex-col md:flex-row items-center gap-4">
                 <div class="flex-grow w-full md:w-auto">
                     <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
@@ -550,21 +558,34 @@
                         <option value="">Select a month...</option>
                     </select>
                 </div>
-                <button id="downloadExcelBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">Download Excel (.xlsx)</button>
+                <button id="downloadXlsxBtn" class="btn-primary w-full md:w-auto mt-3 md:mt-0">
+                    Download as .xlsx
+                </button>
+                <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
+                    Download as .csv
+                </button>
             </div>
-            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a native Excel file.</p>
+            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses in either .xlsx (Excel) or .csv format.</p>
         </div>
     </div>
 
     <script type="module">
+        // Import Firebase functions directly since we're in a single module script now
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Use environment variables for Firebase config
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-expense-tracker';
-        
+        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
+            authDomain: "my-expenese-tracker.firebaseapp.com",
+            projectId: "my-expenese-tracker",
+            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            messagingSenderId: "466782350290",
+            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com", // Double-check this appId!
+            measurementId: "G-1CF1ZNLPC2"
+        };
+
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -572,15 +593,6 @@
         const provider = new GoogleAuthProvider();
 
         // DOM element references
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const messageBox = document.getElementById('messageBox');
-        
-        const loginScreen = document.getElementById('loginScreen');
-        const authButton = document.getElementById('authButton');
-        const guestButton = document.getElementById('guestButton');
-        const userInfoDiv = document.getElementById('userInfo');
-        
-        const mainAppContainer = document.getElementById('mainAppContainer');
         const expenseDateInput = document.getElementById('expenseDate');
         const expenseCategoryInput = document.getElementById('expenseCategory');
         const expenseDescriptionInput = document.getElementById('expenseDescription');
@@ -593,35 +605,57 @@
         const addExpenseBtn = document.getElementById('addExpenseBtn');
         const expenseTableBody = document.getElementById('expenseTableBody');
         const totalExpenditureSpan = document.getElementById('totalExpenditure');
-        
         const getInsightsBtn = document.getElementById('getInsightsBtn');
         const insightsDisplay = document.getElementById('insightsDisplay');
-        
         const expenseCategoryChartCtx = document.getElementById('expenseCategoryChart').getContext('2d');
         const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
         const monthSelect = document.getElementById('monthSelect');
-        const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+        const downloadXlsxBtn = document.getElementById('downloadXlsxBtn');
 
+        const authButton = document.getElementById('authButton');
+        const guestButton = document.getElementById('guestButton');
+        const userInfoDiv = document.getElementById('userInfo');
+
+        const mainAppContainer = document.getElementById('mainAppContainer');
+        const loginScreen = document.getElementById('loginScreen');
+        
+        // --- NEW DOM Elements for Dropdown and Data Management ---
         const profileToggleButton = document.getElementById('profileToggleButton');
         const profileDropdownContent = document.getElementById('profileDropdownContent');
         const mainAppUserInfo = document.getElementById('mainAppUserInfo');
         const signOutButton = document.getElementById('signOutButton');
         const profileIconText = document.getElementById('profileIconText');
         const avatarInitial = document.getElementById('avatarInitial');
+        const manageDataSetsBtn = document.getElementById('manageDataSetsBtn');
+        const dataManagementSection = document.getElementById('dataManagementSection');
+        const dataSetSelect = document.getElementById('dataSetSelect');
+        const switchDataSetBtn = document.getElementById('switchDataSetBtn');
+        const newDataSetNameInput = document.getElementById('newDataSetNameInput');
+        const createDataSetBtn = document.getElementById('createDataSetBtn');
+        const renameDataSetInput = document.getElementById('renameDataSetInput');
+        const renameDataSetBtn = document.getElementById('renameDataSetBtn');
+        const activeDataSetNameDisplay = document.getElementById('activeDataSetName');
 
-        // Global state
+
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // Global state variables
         let expenses = [];
         let currentUserId = null;
         let unsubscribeFromExpenses = null;
+        let currentUserDataSets = []; // Stores the list of collection names
+        let activeDataSet = 'default_expenses'; // Default data set collection name
+
+        // Exchange rates (CAD as base) - these are hardcoded for simplicity
+        const EXCHANGE_RATE_CAD_TO_AED = 2.70;
+        const EXCHANGE_RATE_CAD_TO_INR = 61.00;
+
+        // Chart instances
         let expenseCategoryPieChart;
         let expenseMonthlyBarChart;
-        
-        // Hardcoded exchange rates for demonstration
-        const EXCHANGE_RATE_CAD_TO_AED = 2.70;
-        const EXCHANGE_RATE_CAD_TO_INR = 61.50; // Updated for June 2025
 
-        // --- UI & Utility Functions ---
-        
+        // --- Loading Overlay Functions ---
         function showLoading(message = "Loading...") {
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.querySelector('p').textContent = message;
@@ -631,149 +665,368 @@
             loadingOverlay.classList.add('hidden');
         }
 
-        function showMessage(message, type = 'info') {
-            messageBox.textContent = message;
-            messageBox.className = `message-${type} show`;
-            setTimeout(() => {
-                messageBox.classList.remove('show');
-            }, 3000);
-        }
-
-        function setTodaysDate() {
-            const today = new Date();
-            // Adjust for timezone offset to get the correct local date string
-            today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-            expenseDateInput.value = today.toISOString().split('T')[0];
-        }
-
-        // --- Authentication ---
-        
-        onAuthStateChanged(auth, (user) => {
-            hideLoading();
-            if (user) {
-                currentUserId = user.uid;
-                let displayEmail = 'Guest';
-                let displayName = 'Guest';
-                let initial = 'G';
-
-                if (!user.isAnonymous) {
-                    displayEmail = user.email || 'User';
-                    displayName = user.displayName || 'User';
-                    initial = displayName.charAt(0).toUpperCase();
+        // --- Authentication Functions ---
+        authButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in with Google...");
+                await signInWithPopup(auth, provider);
+                showMessage('Signed in successfully with Google!', 'success');
+            } catch (error) {
+                console.error('Error signing in with Google:', error);
+                let errorMessage = 'Failed to sign in with Google.';
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign-in cancelled by user.';
+                } else if (error.message) {
+                    errorMessage += ` Error: ${error.message}`;
                 }
-
-                mainAppUserInfo.textContent = displayEmail;
-                profileIconText.textContent = initial;
-                avatarInitial.textContent = initial;
-                
-                loginScreen.classList.add('hidden');
-                mainAppContainer.classList.remove('hidden');
-                
-                // Adjust body alignment for the main app
-                document.body.style.alignItems = 'flex-start';
-
-                listenToExpenses(user.uid);
-            } else {
-                currentUserId = null;
-                if (unsubscribeFromExpenses) unsubscribeFromExpenses();
-                expenses = [];
-                renderExpenses();
-                
-                mainAppContainer.classList.add('hidden');
-                loginScreen.classList.remove('hidden');
-
-                // Adjust body alignment for the login screen
-                document.body.style.alignItems = 'center';
-            }
-        });
-        
-        const handleSignIn = async () => {
-             showLoading("Redirecting to sign-in...");
-             try {
-                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                 } else {
-                    // Fallback for local development
-                    await signInWithPopup(auth, provider);
-                 }
-                 showMessage('Signed in successfully!', 'success');
-             } catch (error) {
-                 console.error('Sign-in error:', error);
-                 showMessage(`Sign-in failed: ${error.message}`, 'error');
-                 hideLoading();
-             }
-        };
-        
-        authButton.addEventListener('click', handleSignIn);
-
-        guestButton.addEventListener('click', async () => {
-            showLoading("Signing in as Guest...");
-            try {
-                await signInAnonymously(auth);
-                showMessage('Continuing as Guest.', 'info');
-            } catch (error) {
-                console.error('Guest sign-in error:', error);
-                showMessage('Could not sign in as guest.', 'error');
-                hideLoading();
-            }
-        });
-
-        signOutButton.addEventListener('click', async () => {
-            showLoading("Signing out...");
-            try {
-                await signOut(auth);
-                showMessage('You have been signed out.', 'success');
-            } catch (error) {
-                console.error('Sign-out error:', error);
-                showMessage('Error signing out.', 'error');
+                showMessage(errorMessage, 'error');
             } finally {
                 hideLoading();
             }
         });
 
-        // --- Dropdown Menu Logic ---
-        
-        profileToggleButton.addEventListener('click', (event) => {
-            event.stopPropagation();
-            profileDropdownContent.classList.toggle('hidden');
-            profileDropdownContent.classList.toggle('active');
+        guestButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in as Guest...");
+                await signInAnonymously(auth);
+                showMessage('Signed in successfully as Guest!', 'success');
+            } catch (error) {
+                console.error('Error signing in anonymously:', error);
+                showMessage('Failed to sign in as guest. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
         });
 
+        signOutButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing out...");
+                await signOut(auth);
+                showMessage('Signed out successfully!', 'success');
+            } catch (error) {
+                console.error('Error signing out:', error);
+                showMessage('Error signing out. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+            // Ensure dropdown is closed after sign out
+            profileDropdownContent.classList.add('hidden');
+            profileDropdownContent.classList.remove('active');
+            dataManagementSection.classList.add('hidden'); // Hide data management on sign out
+        });
+
+        // --- Firebase Auth State Listener ---
+        onAuthStateChanged(auth, async (user) => {
+            console.log("onAuthStateChanged fired. User:", user);
+            if (user) {
+                currentUserId = user.uid;
+                
+                let displayEmail = user.email || 'Guest User';
+                let displayName = user.displayName || 'Guest';
+                let initial = displayName.charAt(0).toUpperCase();
+
+                if (user.isAnonymous) {
+                    displayEmail = 'guest@example.com'; // Placeholder email for guests
+                    displayName = 'Guest';
+                    initial = 'G';
+                    userInfoDiv.textContent = 'Welcome, Guest! Your data is temporary.';
+                } else {
+                    userInfoDiv.textContent = `Welcome, ${displayName}!`;
+                }
+
+                mainAppUserInfo.textContent = displayEmail; // Display full email in dropdown
+                profileIconText.textContent = initial;       // Display initial on the toggle button
+                avatarInitial.textContent = initial;         // Display initial in the avatar circle
+
+                loginScreen.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+
+                console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
+                
+                // Load user's data sets and set active one
+                await loadUserDataSets(user.uid);
+                
+            } else {
+                currentUserId = null;
+                currentUserDataSets = []; // Clear data sets
+                activeDataSet = 'default_expenses'; // Reset to default
+                localStorage.removeItem('activeDataSet'); // Clear stored active data set
+                activeDataSetNameDisplay.textContent = 'Default'; // Update display
+                dataSetSelect.innerHTML = ''; // Clear dropdown
+                userInfoDiv.textContent = 'Please sign in to save your data.';
+                mainAppUserInfo.textContent = ''; // Clear email in dropdown
+                profileIconText.textContent = 'G'; // Reset icon to Guest
+                avatarInitial.textContent = 'G';   // Reset avatar initial
+
+                mainAppContainer.classList.add('hidden');
+                loginScreen.classList.remove('hidden');
+
+                console.log('User signed out.');
+
+                expenses = [];
+                renderExpenses();
+                if (unsubscribeFromExpenses) {
+                    unsubscribeFromExpenses();
+                    unsubscribeFromExpenses = null; // Clear listener
+                }
+                showMessage('Your data will be available when you sign in.', 'info');
+            }
+            console.log("Auth state check complete, hiding loading overlay.");
+            hideLoading();
+        });
+
+        // --- Dropdown Toggle Logic ---
+        profileToggleButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from closing it immediately
+            profileDropdownContent.classList.toggle('hidden');
+            profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
+            if (profileDropdownContent.classList.contains('active')) {
+                // When opening the dropdown, ensure data management is hidden initially
+                dataManagementSection.classList.remove('active');
+                dataManagementSection.classList.add('hidden');
+            }
+        });
+
+        // Close dropdown when clicking outside
         document.addEventListener('click', (event) => {
             if (!profileDropdownContent.contains(event.target) && !profileToggleButton.contains(event.target)) {
                 profileDropdownContent.classList.add('hidden');
                 profileDropdownContent.classList.remove('active');
+                dataManagementSection.classList.add('hidden'); // Hide data management when closing dropdown
             }
         });
-        
-        hasBillInput.addEventListener('change', () => {
-            billTypeContainer.style.display = hasBillInput.checked ? 'block' : 'none';
+
+        // --- Data Set Management Logic ---
+        manageDataSetsBtn.addEventListener('click', () => {
+            dataManagementSection.classList.toggle('hidden');
+            dataManagementSection.classList.toggle('active');
+            populateDataSetSelect(); // Refresh list when showing
+            renameDataSetInput.value = activeDataSet; // Pre-fill rename field
         });
 
-        // --- Firestore & Expense Logic ---
-        
-        function listenToExpenses(userId) {
-            if (unsubscribeFromExpenses) unsubscribeFromExpenses();
-            const expensesCollectionPath = `artifacts/${appId}/users/${userId}/expenses`;
-            const q = query(collection(db, expensesCollectionPath));
+        async function loadUserDataSets(userId) {
+            showLoading("Loading data sets...");
+            const docRef = doc(db, `users/${userId}/app_metadata/collections`);
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().list) {
+                    currentUserDataSets = docSnap.data().list;
+                } else {
+                    // Initialize with default if no data sets exist
+                    currentUserDataSets = ['default_expenses'];
+                    await setDoc(docRef, { list: currentUserDataSets });
+                }
+                populateDataSetSelect(); // Populate the dropdown
+                
+                // Restore active data set from localStorage, or use 'default_expenses'
+                const storedDataSet = localStorage.getItem('activeDataSet');
+                if (storedDataSet && currentUserDataSets.includes(storedDataSet)) {
+                    activeDataSet = storedDataSet;
+                } else {
+                    activeDataSet = 'default_expenses'; // Fallback
+                    localStorage.setItem('activeDataSet', activeDataSet);
+                }
+                activeDataSetNameDisplay.textContent = activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); // Update display name
+                
+                // Ensure the select box reflects the active data set
+                dataSetSelect.value = activeDataSet;
 
-            showLoading("Syncing your expenses...");
+                listenToExpenses(userId, activeDataSet); // Start listening to the active data set
+            } catch (error) {
+                console.error("Error loading user data sets:", error);
+                showMessage("Error loading your data sets.", "error");
+                currentUserDataSets = ['default_expenses']; // Fallback to default
+                activeDataSet = 'default_expenses';
+                localStorage.setItem('activeDataSet', activeDataSet);
+                activeDataSetNameDisplay.textContent = 'Default Expenses';
+                populateDataSetSelect();
+                listenToExpenses(userId, activeDataSet);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function populateDataSetSelect() {
+            dataSetSelect.innerHTML = '';
+            currentUserDataSets.forEach(dataSet => {
+                const option = document.createElement('option');
+                option.value = dataSet;
+                option.textContent = dataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); // Make it user-friendly
+                dataSetSelect.appendChild(option);
+            });
+            dataSetSelect.value = activeDataSet; // Set the current active dataset
+        }
+
+        switchDataSetBtn.addEventListener('click', async () => {
+            const newDataSet = dataSetSelect.value;
+            if (newDataSet && newDataSet !== activeDataSet) {
+                activeDataSet = newDataSet;
+                localStorage.setItem('activeDataSet', activeDataSet);
+                activeDataSetNameDisplay.textContent = activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                showMessage(`Switched to data set: ${activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`, 'info');
+                listenToExpenses(currentUserId, activeDataSet); // Change listener to new collection
+                profileDropdownContent.classList.add('hidden'); // Close dropdown
+                profileDropdownContent.classList.remove('active');
+                dataManagementSection.classList.add('hidden');
+            } else if (newDataSet === activeDataSet) {
+                 showMessage('This data set is already active.', 'info');
+            } else {
+                showMessage('Please select a valid data set.', 'error');
+            }
+        });
+
+        createDataSetBtn.addEventListener('click', async () => {
+            const newName = newDataSetNameInput.value.trim();
+            if (!newName) {
+                showMessage('Please enter a name for the new data set.', 'error');
+                return;
+            }
+            const cleanName = newName.toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+            if (!cleanName) {
+                showMessage('Invalid data set name. Please use alphanumeric characters.', 'error');
+                return;
+            }
+            if (currentUserDataSets.includes(cleanName)) {
+                showMessage('A data set with this name already exists.', 'error');
+                return;
+            }
+
+            try {
+                showLoading(`Creating data set "${newName}"...`);
+                const docRef = doc(db, `users/${currentUserId}/app_metadata/collections`);
+                currentUserDataSets.push(cleanName);
+                await updateDoc(docRef, { list: currentUserDataSets });
+                
+                // Switch to the new data set immediately
+                activeDataSet = cleanName;
+                localStorage.setItem('activeDataSet', activeDataSet);
+                activeDataSetNameDisplay.textContent = activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                
+                populateDataSetSelect(); // Update the dropdown
+                newDataSetNameInput.value = ''; // Clear input
+                listenToExpenses(currentUserId, activeDataSet); // Start listening to new collection
+                showMessage(`New data set "${newName}" created and activated!`, 'success');
+                profileDropdownContent.classList.add('hidden'); // Close dropdown
+                profileDropdownContent.classList.remove('active');
+                dataManagementSection.classList.add('hidden');
+            } catch (error) {
+                console.error("Error creating data set:", error);
+                showMessage('Error creating data set. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        renameDataSetBtn.addEventListener('click', async () => {
+            if (activeDataSet === 'default_expenses') {
+                showMessage('The "Default Expenses" data set cannot be renamed.', 'error');
+                return;
+            }
+
+            const newName = renameDataSetInput.value.trim();
+            if (!newName) {
+                showMessage('Please enter a new name for the data set.', 'error');
+                return;
+            }
+            const cleanNewName = newName.toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+            if (!cleanNewName) {
+                showMessage('Invalid new name. Please use alphanumeric characters.', 'error');
+                return;
+            }
+            if (currentUserDataSets.includes(cleanNewName)) {
+                showMessage('A data set with this new name already exists.', 'error');
+                return;
+            }
+
+            try {
+                showLoading(`Renaming data set to "${newName}"...`);
+                // Firestore doesn't directly support renaming collections.
+                // We'll create a new collection, copy all documents, then delete the old one.
+                // This is a complex operation and can be slow for large datasets.
+                // A simpler approach for *this client-side app* is to just rename the *reference*
+                // in the `app_metadata/collections` document. The old collection data will remain
+                // in Firebase but will become "orphaned" (no longer accessible via the UI).
+                // For a robust app, this would require a server-side function.
+
+                // For now, we'll implement the "soft rename" (update the list of names)
+                const docRef = doc(db, `users/${currentUserId}/app_metadata/collections`);
+                const oldIndex = currentUserDataSets.indexOf(activeDataSet);
+                if (oldIndex > -1) {
+                    currentUserDataSets[oldIndex] = cleanNewName;
+                    await updateDoc(docRef, { list: currentUserDataSets });
+                }
+                
+                // Update active data set
+                activeDataSet = cleanNewName;
+                localStorage.setItem('activeDataSet', activeDataSet);
+                activeDataSetNameDisplay.textContent = activeDataSet.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+                populateDataSetSelect(); // Update the dropdown
+                renameDataSetInput.value = cleanNewName; // Update input field
+                showMessage(`Data set renamed to "${newName}". Note: Existing data in the old name is not moved.`, 'info');
+                // Importantly, we need to re-listen to the new collection name
+                listenToExpenses(currentUserId, activeDataSet);
+                profileDropdownContent.classList.add('hidden'); // Close dropdown
+                profileDropdownContent.classList.remove('active');
+                dataManagementSection.classList.add('hidden');
+
+            } catch (error) {
+                console.error("Error renaming data set:", error);
+                showMessage('Error renaming data set. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+
+        // --- Firestore Data Listener ---
+        function listenToExpenses(userId, collectionName) {
+            if (unsubscribeFromExpenses) {
+                unsubscribeFromExpenses(); // Unsubscribe from previous listener
+                unsubscribeFromExpenses = null;
+            }
+            
+            showLoading(`Loading expenses for "${collectionName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}"...`);
+            const q = query(collection(db, `users/${userId}/${collectionName}`));
+            
             unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
                 const fetchedExpenses = [];
                 snapshot.forEach((doc) => {
-                    fetchedExpenses.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    fetchedExpenses.push({
+                        id: doc.id,
+                        date: data.date,
+                        category: data.category,
+                        description: data.description,
+                        amount: data.amount,
+                        paymentMethod: data.paymentMethod,
+                        paidBy: data.paidBy,
+                        hasBill: data.hasBill,
+                        billType: data.billType
+                    });
                 });
                 expenses = fetchedExpenses;
                 renderExpenses();
                 hideLoading();
+                showMessage(`Expenses for "${collectionName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}" synchronized!`, 'success');
             }, (error) => {
-                console.error("Error fetching expenses:", error);
-                showMessage("Could not load your expenses.", "error");
+                console.error("Error fetching Firestore expenses:", error);
+                showMessage("Error loading expenses. Check console for details.", "error");
                 hideLoading();
             });
         }
 
+        // --- Expense Management Functions ---
+        hasBillInput.addEventListener('change', () => {
+            billTypeContainer.style.display = hasBillInput.checked ? 'block' : 'none';
+        });
+
         addExpenseBtn.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to add expenses.', 'info');
+                return;
+            }
+
             const date = expenseDateInput.value;
             const category = expenseCategoryInput.value.trim();
             const description = expenseDescriptionInput.value.trim();
@@ -781,248 +1034,414 @@
             const paymentMethod = paymentMethodInput.value;
             const paidBy = paidByInput.value.trim();
             const hasBill = hasBillInput.checked;
-            const billType = billTypeInput.value;
+            const billType = hasBill ? billTypeInput.value : '';
 
-            if (!date || !category || !description || isNaN(amount) || amount <= 0) {
-                showMessage('Please fill all fields with valid data.', 'error');
+            if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod || !paidBy || (hasBill && !billType)) {
+                showMessage('Please fill in all required fields and ensure amount is positive.', 'error');
                 return;
             }
 
-            const newExpense = { date, category, description, amount, paymentMethod, paidBy, hasBill, billType: hasBill ? billType : '' };
-            
-            showLoading("Adding expense...");
             try {
-                const expensesCollectionPath = `artifacts/${appId}/users/${currentUserId}/expenses`;
-                await addDoc(collection(db, expensesCollectionPath), newExpense);
+                showLoading("Adding expense...");
+                await addDoc(collection(db, `users/${currentUserId}/${activeDataSet}`), {
+                    date,
+                    category,
+                    description,
+                    amount,
+                    paymentMethod,
+                    paidBy,
+                    hasBill,
+                    billType,
+                    timestamp: new Date() // Add a server-side timestamp
+                });
                 showMessage('Expense added successfully!', 'success');
-                // Clear inputs
-                expenseCategoryInput.value = '';
-                expenseDescriptionInput.value = '';
-                expenseAmountInput.value = '';
-                paidByInput.value = '';
-                hasBillInput.checked = false;
-                billTypeContainer.style.display = 'none';
-            } catch (error) {
-                console.error('Error adding expense:', error);
-                showMessage('Failed to add expense.', 'error');
+                clearForm();
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage('Error adding expense. Please try again.', 'error');
             } finally {
                 hideLoading();
             }
         });
 
-        expenseTableBody.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-btn')) {
-                const docId = e.target.dataset.id;
-                if (confirm('Are you sure you want to delete this expense?')) {
-                    showLoading("Deleting expense...");
-                    try {
-                        const docPath = `artifacts/${appId}/users/${currentUserId}/expenses/${docId}`;
-                        await deleteDoc(doc(db, docPath));
-                        showMessage('Expense deleted.', 'success');
-                    } catch (error) {
-                        console.error('Error deleting expense:', error);
-                        showMessage('Failed to delete expense.', 'error');
-                    } finally {
-                        hideLoading();
-                    }
-                }
+        async function deleteExpense(id) {
+            if (!currentUserId) {
+                showMessage('Please sign in to delete expenses.', 'info');
+                return;
             }
-        });
+            if (!confirm('Are you sure you want to delete this expense?')) {
+                return;
+            }
+            try {
+                showLoading("Deleting expense...");
+                await deleteDoc(doc(db, `users/${currentUserId}/${activeDataSet}`, id));
+                showMessage('Expense deleted successfully!', 'success');
+            } catch (e) {
+                console.error("Error deleting document: ", e);
+                showMessage('Error deleting expense. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function clearForm() {
+            expenseDateInput.value = '';
+            expenseCategoryInput.value = '';
+            expenseDescriptionInput.value = '';
+            expenseAmountInput.value = '';
+            paymentMethodInput.value = '';
+            paidByInput.value = '';
+            hasBillInput.checked = false;
+            billTypeContainer.style.display = 'none';
+            billTypeInput.value = '';
+        }
 
         function renderExpenses() {
             expenseTableBody.innerHTML = '';
-            if (!expenses || expenses.length === 0) {
-                 expenseTableBody.innerHTML = '<tr><td colspan="11" class="text-center text-gray-500 py-8">No expenses recorded yet. Add one to get started!</td></tr>';
+            let total = 0;
+
+            // Sort expenses by date in descending order
+            const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedExpenses.forEach(exp => {
+                total += exp.amount;
+
+                const amountAED = (exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountINR = (exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+
+                const row = expenseTableBody.insertRow();
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.category}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.description}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">C$${exp.amount.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">AED ${amountAED}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">₹${amountINR}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.paymentMethod}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.paidBy}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.hasBill ? 'Yes' : 'No'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.billType || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-red-600 hover:text-red-900 ml-2" onclick="window.deleteExpense('${exp.id}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+            });
+            totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
+            updateCharts();
+            populateMonthSelect();
+        }
+
+        // Expose deleteExpense to the global scope for onclick
+        window.deleteExpense = deleteExpense;
+
+        // --- Chart Functions ---
+        function updateCharts() {
+            updateCategoryChart();
+            updateMonthlyChart();
+        }
+
+        function updateCategoryChart() {
+            const categoryMap = {};
+            expenses.forEach(exp => {
+                const category = exp.category || 'Uncategorized';
+                categoryMap[category] = (categoryMap[category] || 0) + exp.amount;
+            });
+
+            const categories = Object.keys(categoryMap);
+            const amounts = Object.values(categoryMap);
+
+            const backgroundColors = categories.map((_, i) => `hsl(${i * 60}, 70%, 60%)`); // Dynamic colors
+
+            if (expenseCategoryPieChart) {
+                expenseCategoryPieChart.destroy();
             }
 
-            let total = 0;
-            const categoryTotals = {};
-            const monthlyTotals = {};
-            const availableMonths = new Set();
-            
-            // Sort expenses by date descending
-            expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            expenses.forEach(exp => {
-                total += exp.amount;
-                
-                // Populate data for charts
-                categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
-                const month = exp.date.substring(0, 7); // yyyy-MM
-                monthlyTotals[month] = (monthlyTotals[month] || 0) + exp.amount;
-                availableMonths.add(month);
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${exp.date}</td>
-                    <td>${exp.category}</td>
-                    <td>${exp.description}</td>
-                    <td>${exp.amount.toFixed(2)}</td>
-                    <td>${(exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2)}</td>
-                    <td>${(exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2)}</td>
-                    <td>${exp.paymentMethod}</td>
-                    <td>${exp.paidBy}</td>
-                    <td>${exp.hasBill ? '✔️' : '❌'}</td>
-                    <td>${exp.hasBill ? exp.billType : 'N/A'}</td>
-                    <td><button class="btn-delete delete-btn" data-id="${exp.id}">Delete</button></td>
-                `;
-                expenseTableBody.appendChild(row);
-            });
-            
-            totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
-            
-            updateCharts(categoryTotals, monthlyTotals);
-            updateMonthSelector(Array.from(availableMonths));
-        }
-        
-        function updateCharts(categoryData, monthlyData) {
-            // Category Pie Chart
-            if (expenseCategoryPieChart) expenseCategoryPieChart.destroy();
             expenseCategoryPieChart = new Chart(expenseCategoryChartCtx, {
                 type: 'pie',
                 data: {
-                    labels: Object.keys(categoryData),
+                    labels: categories,
                     datasets: [{
-                        data: Object.values(categoryData),
-                        backgroundColor: ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#5856d6', '#5ac8fa', '#ff2d55', '#af52de'],
+                        data: amounts,
+                        backgroundColor: backgroundColors,
+                        hoverOffset: 4
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Spending Distribution by Category',
+                            font: { size: 16, family: '-apple-system, sans-serif' }
+                        }
+                    }
+                }
             });
-            
-            // Monthly Bar Chart
-            const sortedMonths = Object.keys(monthlyData).sort();
-            if (expenseMonthlyBarChart) expenseMonthlyBarChart.destroy();
+        }
+
+        function updateMonthlyChart() {
+            const monthlyMap = {};
+            expenses.forEach(exp => {
+                const month = new Date(exp.date).toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                monthlyMap[month] = (monthlyMap[month] || 0) + exp.amount;
+            });
+
+            // Sort months chronologically
+            const sortedMonths = Object.keys(monthlyMap).sort((a, b) => {
+                const dateA = new Date(a);
+                const dateB = new Date(b);
+                return dateA - dateB;
+            });
+            const monthlyAmounts = sortedMonths.map(month => monthlyMap[month]);
+
+            if (expenseMonthlyBarChart) {
+                expenseMonthlyBarChart.destroy();
+            }
+
             expenseMonthlyBarChart = new Chart(expenseMonthlyChartCtx, {
                 type: 'bar',
                 data: {
-                    labels: sortedMonths.map(m => new Date(m + '-02').toLocaleString('default', { month: 'long', year: 'numeric' })),
+                    labels: sortedMonths,
                     datasets: [{
-                        label: 'Total Spent (CAD)',
-                        data: sortedMonths.map(m => monthlyData[m]),
-                        backgroundColor: '#007aff',
+                        label: 'Total Expenditure (CAD)',
+                        data: monthlyAmounts,
+                        backgroundColor: '#007aff', // Apple Blue
+                        borderColor: '#0066cc',
+                        borderWidth: 1
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false,
+                        },
+                        title: {
+                            display: true,
+                            text: 'Monthly Total Expenditure',
+                            font: { size: 16, family: '-apple-system, sans-serif' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Amount (CAD)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        }
+                    }
+                }
             });
-        }
-        
-        function updateMonthSelector(months) {
-            const currentSelection = monthSelect.value;
-            monthSelect.innerHTML = '<option value="">Select a month...</option>';
-            months.sort().reverse().forEach(monthValue => {
-                const option = document.createElement('option');
-                option.value = monthValue;
-                option.textContent = new Date(monthValue + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
-                monthSelect.appendChild(option);
-            });
-            monthSelect.value = currentSelection;
         }
 
-        // --- Excel Download Logic ---
-        downloadExcelBtn.addEventListener('click', () => {
-            const selectedMonthValue = monthSelect.value;
-            if (!selectedMonthValue) {
+        // --- AI Insights (Placeholder) ---
+        getInsightsBtn.addEventListener('click', async () => {
+            if (expenses.length === 0) {
+                showMessage('Add some expenses first to get insights!', 'info');
+                return;
+            }
+            showLoading("Generating insights...");
+            insightsDisplay.classList.remove('hidden');
+            insightsDisplay.innerHTML = '<p class="font-medium text-center py-4">Analyzing your spending patterns...</p>';
+
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+
+            const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const categories = expenses.map(exp => exp.category);
+            const uniqueCategories = [...new Set(categories)];
+
+            const categorySpending = {};
+            expenses.forEach(exp => {
+                categorySpending[exp.category] = (categorySpending[exp.category] || 0) + exp.amount;
+            });
+
+            const topCategory = Object.entries(categorySpending).sort(([, a], [, b]) => b - a)[0];
+            const topCategoryText = topCategory ? `Your top spending category is <span class="font-semibold text-blue-700">${topCategory[0]}</span>, accounting for C$${topCategory[1].toFixed(2)}.` : 'No clear top category.';
+
+            const averageExpense = totalAmount / expenses.length;
+
+            let insightsText = `
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Summary:</h3>
+                <ul class="list-disc list-inside space-y-1 text-gray-700">
+                    <li>You have recorded <span class="font-semibold">${expenses.length}</span> expenses.</li>
+                    <li>Your total expenditure is <span class="font-semibold text-blue-700">C$${totalAmount.toFixed(2)}</span>.</li>
+                    <li>You're tracking expenses across <span class="font-semibold">${uniqueCategories.length}</span> different categories.</li>
+                    <li>On average, each expense is about <span class="font-semibold">C$${averageExpense.toFixed(2)}</span>.</li>
+                    <li>${topCategoryText}</li>
+                </ul>
+                <p class="text-sm text-gray-500 mt-4">These insights are generated based on your current expense data.</p>
+            `;
+            insightsDisplay.innerHTML = insightsText;
+            hideLoading();
+        });
+
+
+        // --- Message Display Function ---
+        function showMessage(message, type = 'info', duration = 3000) {
+            const existingMessage = document.querySelector('.app-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `app-card app-message p-3 mt-4 text-center rounded-lg border flex items-center justify-center space-x-2`;
+
+            if (type === 'success') {
+                messageDiv.classList.add('message-success');
+                messageDiv.innerHTML = `<i class="fas fa-check-circle text-lg"></i> <span>${message}</span>`;
+            } else if (type === 'error') {
+                messageDiv.classList.add('message-error');
+                messageDiv.innerHTML = `<i class="fas fa-exclamation-triangle text-lg"></i> <span>${message}</span>`;
+            } else { // info
+                messageDiv.classList.add('message-info');
+                messageDiv.innerHTML = `<i class="fas fa-info-circle text-lg"></i> <span>${message}</span>`;
+            }
+            
+            // Insert the message after the header in the main app container
+            mainAppContainer.insertBefore(messageDiv, mainAppContainer.firstChild.nextSibling);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, duration);
+        }
+
+        // --- Export Functionality (CSV & XLSX) ---
+        function populateMonthSelect() {
+            const months = new Set();
+            expenses.forEach(exp => {
+                months.add(new Date(exp.date).toISOString().substring(0, 7)); // YYYY-MM format
+            });
+
+            monthSelect.innerHTML = '<option value="">Select a month...</option>';
+            const sortedMonths = Array.from(months).sort(); // Sort chronologically
+
+            sortedMonths.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = new Date(month + '-01').toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                monthSelect.appendChild(option);
+            });
+        }
+
+        downloadCsvBtn.addEventListener('click', () => {
+            const selectedMonth = monthSelect.value;
+            if (!selectedMonth) {
                 showMessage('Please select a month to download.', 'error');
                 return;
             }
 
-            const selectedOption = monthSelect.options[monthSelect.selectedIndex];
-            const monthName = selectedOption.text.replace(/ /g, '-');
+            const filteredExpenses = expenses.filter(exp => exp.date.startsWith(selectedMonth));
 
-            const monthlyExpenses = expenses.filter(expense => expense.date.startsWith(selectedMonthValue));
-            if (monthlyExpenses.length === 0) {
-                showMessage(`No expenses recorded for ${selectedOption.text}.`, 'info');
+            if (filteredExpenses.length === 0) {
+                showMessage('No expenses found for the selected month.', 'info');
                 return;
             }
 
-            const dataForSheet = monthlyExpenses.map(exp => ({
-                'Date': exp.date,
-                'Category': exp.category,
-                'Description': exp.description,
+            // Function to escape CSV values (handle commas and quotes)
+            const escapeCsv = (value) => {
+                if (value === null || value === undefined) {
+                    return '';
+                }
+                let stringValue = String(value);
+                // Replace double quotes with two double quotes
+                stringValue = stringValue.replace(/"/g, '""');
+                // Enclose the entire field in double quotes if it contains a comma, newline, or a double quote
+                if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+                    return `"${stringValue}"`;
+                }
+                return stringValue;
+            };
+
+            let csvContent = "";
+            // Add BOM for better Excel compatibility with UTF-8
+            csvContent += "\ufeff"; 
+            csvContent += "Date,Category,Description,Amount (CAD),Amount (AED),Amount (INR),Payment Method,Paid By,Has Bill?,Bill Type\n";
+
+            filteredExpenses.forEach(exp => {
+                const amountAED = (exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountINR = (exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+                const row = [
+                    escapeCsv(exp.date),
+                    escapeCsv(exp.category),
+                    escapeCsv(exp.description),
+                    escapeCsv(exp.amount.toFixed(2)),
+                    escapeCsv(amountAED),
+                    escapeCsv(amountINR),
+                    escapeCsv(exp.paymentMethod),
+                    escapeCsv(exp.paidBy),
+                    escapeCsv(exp.hasBill ? 'Yes' : 'No'),
+                    escapeCsv(exp.billType || 'N/A')
+                ];
+                csvContent += row.join(',') + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const monthName = new Date(selectedMonth + '-01').toLocaleString('en-US', { month: 'long', year: 'numeric' });
+            const filename = `${activeDataSet.replace(/_/g, '-')}_expenses_${monthName.replace(/ /g, '_')}.csv`; // Add data set name to filename
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showMessage(`Downloaded expenses for ${monthName} in CSV format!`, 'success');
+        });
+
+        downloadXlsxBtn.addEventListener('click', () => {
+            const selectedMonth = monthSelect.value;
+            if (!selectedMonth) {
+                showMessage('Please select a month to download.', 'error');
+                return;
+            }
+
+            const filteredExpenses = expenses.filter(exp => exp.date.startsWith(selectedMonth));
+
+            if (filteredExpenses.length === 0) {
+                showMessage('No expenses found for the selected month.', 'info');
+                return;
+            }
+
+            const data = filteredExpenses.map(exp => ({
+                Date: exp.date,
+                Category: exp.category,
+                Description: exp.description,
                 'Amount (CAD)': exp.amount,
-                'Amount (AED)': parseFloat((exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2)),
-                'Amount (INR)': parseFloat((exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2)),
+                'Amount (AED)': parseFloat((exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2)), // Convert to number
+                'Amount (INR)': parseFloat((exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2)), // Convert to number
                 'Payment Method': exp.paymentMethod,
                 'Paid By': exp.paidBy,
                 'Has Bill?': exp.hasBill ? 'Yes' : 'No',
                 'Bill Type': exp.billType || 'N/A'
             }));
-            
-            const totalCad = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-            dataForSheet.push({}); 
-            dataForSheet.push({ 'Category': 'TOTAL', 'Amount (CAD)': totalCad });
 
-            const worksheet = XLSX.utils.json_to_sheet(dataForSheet);
-            worksheet['!cols'] = [
-                { wch: 12 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
-                { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 10 }, { wch: 12 }
-            ];
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Expenses");
 
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
-            const fileName = `Expense-Report-${monthName}.xlsx`;
-            XLSX.writeFile(workbook, fileName);
-            showMessage('Excel file downloaded successfully!', 'success');
-        });
-        
-        getInsightsBtn.addEventListener('click', async () => {
-            if (expenses.length < 3) {
-                showMessage("Need at least 3 expenses for a meaningful insight.", "info");
-                return;
-            }
+            const monthName = new Date(selectedMonth + '-01').toLocaleString('en-US', { month: 'long', year: 'numeric' });
+            const filename = `${activeDataSet.replace(/_/g, '-')}_expenses_${monthName.replace(/ /g, '_')}.xlsx`; // Add data set name to filename
 
-            showLoading("Generating AI Insights...");
-            const prompt = `Based on the following JSON data of my expenses, provide a brief, friendly, and actionable analysis of my spending habits. Identify the top spending category and suggest one specific area where I could potentially save money. Keep the tone encouraging. Data: ${JSON.stringify(expenses)}`;
-
-            try {
-                // Gemini API Call
-                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-                const payload = { contents: chatHistory };
-                const apiKey = "" 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`API call failed with status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                
-                let text = "Could not generate insights at this time.";
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    text = result.candidates[0].content.parts[0].text;
-                }
-                
-                insightsDisplay.innerHTML = text.replace(/\n/g, '<br>'); // Format for HTML
-                insightsDisplay.classList.remove('hidden');
-
-            } catch (error) {
-                console.error("Error getting insights:", error);
-                showMessage("Sorry, couldn't fetch AI insights right now.", "error");
-                insightsDisplay.innerHTML = "An error occurred while generating insights. Please try again later.";
-                insightsDisplay.classList.remove('hidden');
-            } finally {
-                hideLoading();
-            }
+            XLSX.writeFile(wb, filename);
+            showMessage(`Downloaded expenses for ${monthName} as an Excel (.xlsx) file!`, 'success');
         });
 
-
-        // --- Initial Load ---
-        function startApp() {
-            setTodaysDate();
-            showLoading("Initializing app...");
-            // onAuthStateChanged will handle the rest
-        }
-
-        startApp();
-
+        // Initialize the date input to today's date
+        expenseDateInput.valueAsDate = new Date();
     </script>
 </body>
 </html>
