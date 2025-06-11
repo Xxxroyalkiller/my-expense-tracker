@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Expenditure Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        /* Apple-like font stack (system fonts with fallbacks) */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f5f5f7; /* Very light gray, almost white */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333; /* Darker text for better readability */
+        }
+
+        /* Custom scrollbar for the table container - subtle grays */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background-color: #d1d1d6; /* Light gray */
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background-color: #e8e8ed; /* Even lighter gray */
+        }
+        
+        /* Chart container styling for responsiveness */
+        .chart-container {
+            position: relative;
+            height: 400px; /* Max height for charts */
+            width: 100%;
+            margin: auto; /* Center the charts */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+        
+        /* Loading overlay - clean and simple */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95); /* More opaque white */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007aff; /* Apple blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* General button styling for a softer, Apple-like look */
+        .btn-primary {
+            background-color: #007aff; /* Apple Blue */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px; /* More rounded */
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .btn-primary:hover {
+            background-color: #0066cc; /* Slightly darker blue on hover */
+            transform: translateY(-1px); /* Slight lift */
+        }
+        .btn-primary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.5); /* Blue ring focus */
+        }
+
+        .btn-secondary {
+            background-color: #f0f0f0; /* Light gray background */
+            color: #333;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            border: 1px solid #d1d1d6; /* Subtle border */
+        }
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-1px);
+        }
+        .btn-secondary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-danger {
+            background-color: #ff3b30; /* Apple Red */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-danger:hover {
+            background-color: #cc0000;
+            transform: translateY(-1px);
+        }
+        .btn-danger:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.5);
+        }
+
+        /* Input field styling */
+        .app-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d1d6; /* Light gray border */
+            border-radius: 8px; /* Slightly rounded */
+            background-color: white;
+            color: #333;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .app-input:focus {
+            outline: none;
+            border-color: #007aff; /* Blue border on focus */
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2); /* Soft blue glow */
+        }
+        .app-select {
+            appearance: none; /* Remove default arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Space for the custom arrow */
+        }
+        
+        /* Card/Container styling */
+        .app-card {
+            background-color: white;
+            border-radius: 18px; /* More pronounced rounding for main cards */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05); /* Softer, more diffuse shadow */
+            padding: 32px; /* Increased padding */
+            margin-bottom: 24px; /* Consistent spacing */
+        }
+
+        /* Table styling */
+        .app-table {
+            border-collapse: separate; /* Allows for rounded corners on cells/rows */
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .app-table thead {
+            background-color: #f8f8fa; /* Very light gray for table header */
+        }
+
+        .app-table th {
+            padding: 16px 24px;
+            text-align: left;
+            font-weight: 600; /* Slightly bolder header text */
+            font-size: 0.85rem;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .app-table td {
+            padding: 14px 24px;
+            border-bottom: 1px solid #efefef; /* Lighter divider */
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .app-table tbody tr:last-child td {
+            border-bottom: none; /* No border on the last row */
+        }
+
+        .app-table tbody tr:hover {
+            background-color: #f9f9f9; /* Subtle hover effect */
+        }
+
+        /* Specific overrides for messages and totals */
+        .message-success {
+            background-color: #e6f7ed; /* Soft green */
+            color: #1a6438; /* Dark green text */
+            border-color: #8ce1a7;
+        }
+        .message-error {
+            background-color: #ffebe6; /* Soft red */
+            color: #b32f2f; /* Dark red text */
+            border-color: #ff8c8c;
+        }
+        .message-info {
+            background-color: #e6f0ff; /* Soft blue */
+            color: #004d99; /* Dark blue text */
+            border-color: #8cbaff;
+        }
+
+        #totalExpenditure {
+            font-size: 1.6rem; /* Larger total amount */
+            font-weight: 700;
+            color: #007aff; /* Apple Blue for total */
+        }
+
+        .section-header {
+            font-size: 1.8rem; /* Larger, bolder headers */
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .sub-section-header {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        /* Profile circle and Settings icon */
+        #userProfileCircle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e0e0e0; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+        #userProfileCircle:hover {
+            background-color: #d1d1d6;
+        }
+        #userProfileCircle .fa-user {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        #userProfileCircle .tooltip-text {
+            visibility: hidden;
+            width: max-content;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position the tooltip above the text */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        #userProfileCircle:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+
+        #settingsButton {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            color: #666;
+            font-size: 1.5rem;
+            transition: color 0.2s ease;
+        }
+        #settingsButton:hover {
+            color: #333;
+        }
+
+        /* Settings Modal */
+        #settingsModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); /* Dark overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #settingsModal .modal-content {
+            background-color: white;
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        #settingsModal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 16px;
+        }
+        #settingsModal .modal-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+        }
+        #settingsModal .modal-close {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #666;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #settingsModal .modal-section {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        #settingsModal .modal-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        #settingsModal .modal-section h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+        #settingsModal .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 8px 0;
+        }
+        #settingsModal .field-row .field-label {
+            flex-grow: 1;
+            color: #555;
+            font-size: 0.95rem;
+        }
+        #settingsModal .field-row .field-actions {
+            display: flex;
+            gap: 8px;
+        }
+        #settingsModal .field-row button {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #settingsModal .field-row .edit-btn {
+            background-color: #007aff;
+            color: white;
+        }
+        #settingsModal .field-row .edit-btn:hover {
+            background-color: #0066cc;
+        }
+        #settingsModal .field-row .remove-btn {
+            background-color: #ff3b30;
+            color: white;
+        }
+        #settingsModal .field-row .remove-btn:hover {
+            background-color: #cc0000;
+        }
+        #settingsModal .add-field-btn {
+            margin-top: 16px;
+            padding: 10px 20px;
+            background-color: #52c41a; /* Green for add */
+            color: white;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #settingsModal .add-field-btn:hover {
+            background-color: #389e08;
+        }
+
+        .settings-input {
+            border: 1px solid #d1d1d6;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.95rem;
+            color: #333;
+            flex-grow: 1; /* Allow inputs to fill space */
+        }
+        .settings-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.2em 1.2em;
+            padding-right: 2.5rem;
+        }
+        .settings-checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            cursor: pointer;
+        }
+        .settings-checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #d1d1d6;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .settings-checkbox-container label {
+            font-size: 0.95rem;
+            color: #333;
+            flex-grow: 1;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center p-4 min-h-screen">
+    <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
+        <p class="text-gray-700 text-lg">Initializing app...</p>
+    </div>
+
+    <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
+        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
+        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
+        <div class="space-y-4">
+            <button id="authButton" class="btn-primary w-full">
+                Sign In with Google
+            </button>
+            <button id="guestButton" class="btn-secondary w-full">
+                Continue as Guest
+            </button>
+        </div>
+        <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
+        <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
+    </div>
+
+    <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
+        <div class="app-card flex flex-col md:flex-row items-center justify-between">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4 md:mb-0 section-header md:text-left">Expense Tracker</h1>
+            <div class="flex items-center gap-4 mt-4 md:mt-0">
+                <div id="userProfileCircle">
+                    <i class="fas fa-user"></i>
+                    <span class="tooltip-text" id="userEmailTooltip"></span>
+                </div>
+                <button id="settingsButton" aria-label="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button id="signOutButton" class="btn-danger">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Add New Expense</h2>
+            <div id="expenseInputFormGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-600 mb-1"><span id="label-expenseDate">Date</span><span class="required-asterisk text-red-500 ml-1 hidden">*</span></label>
+                    <input type="date" id="expenseDate" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-600 mb-1"><span id="label-expenseCategory">Category</span><span class="required-asterisk text-red-500 ml-1 hidden">*</span></label>
+                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-600 mb-1"><span id="label-expenseDescription">Description</span><span class="required-asterisk text-red-500 ml-1 hidden">*</span></label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-600 mb-1"><span id="label-expenseAmount">Amount (CAD)</span><span class="required-asterisk text-red-500 ml-1 hidden">*</span></label>
+                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="app-input">
+                </div>
+                <div>
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-600 mb-1"><span id="label-paymentMethod">Payment Method</span><span class="required-asterisk text-red-500 ml-1 hidden">*</span></label>
+                    <select id="paymentMethod" class="app-input app-select">
+                        <option value="">Select Method</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Online Payment">Online Payment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="paidBy" class="block text-sm font-medium text-gray-600 mb-1"><span id="label-paidBy">Paid By</span><span class="required-asterisk text-red-500 ml-1 hidden">*</span></label>
+                    <input type="text" id="paidBy" placeholder="e.g., John, Sarah" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1 flex items-center mt-3">
+                    <input type="checkbox" id="hasBill" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="hasBill" class="ml-2 block text-sm font-medium text-gray-600"><span id="label-hasBill">Do you have the bill?</span><span class="required-asterisk text-red-500 ml-1 hidden">*</span></label>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1" id="billTypeContainer" style="display: none;">
+                    <label for="billType" class="block text-sm font-medium text-gray-600 mb-1"><span id="label-billType">Bill Type</span><span class="required-asterisk text-red-500 ml-1 hidden">*</span></label>
+                    <select id="billType" class="app-input app-select">
+                        <option value="">Select Type</option>
+                        <option value="Physical">Physical</option>
+                        <option value="Digital">Digital</option>
+                    </select>
+                </div>
+                <div id="customFieldsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:col-span-4 gap-4">
+                    </div>
+            </div>
+            <button id="addExpenseBtn" class="btn-primary w-full">
+                Add Expense
+            </button>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Your Expenses</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 table-container">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Amount (CAD)</th>
+                            <th scope="col">Amount (AED)</th>
+                            <th scope="col">Amount (INR)</th>
+                            <th scope="col">Method</th>
+                            <th scope="col">Paid By</th>
+                            <th scope="col">Has Bill?</th>
+                            <th scope="col">Bill Type</th>
+                            <th scope="col" id="customFieldHeaders"></th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Delete</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="app-card flex justify-end">
+            <h2 class="text-xl font-bold text-gray-800">Total Expenditure: <span id="totalExpenditure">C$0.00</span></h2>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">AI-Powered Insights</h2>
+            <button id="getInsightsBtn" class="btn-primary w-full">
+                Get Spending Insights ✨
+            </button>
+            <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
+                <p class="font-medium">Analyzing your expenses...</p>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="section-header">Spending Visualizations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Spending Distribution by Category</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseCategoryChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed across different categories.</p>
+                </div>
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Monthly Total Expenditure</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseMonthlyChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This bar graph shows your total expenditure for each month.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Download Data (CSV)</h2>
+            <div class="flex flex-col md:flex-row items-center gap-4">
+                <div class="flex-grow w-full md:w-auto">
+                    <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
+                    <select id="monthSelect" class="app-input app-select">
+                        <option value="">Select a month...</option>
+                    </select>
+                </div>
+                <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
+                    Download CSV
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a CSV file, compatible with Excel/Google Sheets.</p>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>App Settings</h2>
+                <button class="modal-close" id="closeSettingsModalBtn">&times;</button>
+            </div>
+
+            <div class="modal-section">
+                <h3>Required Fields for Expense Entry</h3>
+                <p class="text-sm text-gray-600 mb-4">Toggle which core fields are required when adding a new expense.</p>
+                <div id="requiredFieldsList">
+                    </div>
+            </div>
+
+            <div class="modal-section">
+                <h3>Custom Expense Fields</h3>
+                <p class="text-sm text-gray-600 mb-4">Add, edit, or remove your own custom fields for expenses.</p>
+                <div id="customFieldsList">
+                    <p id="noCustomFieldsMessage" class="text-gray-500 italic">No custom fields added yet.</p>
+                </div>
+                <button id="addCustomFieldBtn" class="add-field-btn">
+                    Add New Field
+                </button>
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button id="saveSettingsBtn" class="btn-primary w-auto">
+                    Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>
