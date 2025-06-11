@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monthly Expenditure Tracker</title>
+    <title>Personal Data Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
+
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
     <style>
         /* Apple-like font stack (system fonts with fallbacks) */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            font-family: -apple-system, BlinkMacMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
             background-color: #f5f5f7; /* Very light gray, almost white */
             display: flex;
             justify-content: center;
@@ -27,6 +27,7 @@
         /* Custom scrollbar for the table container - subtle grays */
         .table-container::-webkit-scrollbar {
             height: 8px;
+            width: 8px; /* For vertical scroll */
         }
 
         .table-container::-webkit-scrollbar-thumb {
@@ -37,7 +38,7 @@
         .table-container::-webkit-scrollbar-track {
             background-color: #e8e8ed; /* Even lighter gray */
         }
-        
+
         /* Chart container styling for responsiveness */
         .chart-container {
             position: relative;
@@ -50,7 +51,7 @@
                 height: 500px;
             }
         }
-        
+
         /* Loading overlay - clean and simple */
         .loading-overlay {
             position: fixed;
@@ -87,6 +88,10 @@
             font-weight: 500;
             transition: background-color 0.2s ease, transform 0.1s ease;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            display: inline-flex; /* For icon alignment */
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .btn-primary:hover {
             background-color: #0066cc; /* Slightly darker blue on hover */
@@ -105,6 +110,10 @@
             font-weight: 500;
             transition: background-color 0.2s ease, transform 0.1s ease;
             border: 1px solid #d1d1d6; /* Subtle border */
+            display: inline-flex; /* For icon alignment */
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .btn-secondary:hover {
             background-color: #e0e0e0;
@@ -123,6 +132,10 @@
             font-weight: 500;
             transition: background-color 0.2s ease, transform 0.1s ease;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: inline-flex; /* For icon alignment */
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .btn-danger:hover {
             background-color: #cc0000;
@@ -158,7 +171,7 @@
             background-size: 1.5em 1.5em;
             padding-right: 2.5rem; /* Space for the custom arrow */
         }
-        
+
         /* Card/Container styling */
         .app-card {
             background-color: white;
@@ -303,6 +316,7 @@
             justify-content: center;
             font-size: 2rem;
             font-weight: 600;
+            flex-shrink: 0;
         }
 
         .profile-email {
@@ -311,26 +325,8 @@
             color: #333;
             word-break: break-all; /* Allow long emails to wrap */
         }
-        
+
         /* Specific button styling for dropdown */
-        .dropdown-button { /* General style for buttons within dropdown */
-            background-color: transparent;
-            color: #333;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-weight: 500;
-            text-align: left;
-            width: 100%;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-
-        .dropdown-button:hover {
-            background-color: #f0f0f0;
-            color: #000;
-        }
-
         .dropdown-signout-btn {
             background-color: #ff3b30;
             color: white;
@@ -340,79 +336,139 @@
             transition: background-color 0.2s ease;
             width: 100%; /* Full width within dropdown */
             text-align: center;
-            margin-top: 10px; /* Space above sign out */
         }
         .dropdown-signout-btn:hover {
             background-color: #cc0000;
         }
 
-        /* Modal styling */
-        .modal-overlay {
+        /* Styling for Modals */
+        .app-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+            background-color: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 100;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 1001; /* Above other content and dropdown */
+            padding: 20px;
         }
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal-content {
+        .app-modal-content {
             background-color: white;
             padding: 30px;
             border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             max-width: 500px;
-            width: 90%;
-            transform: translateY(-20px);
-            opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            width: 100%;
+            position: relative;
         }
-        .modal-overlay.active .modal-content {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        .modal-close-button {
+        .modal-close-btn {
             position: absolute;
             top: 15px;
             right: 15px;
             background: none;
             border: none;
             font-size: 1.5rem;
+            color: #aaa;
             cursor: pointer;
-            color: #888;
-            transition: color 0.2s ease;
         }
-        .modal-close-button:hover {
+        .modal-close-btn:hover {
             color: #333;
         }
+
+        /* Styling for custom data type list and general data table */
+        .data-category-item {
+            background-color: #f8f8fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .data-category-item h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #007aff; /* Apple Blue */
+            margin-bottom: 10px;
+        }
+        .data-category-item hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 15px 0;
+        }
+
+        .data-display-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .data-display-table th, .data-display-table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 15px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        .data-display-table th {
+            background-color: #f0f0f0;
+            font-weight: 600;
+            color: #555;
+        }
+        .data-display-table tbody tr:nth-child(even) {
+            background-color: #fbfbfc;
+        }
+        .data-display-table tbody tr:hover {
+            background-color: #f4f4f6;
+        }
+        
+        /* Account settings specific styling */
+        .setting-group {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            background-color: #fcfcfc;
+        }
+        .setting-group h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        .setting-group input[type="checkbox"] {
+            transform: scale(1.2); /* Make checkbox slightly larger */
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .setting-group select {
+            margin-bottom: 15px;
+        }
+
     </style>
 </head>
 <body class="flex flex-col items-center p-4 min-h-screen">
-    <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
         <p class="text-gray-700 text-lg">Initializing app...</p>
     </div>
 
     <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
-        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
-        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
+        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Personal Data Dashboard.</h1>
+        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track and organize your data, or proceed as a guest.</p>
         <div class="space-y-4">
             <button id="authButton" class="btn-primary w-full">
-                Sign In with Google
+                <i class="fab fa-google"></i> Sign In with Google
             </button>
             <button id="guestButton" class="btn-secondary w-full">
-                Continue as Guest
+                <i class="fas fa-user-secret"></i> Continue as Guest
             </button>
         </div>
         <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
@@ -421,8 +477,8 @@
 
     <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
         <div class="app-card flex flex-col md:flex-row items-center justify-between">
-            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
-            
+            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">My Dashboard</h1>
+
             <div class="profile-dropdown-container">
                 <button id="profileToggleButton" class="profile-toggle-button">
                     <span id="profileIconText">G</span>
@@ -433,19 +489,20 @@
                         <div id="profileAvatar" class="profile-avatar">
                             <span id="avatarInitial">G</span>
                         </div>
-                        <div id="mainAppUserInfo" class="profile-email"></div>
+                        <div>
+                            <div class="font-semibold text-gray-800" id="profileDisplayName">Guest User</div>
+                            <div id="mainAppUserInfo" class="text-gray-500 text-sm">guest@example.com</div>
+                        </div>
                     </div>
-                    <button id="settingsButton" class="dropdown-button">
-                        <i class="fas fa-cog mr-2"></i>Settings
-                    </button>
+                    <hr class="border-gray-200 my-2">
                     <button id="signOutButton" class="dropdown-signout-btn">
-                        Sign Out
+                        <i class="fas fa-sign-out-alt"></i> Sign Out
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="app-card">
+        <div id="expensesSection" class="app-card">
             <h2 class="sub-section-header">Add New Expense</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div>
@@ -494,11 +551,11 @@
                 </div>
             </div>
             <button id="addExpenseBtn" class="btn-primary w-full">
-                Add Expense
+                <i class="fas fa-plus-circle"></i> Add Expense
             </button>
         </div>
 
-        <div class="app-card">
+        <div id="expenseListSection" class="app-card">
             <h2 class="sub-section-header">Your Expenses</h2>
             <div class="overflow-x-auto rounded-xl border border-gray-200 table-container">
                 <table class="app-table">
@@ -520,26 +577,26 @@
                         </tr>
                     </thead>
                     <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="app-card flex justify-end">
+        <div id="expenseTotalSection" class="app-card flex justify-end">
             <h2 class="text-xl font-bold text-gray-800">Total Expenditure: <span id="totalExpenditure">C$0.00</span></h2>
         </div>
 
-        <div class="app-card">
+        <div id="aiInsightsSection" class="app-card">
             <h2 class="sub-section-header">AI-Powered Insights</h2>
             <button id="getInsightsBtn" class="btn-primary w-full">
-                Get Spending Insights ✨
+                <i class="fas fa-magic"></i> Get Spending Insights ✨
             </button>
             <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
                 <p class="font-medium">Analyzing your expenses...</p>
             </div>
         </div>
 
-        <div class="app-card">
+        <div id="visualizationsSection" class="app-card">
             <h2 class="section-header">Spending Visualizations</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
@@ -559,8 +616,8 @@
             </div>
         </div>
 
-        <div class="app-card">
-            <h2 class="sub-section-header">Download Data</h2>
+        <div id="downloadSection" class="app-card">
+            <h2 class="sub-section-header">Download Expense Data</h2>
             <div class="flex flex-col md:flex-row items-center gap-4">
                 <div class="flex-grow w-full md:w-auto">
                     <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
@@ -569,56 +626,124 @@
                     </select>
                 </div>
                 <button id="downloadXlsxBtn" class="btn-primary w-full md:w-auto mt-3 md:mt-0">
-                    Download as .xlsx
+                    <i class="fas fa-file-excel"></i> Download as .xlsx
                 </button>
                 <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
-                    Download as .csv
+                    <i class="fas fa-file-csv"></i> Download as .csv
                 </button>
             </div>
             <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses in either .xlsx (Excel) or .csv format.</p>
         </div>
-    </div>
 
-    <div id="settingsModal" class="modal-overlay">
-        <div class="modal-content relative">
-            <button class="modal-close-button" id="closeSettingsModal"><i class="fas fa-times"></i></button>
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Settings</h2>
+        <div id="customDataSection" class="app-card hidden">
+            <h2 class="section-header text-left">Your Custom Data Types</h2>
+            <p class="text-gray-600 mb-6">Create and manage your own custom data categories. Each type acts like a separate table or sheet.</p>
 
-            <div class="space-y-4">
-                <div>
-                    <label for="currencyPreference" class="block text-sm font-medium text-gray-700 mb-2">Default Currency Display:</label>
-                    <select id="currencyPreference" class="app-input app-select">
-                        <option value="CAD">Canadian Dollar (CAD)</option>
-                        <option value="AED">United Arab Emirates Dirham (AED)</option>
-                        <option value="INR">Indian Rupee (INR)</option>
+            <button id="addDataTypeBtn" class="btn-primary mb-6">
+                <i class="fas fa-plus"></i> Add New Data Type
+            </button>
+
+            <div id="dataCategoriesList" class="space-y-4">
+                <p class="text-gray-500 italic" id="noCustomDataMessage">No custom data types added yet. Click "Add New Data Type" to get started!</p>
+            </div>
+
+            <button id="viewAllCustomDataBtn" class="btn-secondary w-full mt-8">
+                <i class="fas fa-table"></i> View All My Custom Data
+            </button>
+        </div>
+
+        <div id="allCustomDataDisplaySection" class="app-card hidden">
+            <h2 class="section-header text-left">All Your Custom Data</h2>
+            <p class="text-gray-600 mb-6">A consolidated view of all entries across your custom data types.</p>
+            <div id="allCustomDataContent">
+                <p class="text-gray-500 italic">Loading all custom data...</p>
+            </div>
+            <button id="closeAllCustomDataBtn" class="btn-secondary w-full mt-6">
+                <i class="fas fa-times-circle"></i> Close All Custom Data View
+            </button>
+        </div>
+
+        <div id="settingsSection" class="app-card hidden">
+            <h2 class="section-header text-left">Settings</h2>
+            <p class="text-gray-600 mb-6">Manage your preferences and account.</p>
+
+            <div class="setting-group">
+                <h3>General Preferences</h3>
+                <div class="mb-4">
+                    <label for="themeSelect" class="block text-sm font-medium text-gray-600 mb-1">Theme:</label>
+                    <select id="themeSelect" class="app-input app-select">
+                        <option value="light">Light Mode</option>
+                        <option value="dark">Dark Mode</option>
                     </select>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="notificationsToggle" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="notificationsToggle" class="ml-2 block text-sm font-medium text-gray-600">Enable Notifications (Placeholder)</label>
                 </div>
             </div>
 
-            <div class="mt-8 flex flex-col md:flex-row gap-4">
-                <button id="saveSettingsBtn" class="btn-primary w-full">Save Settings</button>
-                <button id="clearGuestSettingsBtn" class="btn-secondary w-full">Clear Guest Settings (Local)</button>
+            <div class="setting-group">
+                <h3>Account Management</h3>
+                <div class="space-y-4">
+                    <button id="changePasswordButton" class="btn-secondary w-full">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
+                    <button id="deleteAccountButton" class="btn-danger w-full">
+                        <i class="fas fa-trash-alt"></i> Delete Account
+                    </button>
+                </div>
             </div>
-            <p class="text-xs text-gray-500 mt-4 text-center">Note: Guest settings are saved locally in your browser. Logged-in user settings are saved to your account.</p>
+
+            <button id="saveSettingsButton" class="btn-primary w-full mt-6">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
+            <button id="closeSettingsButton" class="btn-secondary w-full mt-4">
+                <i class="fas fa-times"></i> Close Settings
+            </button>
+        </div>
+
+        <div id="addDataTypeModal" class="app-modal hidden">
+            <div class="app-modal-content">
+                <button class="modal-close-btn" data-modal="addDataTypeModal"><i class="fas fa-times"></i></button>
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Create New Data Type</h3>
+                <p class="text-gray-600 mb-4">Enter a unique name for your new data category (e.g., "Reading List", "Workout Logs").</p>
+                <div class="mb-4">
+                    <label for="newDataTypeName" class="block text-sm font-medium text-gray-600 mb-1">Data Type Name:</label>
+                    <input type="text" id="newDataTypeName" placeholder="e.g., My Projects" class="app-input">
+                </div>
+                <button id="saveNewDataTypeBtn" class="btn-primary w-full">
+                    <i class="fas fa-plus"></i> Create Data Type
+                </button>
+            </div>
+        </div>
+
+        <div id="addCustomEntryModal" class="app-modal hidden">
+            <div class="app-modal-content">
+                <button class="modal-close-btn" data-modal="addCustomEntryModal"><i class="fas fa-times"></i></button>
+                <h3 class="text-xl font-bold text-gray-800 mb-4" id="addCustomEntryModalTitle">Add New Entry</h3>
+                <form id="customEntryForm" class="space-y-4">
+                    </form>
+                <button id="saveCustomEntryBtn" class="btn-primary w-full mt-6">
+                    <i class="fas fa-save"></i> Save Entry
+                </button>
+            </div>
         </div>
     </div>
 
-
     <script type="module">
-        // Import Firebase functions directly since we're in a single module script now
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, updateDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
         const firebaseConfig = {
-            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
-            authDomain: "my-expenese-tracker.firebaseapp.com",
-            projectId: "my-expenese-tracker",
-            storageBucket: "my-expenese-tracker.firebasestorage.app",
-            messagingSenderId: "466782350290",
-            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com", // Double-check this appId!
-            measurementId: "G-1CF1ZNLPC2"
+            apiKey: "YOUR_API_KEY", // <--- REPLACE THIS
+            authDomain: "YOUR_AUTH_DOMAIN", // <--- REPLACE THIS
+            projectId: "YOUR_PROJECT_ID", // <--- REPLACE THIS
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID", // <--- REPLACE THIS
+            measurementId: "YOUR_MEASUREMENT_ID"
         };
 
         // Initialize Firebase
@@ -627,7 +752,35 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // DOM element references
+        // --- DOM Elements ---
+        // Login/Main App Containers
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loginScreen = document.getElementById('loginScreen');
+        const mainAppContainer = document.getElementById('mainAppContainer');
+
+        // Auth Buttons
+        const authButton = document.getElementById('authButton');
+        const guestButton = document.getElementById('guestButton');
+        const userInfoDiv = document.getElementById('userInfo');
+
+        // Profile Dropdown
+        const profileToggleButton = document.getElementById('profileToggleButton');
+        const profileDropdownContent = document.getElementById('profileDropdownContent');
+        const profileDisplayName = document.getElementById('profileDisplayName');
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo');
+        const signOutButton = document.getElementById('signOutButton');
+        const profileIconText = document.getElementById('profileIconText');
+        const avatarInitial = document.getElementById('avatarInitial');
+
+        // Main Sections (for toggling visibility)
+        const expensesSection = document.getElementById('expensesSection');
+        const expenseListSection = document.getElementById('expenseListSection');
+        const expenseTotalSection = document.getElementById('expenseTotalSection');
+        const aiInsightsSection = document.getElementById('aiInsightsSection');
+        const visualizationsSection = document.getElementById('visualizationsSection');
+        const downloadSection = document.getElementById('downloadSection');
+
+        // Expense Form Elements
         const expenseDateInput = document.getElementById('expenseDate');
         const expenseCategoryInput = document.getElementById('expenseCategory');
         const expenseDescriptionInput = document.getElementById('expenseDescription');
@@ -646,60 +799,54 @@
         const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
         const monthSelect = document.getElementById('monthSelect');
         const downloadCsvBtn = document.getElementById('downloadCsvBtn');
-        const downloadXlsxBtn = document.getElementById('downloadXlsxBtn'); 
+        const downloadXlsxBtn = document.getElementById('downloadXlsxBtn');
 
-        const authButton = document.getElementById('authButton');
-        const guestButton = document.getElementById('guestButton');
-        const userInfoDiv = document.getElementById('userInfo');
+        // NEW: Custom Data Management Elements
+        const customDataSection = document.getElementById('customDataSection');
+        const addDataTypeBtn = document.getElementById('addDataTypeBtn');
+        const dataCategoriesList = document.getElementById('dataCategoriesList');
+        const noCustomDataMessage = document.getElementById('noCustomDataMessage');
+        const viewAllCustomDataBtn = document.getElementById('viewAllCustomDataBtn');
+        const allCustomDataDisplaySection = document.getElementById('allCustomDataDisplaySection');
+        const allCustomDataContent = document.getElementById('allCustomDataContent');
+        const closeAllCustomDataBtn = document.getElementById('closeAllCustomDataBtn');
 
-        const mainAppContainer = document.getElementById('mainAppContainer');
-        const loginScreen = document.getElementById('loginScreen');
-        
-        // --- NEW DOM Elements for Dropdown and Settings ---
-        const profileToggleButton = document.getElementById('profileToggleButton');
-        const profileDropdownContent = document.getElementById('profileDropdownContent');
-        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); 
-        const signOutButton = document.getElementById('signOutButton');      
-        const profileIconText = document.getElementById('profileIconText');
-        const avatarInitial = document.getElementById('avatarInitial');
-        const settingsButton = document.getElementById('settingsButton'); // New Settings button
+        // NEW: Settings Elements
+        const settingsSection = document.getElementById('settingsSection');
+        const themeSelect = document.getElementById('themeSelect');
+        const notificationsToggle = document.getElementById('notificationsToggle');
+        const changePasswordButton = document.getElementById('changePasswordButton');
+        const deleteAccountButton = document.getElementById('deleteAccountButton');
+        const saveSettingsButton = document.getElementById('saveSettingsButton');
+        const closeSettingsButton = document.getElementById('closeSettingsButton');
 
-        const settingsModal = document.getElementById('settingsModal');
-        const closeSettingsModalBtn = document.getElementById('closeSettingsModal');
-        const currencyPreferenceSelect = document.getElementById('currencyPreference');
-        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-        const clearGuestSettingsBtn = document.getElementById('clearGuestSettingsBtn');
+        // NEW: Modal Elements
+        const addDataTypeModal = document.getElementById('addDataTypeModal');
+        const newDataTypeNameInput = document.getElementById('newDataTypeName');
+        const saveNewDataTypeBtn = document.getElementById('saveNewDataTypeBtn');
 
-        const loadingOverlay = document.getElementById('loadingOverlay');
+        const addCustomEntryModal = document.getElementById('addCustomEntryModal');
+        const addCustomEntryModalTitle = document.getElementById('addCustomEntryModalTitle');
+        const customEntryForm = document.getElementById('customEntryForm');
+        const saveCustomEntryBtn = document.getElementById('saveCustomEntryBtn');
+        const modalCloseButtons = document.querySelectorAll('.modal-close-btn');
 
         // Global state variables
         let expenses = [];
         let currentUserId = null;
-        let currentUserIsGuest = false;
         let unsubscribeFromExpenses = null;
-        let unsubscribeFromSettings = null; // New for settings listener
+        let currentUserCustomDataTypes = []; // Array to store names of custom data types
+        let currentCustomDataTypeForEntry = null; // To track which data type the entry modal is for
 
         // Exchange rates (CAD as base) - these are hardcoded for simplicity
         const EXCHANGE_RATE_CAD_TO_AED = 2.70;
         const EXCHANGE_RATE_CAD_TO_INR = 61.00;
 
-        // Default settings
-        let userSettings = {
-            defaultCurrency: 'CAD' // Default to CAD
-        };
-
-        // Currency symbols for display
-        const currencySymbols = {
-            CAD: 'C$',
-            AED: 'AED ',
-            INR: '₹'
-        };
-
         // Chart instances
         let expenseCategoryPieChart;
         let expenseMonthlyBarChart;
 
-        // --- Loading Overlay Functions ---
+        // --- Helper Functions for UI State Management ---
         function showLoading(message = "Loading...") {
             loadingOverlay.classList.remove('hidden');
             loadingOverlay.querySelector('p').textContent = message;
@@ -707,8 +854,68 @@
 
         function hideLoading() {
             loadingOverlay.classList.add('hidden');
-            console.log("hideLoading function executed.");
         }
+
+        function showSection(sectionId) {
+            const sections = [
+                expensesSection, expenseListSection, expenseTotalSection, aiInsightsSection,
+                visualizationsSection, downloadSection, customDataSection, allCustomDataDisplaySection,
+                settingsSection
+            ];
+            sections.forEach(sec => {
+                if (sec) sec.classList.add('hidden');
+            });
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) targetSection.classList.remove('hidden');
+        }
+
+        function showMessage(message, type = 'info', duration = 3000) {
+            const existingMessage = document.querySelector('.app-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `app-card app-message p-3 mt-4 text-center rounded-lg border flex items-center justify-center space-x-2 w-full max-w-xl mx-auto`;
+
+            if (type === 'success') {
+                messageDiv.classList.add('message-success');
+                messageDiv.innerHTML = `<i class="fas fa-check-circle text-lg"></i> <span>${message}</span>`;
+            } else if (type === 'error') {
+                messageDiv.classList.add('message-error');
+                messageDiv.innerHTML = `<i class="fas fa-exclamation-triangle text-lg"></i> <span>${message}</span>`;
+            } else { // info
+                messageDiv.classList.add('message-info');
+                messageDiv.innerHTML = `<i class="fas fa-info-circle text-lg"></i> <span>${message}</span>`;
+            }
+
+            // Insert the message after the header in the main app container
+            if (mainAppContainer.firstChild) {
+                 mainAppContainer.insertBefore(messageDiv, mainAppContainer.firstChild.nextSibling);
+            } else {
+                 mainAppContainer.appendChild(messageDiv);
+            }
+
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, duration);
+        }
+
+        function showModal(modalElement) {
+            modalElement.classList.remove('hidden');
+        }
+
+        function hideModal(modalElement) {
+            modalElement.classList.add('hidden');
+        }
+
+        modalCloseButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const modalId = btn.dataset.modal;
+                hideModal(document.getElementById(modalId));
+            });
+        });
 
         // --- Authentication Functions ---
         authButton.addEventListener('click', async () => {
@@ -754,52 +961,65 @@
             } finally {
                 hideLoading();
             }
-            // Ensure dropdown is closed after sign out
             profileDropdownContent.classList.add('hidden');
         });
 
         // --- Firebase Auth State Listener ---
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             console.log("onAuthStateChanged fired. User:", user);
             if (user) {
                 currentUserId = user.uid;
-                currentUserIsGuest = user.isAnonymous;
-                
+
                 let displayEmail = user.email || 'Guest User';
                 let displayName = user.displayName || 'Guest';
                 let initial = displayName.charAt(0).toUpperCase();
 
-                if (currentUserIsGuest) {
+                if (user.isAnonymous) {
                     displayEmail = 'guest@example.com'; // Placeholder email for guests
-                    displayName = 'Guest';
+                    displayName = 'Guest User';
                     initial = 'G';
                     userInfoDiv.textContent = 'Welcome, Guest!';
-                    clearGuestSettingsBtn.classList.remove('hidden'); // Show clear button for guests
                 } else {
                     userInfoDiv.textContent = `Welcome, ${displayName}!`;
-                    clearGuestSettingsBtn.classList.add('hidden'); // Hide for authenticated users
                 }
 
-                mainAppUserInfo.textContent = displayEmail; // Display full email in dropdown
-                profileIconText.textContent = initial;       // Display initial on the toggle button
-                avatarInitial.textContent = initial;         // Display initial in the avatar circle
+                profileDisplayName.textContent = displayName;
+                mainAppUserInfo.textContent = displayEmail;
+                profileIconText.textContent = initial;
+                avatarInitial.textContent = initial;
 
                 loginScreen.classList.add('hidden');
                 mainAppContainer.classList.remove('hidden');
 
                 console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
-                
-                // Start listening for expenses and settings based on user type
+
+                // Fetch user data from Firestore to get customDataTypes and settings
+                const userDocRef = doc(db, 'users', currentUserId);
+                const userDocSnap = await getDoc(userDocRef);
+                if (!userDocSnap.exists()) {
+                    // Create basic user document if it doesn't exist (e.g., for new users/guests)
+                    await updateDoc(userDocRef, {
+                        email: displayEmail,
+                        displayName: displayName,
+                        createdAt: new Date(),
+                        customDataTypes: [],
+                        settings: { theme: 'light', notifications: true }
+                    }, { merge: true }); // Use merge:true to avoid overwriting if doc already exists
+                    console.log("User document created/updated with defaults.");
+                } else {
+                    currentUserCustomDataTypes = userDocSnap.data().customDataTypes || [];
+                }
+
                 listenToExpenses(user.uid);
-                loadUserSettings(); // Load settings when user changes
+                renderCustomDataTypes(); // Load existing custom data types
+                showSection('expensesSection'); // Default view
             } else {
                 currentUserId = null;
-                currentUserIsGuest = false;
                 userInfoDiv.textContent = 'Please sign in to save your data.';
-                mainAppUserInfo.textContent = ''; // Clear email in dropdown
-                profileIconText.textContent = 'G'; // Reset icon to Guest
-                avatarInitial.textContent = 'G';   // Reset avatar initial
-                clearGuestSettingsBtn.classList.add('hidden'); // Hide for signed out
+                profileDisplayName.textContent = 'Guest User';
+                mainAppUserInfo.textContent = '';
+                profileIconText.textContent = 'G';
+                avatarInitial.textContent = 'G';
 
                 mainAppContainer.classList.add('hidden');
                 loginScreen.classList.remove('hidden');
@@ -807,30 +1027,24 @@
                 console.log('User signed out.');
 
                 expenses = [];
-                // Reset settings to default for signed out state
-                userSettings = { defaultCurrency: 'CAD' }; 
-                renderExpenses(); // Re-render table with default currency display
+                currentUserCustomDataTypes = [];
+                renderExpenses(); // Clear expenses display
+                renderCustomDataTypes(); // Clear custom data display
                 if (unsubscribeFromExpenses) {
                     unsubscribeFromExpenses();
                 }
-                if (unsubscribeFromSettings) {
-                    unsubscribeFromSettings();
-                }
-                loadGuestSettings(); // Load any locally stored guest settings
                 showMessage('Your data will be available when you sign in.', 'info');
             }
-            console.log("Auth state check complete, hiding loading overlay.");
             hideLoading();
         });
 
-        // --- Dropdown Toggle Logic ---
+        // --- Profile Dropdown Toggle Logic ---
         profileToggleButton.addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent document click from closing it immediately
+            event.stopPropagation();
             profileDropdownContent.classList.toggle('hidden');
-            profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
+            profileDropdownContent.classList.toggle('active');
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', (event) => {
             if (!profileDropdownContent.contains(event.target) && !profileToggleButton.contains(event.target)) {
                 profileDropdownContent.classList.add('hidden');
@@ -838,109 +1052,15 @@
             }
         });
 
-        // --- Settings Modal Logic ---
-        settingsButton.addEventListener('click', () => {
-            profileDropdownContent.classList.add('hidden'); // Close profile dropdown
-            currencyPreferenceSelect.value = userSettings.defaultCurrency; // Set current preference
-            settingsModal.classList.add('active'); // Show modal
-        });
-
-        closeSettingsModalBtn.addEventListener('click', () => {
-            settingsModal.classList.remove('active'); // Hide modal
-        });
-
-        saveSettingsBtn.addEventListener('click', async () => {
-            const selectedCurrency = currencyPreferenceSelect.value;
-            userSettings.defaultCurrency = selectedCurrency;
-
-            try {
-                if (currentUserIsGuest) {
-                    localStorage.setItem('guestSettings', JSON.stringify(userSettings));
-                    showMessage('Guest settings saved locally!', 'success');
-                } else {
-                    // For authenticated users, save to Firestore
-                    const settingsRef = doc(db, `users/${currentUserId}/settings`, 'userPreferences');
-                    await setDoc(settingsRef, userSettings, { merge: true }); // Use merge to avoid overwriting other settings
-                    showMessage('Settings saved to your account!', 'success');
-                }
-                settingsModal.classList.remove('active'); // Close modal
-                renderExpenses(); // Re-render the expense table with new currency
-            } catch (error) {
-                console.error("Error saving settings:", error);
-                showMessage('Failed to save settings. Please try again.', 'error');
-            }
-        });
-
-        clearGuestSettingsBtn.addEventListener('click', () => {
-            if (currentUserIsGuest) {
-                localStorage.removeItem('guestSettings');
-                userSettings = { defaultCurrency: 'CAD' }; // Reset to default
-                currencyPreferenceSelect.value = userSettings.defaultCurrency; // Update modal UI
-                renderExpenses(); // Re-render with default currency
-                showMessage('Guest settings cleared!', 'info');
-            }
-        });
-
-        // --- Load User Settings ---
-        function loadUserSettings() {
-            if (currentUserIsGuest) {
-                loadGuestSettings();
-            } else if (currentUserId) {
-                listenToUserSettings(currentUserId);
-            }
-        }
-
-        function loadGuestSettings() {
-            const storedSettings = localStorage.getItem('guestSettings');
-            if (storedSettings) {
-                try {
-                    userSettings = JSON.parse(storedSettings);
-                    console.log("Loaded guest settings:", userSettings);
-                } catch (e) {
-                    console.error("Error parsing guest settings from localStorage:", e);
-                    userSettings = { defaultCurrency: 'CAD' }; // Fallback to default
-                }
-            } else {
-                userSettings = { defaultCurrency: 'CAD' }; // Default if nothing found
-            }
-            // Immediately apply settings to UI
-            currencyPreferenceSelect.value = userSettings.defaultCurrency;
-            renderExpenses(); // Re-render to apply currency changes
-        }
-
-        function listenToUserSettings(userId) {
-            if (unsubscribeFromSettings) {
-                unsubscribeFromSettings();
-            }
-
-            const settingsRef = doc(db, `users/${userId}/settings`, 'userPreferences');
-            unsubscribeFromSettings = onSnapshot(settingsRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    userSettings = docSnap.data();
-                    console.log("Loaded cloud settings:", userSettings);
-                } else {
-                    console.log("No cloud settings found, using defaults.");
-                    userSettings = { defaultCurrency: 'CAD' }; // Use default if no document exists
-                }
-                // Apply settings to UI and re-render expenses
-                currencyPreferenceSelect.value = userSettings.defaultCurrency;
-                renderExpenses();
-            }, (error) => {
-                console.error("Error fetching Firestore settings:", error);
-                showMessage("Error loading settings. Check console for details.", "error");
-            });
-        }
-
-
-        // --- Firestore Data Listener ---
+        // --- Firebase Data Listener (Expenses) ---
         function listenToExpenses(userId) {
             if (unsubscribeFromExpenses) {
                 unsubscribeFromExpenses();
             }
-            
+
             showLoading("Loading your expenses...");
             const q = query(collection(db, `users/${userId}/expenses`));
-            
+
             unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
                 const fetchedExpenses = [];
                 snapshot.forEach((doc) => {
@@ -958,7 +1078,7 @@
                     });
                 });
                 expenses = fetchedExpenses;
-                renderExpenses(); // This will now use the current userSettings.defaultCurrency
+                renderExpenses();
                 hideLoading();
                 showMessage('Expenses synchronized from cloud!', 'success');
             }, (error) => {
@@ -1004,10 +1124,10 @@
                     paidBy,
                     hasBill,
                     billType,
-                    timestamp: new Date() // Add a server-side timestamp
+                    timestamp: new Date()
                 });
                 showMessage('Expense added successfully!', 'success');
-                clearForm();
+                clearExpenseForm();
             } catch (e) {
                 console.error("Error adding document: ", e);
                 showMessage('Error adding expense. Please try again.', 'error');
@@ -1036,7 +1156,7 @@
             }
         }
 
-        function clearForm() {
+        function clearExpenseForm() {
             expenseDateInput.value = '';
             expenseCategoryInput.value = '';
             expenseDescriptionInput.value = '';
@@ -1052,42 +1172,20 @@
             expenseTableBody.innerHTML = '';
             let total = 0;
 
-            // Sort expenses by date in descending order
             const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            const defaultCurrencySymbol = currencySymbols[userSettings.defaultCurrency] || currencySymbols['CAD']; // Fallback
-            let totalInDefaultCurrency = 0;
-
             sortedExpenses.forEach(exp => {
-                total += exp.amount; // CAD total
+                total += exp.amount;
 
-                let amountAED = (exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
-                let amountINR = (exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
-                let amountCAD = exp.amount.toFixed(2);
-
-                let displayAmount;
-                switch (userSettings.defaultCurrency) {
-                    case 'AED':
-                        displayAmount = `AED ${amountAED}`;
-                        totalInDefaultCurrency += parseFloat(amountAED);
-                        break;
-                    case 'INR':
-                        displayAmount = `₹${amountINR}`;
-                        totalInDefaultCurrency += parseFloat(amountINR);
-                        break;
-                    case 'CAD':
-                    default:
-                        displayAmount = `C$${amountCAD}`;
-                        totalInDefaultCurrency += parseFloat(amountCAD);
-                        break;
-                }
+                const amountAED = (exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountINR = (exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
 
                 const row = expenseTableBody.insertRow();
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">${exp.date}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${exp.category}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${exp.description}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${displayAmount}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">C$${exp.amount.toFixed(2)}</td>
                     <td class="px-6 py-4 whitespace-nowrap">AED ${amountAED}</td>
                     <td class="px-6 py-4 whitespace-nowrap">₹${amountINR}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${exp.paymentMethod}</td>
@@ -1101,13 +1199,12 @@
                     </td>
                 `;
             });
-            totalExpenditureSpan.textContent = `${defaultCurrencySymbol}${totalInDefaultCurrency.toFixed(2)}`;
+            totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
             updateCharts();
             populateMonthSelect();
         }
 
-        // Expose deleteExpense to the global scope for onclick
-        window.deleteExpense = deleteExpense;
+        window.deleteExpense = deleteExpense; // Expose to global scope for inline onclick
 
         // --- Chart Functions ---
         function updateCharts() {
@@ -1125,7 +1222,7 @@
             const categories = Object.keys(categoryMap);
             const amounts = Object.values(categoryMap);
 
-            const backgroundColors = categories.map((_, i) => `hsl(${i * 60}, 70%, 60%)`); // Dynamic colors
+            const backgroundColors = categories.map((_, i) => `hsl(${i * 60}, 70%, 60%)`);
 
             if (expenseCategoryPieChart) {
                 expenseCategoryPieChart.destroy();
@@ -1165,7 +1262,6 @@
                 monthlyMap[month] = (monthlyMap[month] || 0) + exp.amount;
             });
 
-            // Sort months chronologically
             const sortedMonths = Object.keys(monthlyMap).sort((a, b) => {
                 const dateA = new Date(a);
                 const dateB = new Date(b);
@@ -1182,9 +1278,9 @@
                 data: {
                     labels: sortedMonths,
                     datasets: [{
-                        label: `Total Expenditure (${userSettings.defaultCurrency})`, // Dynamic label
+                        label: 'Total Expenditure (CAD)',
                         data: monthlyAmounts,
-                        backgroundColor: '#007aff', // Apple Blue
+                        backgroundColor: '#007aff',
                         borderColor: '#0066cc',
                         borderWidth: 1
                     }]
@@ -1207,7 +1303,7 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: `Amount (${userSettings.defaultCurrency})` // Dynamic label
+                                text: 'Amount (CAD)'
                             }
                         },
                         x: {
@@ -1231,7 +1327,7 @@
             insightsDisplay.classList.remove('hidden');
             insightsDisplay.innerHTML = '<p class="font-medium text-center py-4">Analyzing your spending patterns...</p>';
 
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
             const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
             const categories = expenses.map(exp => exp.category);
@@ -1262,35 +1358,6 @@
             hideLoading();
         });
 
-
-        // --- Message Display Function ---
-        function showMessage(message, type = 'info', duration = 3000) {
-            const existingMessage = document.querySelector('.app-message');
-            if (existingMessage) {
-                existingMessage.remove();
-            }
-
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `app-card app-message p-3 mt-4 text-center rounded-lg border flex items-center justify-center space-x-2`;
-
-            if (type === 'success') {
-                messageDiv.classList.add('message-success');
-                messageDiv.innerHTML = `<i class="fas fa-check-circle text-lg"></i> <span>${message}</span>`;
-            } else if (type === 'error') {
-                messageDiv.classList.add('message-error');
-                messageDiv.innerHTML = `<i class="fas fa-exclamation-triangle text-lg"></i> <span>${message}</span>`;
-            } else { // info
-                messageDiv.classList.add('message-info');
-                messageDiv.innerHTML = `<i class="fas fa-info-circle text-lg"></i> <span>${message}</span>`;
-            }
-            
-            // Insert the message after the header in the main app container
-            mainAppContainer.insertBefore(messageDiv, mainAppContainer.firstChild.nextSibling);
-
-            setTimeout(() => {
-                messageDiv.remove();
-            }, duration);
-        }
 
         // --- Export Functionality (CSV & XLSX) ---
         function populateMonthSelect() {
@@ -1324,15 +1391,12 @@
                 return;
             }
 
-            // Function to escape CSV values (handle commas and quotes)
             const escapeCsv = (value) => {
                 if (value === null || value === undefined) {
                     return '';
                 }
                 let stringValue = String(value);
-                // Replace double quotes with two double quotes
                 stringValue = stringValue.replace(/"/g, '""');
-                // Enclose the entire field in double quotes if it contains a comma, newline, or a double quote
                 if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
                     return `"${stringValue}"`;
                 }
@@ -1340,8 +1404,7 @@
             };
 
             let csvContent = "";
-            // Add BOM for better Excel compatibility with UTF-8
-            csvContent += "\ufeff"; 
+            csvContent += "\ufeff";
             csvContent += "Date,Category,Description,Amount (CAD),Amount (AED),Amount (INR),Payment Method,Paid By,Has Bill?,Bill Type\n";
 
             filteredExpenses.forEach(exp => {
@@ -1364,8 +1427,8 @@
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const monthName = new Date(selectedMonth + '-01').toLocaleString('en-US', { month: 'long', year: 'numeric' });
-            const filename = `expenses_${monthName.replace(/ /g, '_')}.csv`; 
-            
+            const filename = `expenses_${monthName.replace(/ /g, '_')}.csv`;
+
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.setAttribute('download', filename);
@@ -1394,8 +1457,8 @@
                 Category: exp.category,
                 Description: exp.description,
                 'Amount (CAD)': exp.amount,
-                'Amount (AED)': (exp.amount * EXCHANGE_RATE_CAD_TO_AED), // Keep as number for XLSX
-                'Amount (INR)': (exp.amount * EXCHANGE_RATE_CAD_TO_INR), // Keep as number for XLSX
+                'Amount (AED)': (exp.amount * EXCHANGE_RATE_CAD_TO_AED).toFixed(2),
+                'Amount (INR)': (exp.amount * EXCHANGE_RATE_CAD_TO_INR).toFixed(2),
                 'Payment Method': exp.paymentMethod,
                 'Paid By': exp.paidBy,
                 'Has Bill?': exp.hasBill ? 'Yes' : 'No',
@@ -1403,22 +1466,6 @@
             }));
 
             const ws = XLSX.utils.json_to_sheet(data);
-
-            // Optional: Auto-fit column widths (basic attempt)
-            const columnWidths = [
-                {wch: 12}, // Date
-                {wch: 15}, // Category
-                {wch: 25}, // Description
-                {wch: 15}, // Amount (CAD)
-                {wch: 15}, // Amount (AED)
-                {wch: 15}, // Amount (INR)
-                {wch: 15}, // Payment Method
-                {wch: 12}, // Paid By
-                {wch: 12}, // Has Bill?
-                {wch: 12}  // Bill Type
-            ];
-            ws['!cols'] = columnWidths;
-
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Expenses");
 
@@ -1429,8 +1476,697 @@
             showMessage(`Downloaded expenses for ${monthName} as an Excel (.xlsx) file!`, 'success');
         });
 
-        // Initialize the date input to today's date
-        expenseDateInput.valueAsDate = new Date();
+        // --- NEW: Custom Data Type Management ---
+
+        // Helper to format collection name for display
+        function formatCollectionNameForDisplay(name) {
+            // Converts 'workoutlogs' to 'Workout Logs', 'readinglist' to 'Reading List' etc.
+            if (!name) return '';
+            return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                       .join(' ')
+                       .replace(/([A-Z])/g, ' $1').trim();
+        }
+
+        // Helper to format display name to collection name
+        function formatDisplayNameToCollectionName(name) {
+            if (!name) return '';
+            return name.toLowerCase().replace(/\s/g, ''); // Simple camelCase like
+        }
+
+        addDataTypeBtn.addEventListener('click', () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to add custom data types.', 'info');
+                return;
+            }
+            newDataTypeNameInput.value = ''; // Clear input
+            showModal(addDataTypeModal);
+        });
+
+        saveNewDataTypeBtn.addEventListener('click', async () => {
+            const newDataTypeName = newDataTypeNameInput.value.trim();
+            if (!newDataTypeName) {
+                showMessage('Please enter a name for your new data type.', 'error');
+                return;
+            }
+
+            const collectionName = formatDisplayNameToCollectionName(newDataTypeName);
+
+            if (currentUserCustomDataTypes.includes(collectionName)) {
+                showMessage('A data type with this name already exists!', 'error');
+                return;
+            }
+
+            if (!currentUserId) { // Should be covered by addDataTypeBtn guard, but good to double check
+                showMessage('User not authenticated for this action.', 'error');
+                return;
+            }
+
+            try {
+                showLoading(`Creating '${newDataTypeName}' data type...`);
+                const userDocRef = doc(db, 'users', currentUserId);
+                const userDocSnap = await getDoc(userDocRef);
+
+                let updatedCustomDataTypes = userDocSnap.data().customDataTypes || [];
+                updatedCustomDataTypes.push(collectionName);
+
+                await updateDoc(userDocRef, { customDataTypes: updatedCustomDataTypes });
+
+                currentUserCustomDataTypes = updatedCustomDataTypes; // Update local state
+                renderCustomDataTypes(); // Re-render the list
+                hideModal(addDataTypeModal);
+                showMessage(`New data type '${newDataTypeName}' created successfully!`, 'success');
+            } catch (error) {
+                console.error("Error creating new data type:", error);
+                showMessage(`Failed to create data type: ${error.message}`, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        async function renderCustomDataTypes() {
+            dataCategoriesList.innerHTML = '';
+            if (currentUserCustomDataTypes.length === 0) {
+                noCustomDataMessage.classList.remove('hidden');
+                return;
+            }
+            noCustomDataMessage.classList.add('hidden');
+
+            for (const dataType of currentUserCustomDataTypes) {
+                const displayTypeName = formatCollectionNameForDisplay(dataType);
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'data-category-item';
+                categoryDiv.innerHTML = `
+                    <h4 class="flex items-center justify-between">
+                        <span><i class="fas fa-folder"></i> ${displayTypeName}</span>
+                        <button class="btn-danger btn-sm delete-data-type-btn" data-type="${dataType}">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </h4>
+                    <p class="text-sm text-gray-500 mb-3">Entries for this type:</p>
+                    <div id="${dataType}-entries-preview" class="mb-4 overflow-x-auto table-container" style="max-height: 200px;">
+                        <p class="text-gray-400 italic">Loading entries...</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button class="btn-secondary btn-sm add-custom-entry-btn" data-type="${dataType}">
+                            <i class="fas fa-plus-circle"></i> Add New Entry to ${displayTypeName}
+                        </button>
+                        <button class="btn-secondary btn-sm refresh-custom-entry-btn" data-type="${dataType}">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                `;
+                dataCategoriesList.appendChild(categoryDiv);
+
+                // Load and display a preview of entries
+                await loadSpecificDataTypeEntriesPreview(dataType);
+            }
+
+            // Attach event listeners after rendering
+            dataCategoriesList.querySelectorAll('.add-custom-entry-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const dataType = event.currentTarget.dataset.type;
+                    openCustomEntryModal(dataType);
+                });
+            });
+
+            dataCategoriesList.querySelectorAll('.delete-data-type-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const dataType = event.currentTarget.dataset.type;
+                    deleteCustomDataType(dataType);
+                });
+            });
+            dataCategoriesList.querySelectorAll('.refresh-custom-entry-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const dataType = event.currentTarget.dataset.type;
+                    loadSpecificDataTypeEntriesPreview(dataType, true); // Force refresh
+                });
+            });
+        }
+
+        async function loadSpecificDataTypeEntriesPreview(dataType, forceRefresh = false) {
+            if (!currentUserId) return;
+
+            const entriesPreviewDiv = document.getElementById(`${dataType}-entries-preview`);
+            if (!entriesPreviewDiv) return;
+
+            if (!forceRefresh && entriesPreviewDiv.dataset.loaded === 'true') {
+                return; // Already loaded, no need to refresh unless forced
+            }
+
+            entriesPreviewDiv.innerHTML = '<p class="text-gray-400 italic">Loading entries...</p>'; // Show loading
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "users", currentUserId, dataType));
+                if (querySnapshot.empty) {
+                    entriesPreviewDiv.innerHTML = `<p class="text-gray-400 italic">No entries for ${formatCollectionNameForDisplay(dataType)} yet.</p>`;
+                } else {
+                    let tableHtml = `<table class="data-display-table"><thead><tr>`;
+                    const firstDoc = querySnapshot.docs[0];
+                    const dataKeys = Object.keys(firstDoc.data()).filter(key => key !== 'timestamp'); // Exclude timestamp
+                    
+                    // Limit to first few columns for preview
+                    const previewKeys = dataKeys.slice(0, 3); 
+
+                    previewKeys.forEach(key => {
+                        tableHtml += `<th>${formatCollectionNameForDisplay(key)}</th>`;
+                    });
+                    tableHtml += `</tr></thead><tbody>`;
+
+                    // Limit to first 5 rows for preview
+                    querySnapshot.docs.slice(0, 5).forEach((doc) => {
+                        const data = doc.data();
+                        tableHtml += `<tr>`;
+                        previewKeys.forEach(key => {
+                            let value = data[key];
+                            if (value instanceof Date) { // Handle Firestore Timestamps (might be converted to Date objects by SDK)
+                                value = value.toLocaleString();
+                            }
+                            tableHtml += `<td>${value || 'N/A'}</td>`;
+                        });
+                        tableHtml += `</tr>`;
+                    });
+                    tableHtml += `</tbody></table>`;
+                    entriesPreviewDiv.innerHTML = tableHtml;
+                    entriesPreviewDiv.dataset.loaded = 'true'; // Mark as loaded
+                }
+            } catch (error) {
+                console.error(`Error loading ${dataType} entries preview: `, error);
+                entriesPreviewDiv.innerHTML = `<p class="text-red-400 italic">Error loading entries for ${formatCollectionNameForDisplay(dataType)}.</p>`;
+            }
+        }
+
+        async function deleteCustomDataType(dataType) {
+            if (!currentUserId) {
+                showMessage('Please sign in to delete custom data types.', 'info');
+                return;
+            }
+            if (!confirm(`Are you sure you want to delete the "${formatCollectionNameForDisplay(dataType)}" data type and ALL its entries? This cannot be undone!`)) {
+                return;
+            }
+
+            showLoading(`Deleting '${formatCollectionNameForDisplay(dataType)}'...`);
+            try {
+                // 1. Remove from user's customDataTypes array
+                const userDocRef = doc(db, 'users', currentUserId);
+                const userDocSnap = await getDoc(userDocRef);
+                let updatedCustomDataTypes = userDocSnap.data().customDataTypes || [];
+                updatedCustomDataTypes = updatedCustomDataTypes.filter(type => type !== dataType);
+                await updateDoc(userDocRef, { customDataTypes: updatedCustomDataTypes });
+
+                // 2. Delete all documents in the subcollection (Firestore doesn't have direct subcollection deletion)
+                const q = query(collection(db, `users/${currentUserId}/${dataType}`));
+                const querySnapshot = await getDocs(q);
+                const batch = db.batch(); // Use a batch for multiple deletes
+                querySnapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+
+                currentUserCustomDataTypes = updatedCustomDataTypes; // Update local state
+                renderCustomDataTypes(); // Re-render the list
+                showMessage(`Data type '${formatCollectionNameForDisplay(dataType)}' and its entries deleted successfully!`, 'success');
+            } catch (error) {
+                console.error(`Error deleting data type ${dataType}:`, error);
+                showMessage(`Failed to delete data type: ${error.message}`, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function openCustomEntryModal(dataType) {
+            currentCustomDataTypeForEntry = dataType;
+            const displayTypeName = formatCollectionNameForDisplay(dataType);
+            addCustomEntryModalTitle.textContent = `Add New ${displayTypeName} Entry`;
+            customEntryForm.innerHTML = ''; // Clear previous form fields
+
+            // Define schema for common data types (you can extend this!)
+            const schema = {
+                'workoutlogs': [
+                    { label: 'Date', id: 'workoutDate', type: 'date', required: true },
+                    { label: 'Duration (minutes)', id: 'workoutDuration', type: 'number', required: true, step: '1' },
+                    { label: 'Description', id: 'workoutDescription', type: 'text', required: true, placeholder: 'e.g., Upper body strength' }
+                ],
+                'readinglist': [
+                    { label: 'Book Title', id: 'bookTitle', type: 'text', required: true },
+                    { label: 'Author', id: 'bookAuthor', type: 'text', required: false },
+                    { label: 'Date Finished', id: 'dateFinished', type: 'date', required: false },
+                    { label: 'Rating (1-5)', id: 'bookRating', type: 'number', min: '1', max: '5', required: false }
+                ],
+                // Add more schemas for other default data types as needed
+                // If a type is not in schema, allow dynamic text fields
+            };
+
+            const typeFields = schema[dataType] || [
+                { label: 'Field 1 Name', id: 'field1Name', type: 'text', required: true, isDynamicField: true },
+                { label: 'Field 1 Value', id: 'field1Value', type: 'text', required: true, isDynamicField: true },
+                { label: 'Field 2 Name (Optional)', id: 'field2Name', type: 'text', required: false, isDynamicField: true },
+                { label: 'Field 2 Value (Optional)', id: 'field2Value', type: 'text', required: false, isDynamicField: true }
+            ];
+
+            typeFields.forEach(field => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}${field.required ? '<span class="text-red-500">*</span>' : ''}</label>
+                    <input type="${field.type}" id="${field.id}" class="app-input"
+                           ${field.required ? 'required' : ''}
+                           ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
+                           ${field.step ? `step="${field.step}"` : ''}
+                           ${field.min ? `min="${field.min}"` : ''}
+                           ${field.max ? `max="${field.max}"` : ''}
+                           ${field.isDynamicField ? `data-is-dynamic="true"` : ''}>
+                `;
+                customEntryForm.appendChild(div);
+            });
+
+            // Add a "Add More Fields" button for dynamic fields if applicable
+            if (typeFields[0].isDynamicField) {
+                const addFieldBtn = document.createElement('button');
+                addFieldBtn.type = 'button';
+                addFieldBtn.className = 'btn-secondary btn-sm mt-3';
+                addFieldBtn.innerHTML = '<i class="fas fa-plus"></i> Add Another Field';
+                addFieldBtn.addEventListener('click', () => addDynamicFieldToForm(customEntryForm));
+                customEntryForm.appendChild(addFieldBtn);
+            }
+
+            showModal(addCustomEntryModal);
+        }
+
+        let dynamicFieldCounter = 3; // Start from Field 3 for dynamic additions
+
+        function addDynamicFieldToForm(formElement) {
+            const div = document.createElement('div');
+            div.className = 'flex items-end gap-2'; // Use flexbox for horizontal alignment
+            div.innerHTML = `
+                <div class="flex-1">
+                    <label for="field${dynamicFieldCounter}Name" class="block text-sm font-medium text-gray-600 mb-1">Field ${dynamicFieldCounter} Name:</label>
+                    <input type="text" id="field${dynamicFieldCounter}Name" class="app-input" required data-is-dynamic="true">
+                </div>
+                <div class="flex-1">
+                    <label for="field${dynamicFieldCounter}Value" class="block text-sm font-medium text-gray-600 mb-1">Field ${dynamicFieldCounter} Value:</label>
+                    <input type="text" id="field${dynamicFieldCounter}Value" class="app-input" required data-is-dynamic="true">
+                </div>
+                <button type="button" class="btn-danger p-2 h-10 w-10 flex-shrink-0" onclick="this.parentNode.remove()">
+                    <i class="fas fa-minus"></i>
+                </button>
+            `;
+            // Insert before the Save button or "Add Another Field" button
+            const saveBtn = formElement.querySelector('#saveCustomEntryBtn');
+            const addFieldBtn = formElement.querySelector('.btn-secondary.mt-3');
+            if (addFieldBtn) {
+                 formElement.insertBefore(div, addFieldBtn);
+            } else if (saveBtn) {
+                 formElement.insertBefore(div, saveBtn.parentNode); // Assuming save button is wrapped in a div/flex container
+            } else {
+                 formElement.appendChild(div);
+            }
+
+            dynamicFieldCounter++;
+        }
+
+        saveCustomEntryBtn.addEventListener('click', async () => {
+            if (!currentUserId || !currentCustomDataTypeForEntry) {
+                showMessage('Error: User not authenticated or data type not selected.', 'error');
+                return;
+            }
+
+            const formData = {};
+            let isValid = true;
+            const inputElements = customEntryForm.querySelectorAll('input, select');
+
+            // Collect data based on fields in the form
+            let dynamicFieldName = null;
+            inputElements.forEach(input => {
+                if (input.dataset.isDynamic === 'true') {
+                    if (input.id.includes('Name')) {
+                        dynamicFieldName = input.value.trim();
+                    } else if (input.id.includes('Value')) {
+                        if (dynamicFieldName) {
+                            formData[dynamicFieldName] = input.value.trim();
+                            dynamicFieldName = null; // Reset for next pair
+                        }
+                    }
+                } else {
+                    if (input.type === 'number') {
+                        formData[input.id] = parseFloat(input.value);
+                    } else if (input.type === 'checkbox') {
+                        formData[input.id] = input.checked;
+                    } else {
+                        formData[input.id] = input.value.trim();
+                    }
+                }
+
+                if (input.required && !input.value.trim()) {
+                    isValid = false;
+                }
+            });
+
+            if (!isValid) {
+                showMessage('Please fill in all required fields.', 'error');
+                return;
+            }
+
+            try {
+                showLoading(`Adding entry to '${formatCollectionNameForDisplay(currentCustomDataTypeForEntry)}'...`);
+                await addDoc(collection(db, `users/${currentUserId}/${currentCustomDataTypeForEntry}`), {
+                    ...formData,
+                    timestamp: new Date() // Add a timestamp for sorting/ordering
+                });
+                showMessage('Entry added successfully!', 'success');
+                hideModal(addCustomEntryModal);
+                loadSpecificDataTypeEntriesPreview(currentCustomDataTypeForEntry, true); // Refresh preview
+            } catch (error) {
+                console.error("Error adding custom entry: ", error);
+                showMessage(`Failed to add entry: ${error.message}`, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+
+        // --- NEW: View All Custom Data ---
+        viewAllCustomDataBtn.addEventListener('click', () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to view your data.', 'info');
+                return;
+            }
+            showSection('allCustomDataDisplaySection');
+            displayAllCustomUserData();
+        });
+
+        closeAllCustomDataBtn.addEventListener('click', () => {
+            showSection('customDataSection'); // Go back to custom data types list
+        });
+
+        async function displayAllCustomUserData() {
+            if (!currentUserId) return;
+
+            allCustomDataContent.innerHTML = '<p class="text-gray-500 italic">Aggregating all your data...</p>';
+
+            try {
+                if (currentUserCustomDataTypes.length === 0) {
+                    allCustomDataContent.innerHTML = "<p class='text-gray-500 italic'>No custom data types to display yet.</p>";
+                    return;
+                }
+
+                let allDataHtml = ''; // Use a string to build HTML
+
+                for (const dataType of currentUserCustomDataTypes) {
+                    allDataHtml += `<div class="app-card mb-6">
+                                        <h3 class="sub-section-header">${formatCollectionNameForDisplay(dataType)} Entries</h3>
+                                        <div class="overflow-x-auto table-container">`;
+
+                    const querySnapshot = await getDocs(collection(db, "users", currentUserId, dataType));
+
+                    if (querySnapshot.empty) {
+                        allDataHtml += `<p class="text-gray-500 italic">No entries for ${formatCollectionNameForDisplay(dataType)}.</p>`;
+                    } else {
+                        let tableHtml = `<table class="data-display-table"><thead><tr>`;
+                        const allKeys = new Set();
+                        querySnapshot.forEach(doc => {
+                            Object.keys(doc.data()).filter(key => key !== 'timestamp').forEach(key => allKeys.add(key));
+                        });
+
+                        const sortedKeys = Array.from(allKeys).sort(); // Sort keys for consistent column order
+
+                        sortedKeys.forEach(key => {
+                            tableHtml += `<th>${formatCollectionNameForDisplay(key)}</th>`;
+                        });
+                        tableHtml += `</tr></thead><tbody>`;
+
+                        querySnapshot.forEach((doc) => {
+                            const data = doc.data();
+                            tableHtml += `<tr>`;
+                            sortedKeys.forEach(key => {
+                                let value = data[key];
+                                if (value instanceof Date) {
+                                    value = value.toLocaleString();
+                                }
+                                tableHtml += `<td>${value || 'N/A'}</td>`;
+                            });
+                            tableHtml += `</tr>`;
+                        });
+                        tableHtml += `</tbody></table>`;
+                        allDataHtml += tableHtml;
+                    }
+                    allDataHtml += `   </div>
+                                   </div>`;
+                }
+                allCustomDataContent.innerHTML = allDataHtml;
+            } catch (error) {
+                console.error("Error displaying all custom user data: ", error);
+                allCustomDataContent.innerHTML = "<p class='text-red-500 italic'>Error retrieving all data. Check console for details.</p>";
+            }
+        }
+
+
+        // --- NEW: Settings Functions ---
+        settingsButton.addEventListener('click', () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to access settings.', 'info');
+                return;
+            }
+            showSection('settingsSection');
+            loadUserSettings();
+        });
+
+        closeSettingsButton.addEventListener('click', () => {
+            showSection('expensesSection'); // Go back to default expenses view
+        });
+
+        async function loadUserSettings() {
+            if (!currentUserId) return;
+
+            const userDocRef = doc(db, 'users', currentUserId);
+            try {
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists() && userDocSnap.data().settings) {
+                    const settings = userDocSnap.data().settings;
+                    themeSelect.value = settings.theme || 'light';
+                    notificationsToggle.checked = settings.notifications !== undefined ? settings.notifications : true;
+                } else {
+                    // Set default values if no settings found
+                    themeSelect.value = 'light';
+                    notificationsToggle.checked = true;
+                }
+            } catch (error) {
+                console.error("Error loading user settings: ", error);
+                showMessage("Failed to load settings. Check console for details.", "error");
+            }
+        }
+
+        saveSettingsButton.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to save settings.', 'info');
+                return;
+            }
+
+            const userDocRef = doc(db, 'users', currentUserId);
+            const newSettings = {
+                theme: themeSelect.value,
+                notifications: notificationsToggle.checked,
+            };
+
+            try {
+                showLoading("Saving settings...");
+                await updateDoc(userDocRef, { settings: newSettings });
+                showMessage("Settings saved successfully!", "success");
+                // Optionally apply theme changes immediately
+                document.body.classList.toggle('dark-theme', newSettings.theme === 'dark');
+            } catch (error) {
+                console.error("Error saving user settings: ", error);
+                showMessage(`Failed to save settings: ${error.message}`, "error");
+            } finally {
+                hideLoading();
+            }
+        });
+
+        changePasswordButton.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to change your password.', 'info');
+                return;
+            }
+            if (auth.currentUser.isAnonymous) {
+                showMessage('Guest accounts cannot change passwords. Please sign in with Google to set a password.', 'info');
+                return;
+            }
+            if (!auth.currentUser.email) {
+                 showMessage('You signed in without an email, cannot change password. Try Google Sign-In.', 'error');
+                 return;
+            }
+
+
+            const newPassword = prompt("Enter new password (at least 6 characters):");
+            if (!newPassword || newPassword.length < 6) {
+                showMessage("Password must be at least 6 characters long.", "error");
+                return;
+            }
+
+            const currentPassword = prompt("Enter your current password to confirm:");
+            if (!currentPassword) {
+                showMessage("Current password is required to confirm.", "error");
+                return;
+            }
+
+            showLoading("Changing password...");
+            try {
+                const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+                await reauthenticateWithCredential(auth.currentUser, credential);
+                await updatePassword(auth.currentUser, newPassword);
+                showMessage("Password updated successfully!", "success");
+            } catch (error) {
+                console.error("Error changing password: ", error);
+                let errorMessage = "Failed to change password. Please check your current password and try again.";
+                if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Incorrect current password.';
+                } else if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'User not found. Please sign in again.';
+                } else if (error.code === 'auth/requires-recent-login') {
+                    errorMessage = 'Please sign out and sign back in before changing your password.';
+                }
+                showMessage(errorMessage, "error");
+            } finally {
+                hideLoading();
+            }
+        });
+
+        deleteAccountButton.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to delete your account.', 'info');
+                return;
+            }
+
+            if (!confirm("WARNING: Are you absolutely sure you want to delete your account? This action is irreversible and all your data will be lost.")) {
+                return;
+            }
+
+            let currentPassword = null;
+            if (!auth.currentUser.isAnonymous) {
+                currentPassword = prompt("Enter your current password to confirm account deletion:");
+                if (!currentPassword) {
+                    showMessage("Current password is required to confirm deletion.", "error");
+                    return;
+                }
+            }
+
+
+            showLoading("Deleting account and data...");
+            try {
+                // Reauthenticate for non-anonymous users
+                if (!auth.currentUser.isAnonymous) {
+                    if (!auth.currentUser.email) { // Handle cases where Google/etc login doesn't provide an email easily
+                        showMessage("Cannot verify identity without an email. Please use Google Sign-In to confirm deletion, or contact support.", "error");
+                        hideLoading();
+                        return;
+                    }
+                    const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+                    await reauthenticateWithCredential(auth.currentUser, credential);
+                }
+
+                // Delete all subcollections first
+                const userDocRef = doc(db, 'users', currentUserId);
+                const collectionsToDelete = [...currentUserCustomDataTypes, 'expenses']; // Add other known collections here
+
+                for (const colName of collectionsToDelete) {
+                    const q = query(collection(db, `users/${currentUserId}/${colName}`));
+                    const querySnapshot = await getDocs(q);
+                    const batch = db.batch();
+                    querySnapshot.forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                    console.log(`Deleted all documents from /users/${currentUserId}/${colName}`);
+                }
+                // Finally, delete the user document itself
+                await deleteDoc(userDocRef);
+                console.log(`Deleted user document /users/${currentUserId}`);
+
+                // Delete Firebase Auth user
+                await deleteUser(auth.currentUser);
+
+                showMessage("Account deleted successfully! You have been signed out.", "success");
+                // Clear state and force re-render as if signed out
+                currentUserId = null;
+                expenses = [];
+                currentUserCustomDataTypes = [];
+                renderExpenses();
+                renderCustomDataTypes();
+                if (unsubscribeFromExpenses) {
+                    unsubscribeFromExpenses();
+                }
+                showSection('loginScreen'); // Redirect to login
+            } catch (error) {
+                console.error("Error deleting account: ", error);
+                let errorMessage = `Failed to delete account: ${error.message}`;
+                if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Incorrect password. Account deletion requires your current password.';
+                } else if (error.code === 'auth/requires-recent-login') {
+                    errorMessage = 'Please sign out and sign back in immediately before attempting to delete your account.';
+                } else if (error.code === 'permission-denied') {
+                    errorMessage = 'Permission denied. Ensure your Firestore rules allow deletion.';
+                }
+                showMessage(errorMessage, "error");
+            } finally {
+                hideLoading();
+            }
+        });
+
+
+        // --- Initial setup (after DOM is loaded) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            expenseDateInput.valueAsDate = new Date();
+            // Initial view management - auth state observer handles showing main app or login
+            // For now, ensure only loading is visible
+            hideLoading();
+            loginScreen.classList.remove('hidden'); // Show login screen initially
+            mainAppContainer.classList.add('hidden');
+        });
+
+        // --- Navigation from Profile Dropdown ---
+        // This makes the dropdown buttons control which main content section is visible
+        const profileNavButtons = [
+            { id: 'viewExpenses', section: 'expensesSection' }, // Not a button, but implied default view
+            { id: 'viewCustomData', section: 'customDataSection', button: 'viewCustomDataBtn' }, // Example: if you had a direct button in dropdown
+            { id: 'viewSettings', section: 'settingsSection', button: 'settingsButton' },
+            // Add more as needed
+        ];
+
+        // Instead of having direct buttons in dropdown for each section,
+        // the general "Settings" button and the "Add New Data Type" / "View All Custom Data" buttons
+        // now control which section is visible.
+        // We'll link the profile dropdown to these main buttons.
+        const navToExpensesBtn = document.createElement('button');
+        navToExpensesBtn.className = 'btn-secondary w-full text-left';
+        navToExpensesBtn.innerHTML = '<i class="fas fa-money-bill-wave"></i> My Expenses';
+        navToExpensesBtn.addEventListener('click', () => {
+            showSection('expensesSection');
+            profileDropdownContent.classList.add('hidden');
+        });
+
+        const navToCustomDataBtn = document.createElement('button');
+        navToCustomDataBtn.className = 'btn-secondary w-full text-left';
+        navToCustomDataBtn.innerHTML = '<i class="fas fa-database"></i> My Custom Data';
+        navToCustomDataBtn.addEventListener('click', () => {
+            showSection('customDataSection');
+            profileDropdownContent.classList.add('hidden');
+        });
+
+        const navToSettingsBtn = document.createElement('button');
+        navToSettingsBtn.className = 'btn-secondary w-full text-left';
+        navToSettingsBtn.innerHTML = '<i class="fas fa-cog"></i> Settings';
+        navToSettingsBtn.addEventListener('click', () => {
+            showSection('settingsSection');
+            loadUserSettings(); // Load settings when navigating to settings
+            profileDropdownContent.classList.add('hidden');
+        });
+
+        // Insert these navigation buttons into the profile dropdown before the sign out button
+        profileDropdownContent.insertBefore(navToSettingsBtn, signOutButton);
+        profileDropdownContent.insertBefore(navToCustomDataBtn, navToSettingsBtn);
+        profileDropdownContent.insertBefore(navToExpensesBtn, navToCustomDataBtn);
+
+
+        // Default to expenses section when app loads
+        showSection('expensesSection');
     </script>
 </body>
 </html>
