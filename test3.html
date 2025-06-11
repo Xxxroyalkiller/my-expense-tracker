@@ -7,16 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
     <style>
         /* Apple-like font stack (system fonts with fallbacks) */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
             background-color: #f5f5f7; /* Very light gray, almost white */
-            /* Removed justify-content: center and padding to allow full width */
+            
+            /* These properties will center the single child (loginScreen or mainAppContainer) */
             display: flex;
-            flex-direction: column; /* Changed to column to stack content vertically */
-            align-items: center; /* Keep content centered horizontally within the full width */
+            flex-direction: column; 
+            justify-content: center; /* Center vertically */
+            align-items: center;     /* Center horizontally */
             min-height: 100vh;
             box-sizing: border-box;
             color: #333; /* Darker text for better readability */
@@ -312,26 +315,106 @@
         }
         
         /* Specific button styling for dropdown */
-        .dropdown-signout-btn {
-            background-color: #ff3b30;
-            color: white;
+        .dropdown-signout-btn, .dropdown-settings-btn {
+            background-color: #f0f0f0; /* Light gray background */
+            color: #333;
             padding: 10px 20px;
             border-radius: 8px;
             font-weight: 500;
-            transition: background-color 0.2s ease;
+            transition: background-color 0.2s ease, transform 0.1s ease;
             width: 100%; /* Full width within dropdown */
             text-align: center;
+            border: 1px solid #d1d1d6;
+        }
+        .dropdown-signout-btn:hover, .dropdown-settings-btn:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-1px);
+        }
+        .dropdown-signout-btn:focus, .dropdown-settings-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+        .dropdown-signout-btn { /* Override for danger style */
+            background-color: #ff3b30;
+            color: white;
+            border: none;
         }
         .dropdown-signout-btn:hover {
             background-color: #cc0000;
         }
+
+        /* Modal Overlay & Content */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100; /* Below loading, above app content */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+        .modal-content h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .field-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .field-item:last-child {
+            border-bottom: none;
+        }
+        .field-item label {
+            flex-grow: 1;
+            font-weight: 500;
+            color: #555;
+        }
+        .field-item .field-actions button {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
     </style>
 </head>
-<body class="flex flex-col items-center min-h-screen w-full"> <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
+<body class="flex flex-col items-center justify-center min-h-screen w-full">
+    <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
         <p class="text-gray-700 text-lg">Initializing app...</p>
     </div>
 
-    <div id="loginScreen" class="app-card w-full max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-3xl text-center"> <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
+    <div id="loginScreen" class="app-card w-full max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-3xl text-center">
+        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
         <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
         <div class="space-y-4">
             <button id="authButton" class="btn-primary w-full">
@@ -341,11 +424,11 @@
                 Continue as Guest
             </button>
         </div>
-        <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
-        <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
+        <p id="userInfo" class="text-gray-500 mt-6 text-sm"></p> 
     </div>
 
-    <div id="mainAppContainer" class="w-full max-w-4xl md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl space-y-6 hidden p-4"> <div class="app-card flex flex-col md:flex-row items-center justify-between">
+    <div id="mainAppContainer" class="w-full max-w-4xl md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl space-y-6 hidden p-4">
+        <div class="app-card flex flex-col md:flex-row items-center justify-between">
             <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
             
             <div class="profile-dropdown-container">
@@ -359,6 +442,9 @@
                         </div>
                         <div id="mainAppUserInfo" class="profile-email"></div>
                     </div>
+                    <button id="settingsButton" class="dropdown-settings-btn">
+                        Settings
+                    </button>
                     <button id="signOutButton" class="dropdown-signout-btn">
                         Sign Out
                     </button>
@@ -368,52 +454,8 @@
 
         <div class="app-card">
             <h2 class="sub-section-header">Add New Expense</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div>
-                    <label for="expenseDate" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
-                    <input type="date" id="expenseDate" class="app-input">
+            <div id="expenseFormFields" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 </div>
-                <div>
-                    <label for="expenseCategory" class="block text-sm font-medium text-gray-600 mb-1">Category</label>
-                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent" class="app-input">
-                </div>
-                <div>
-                    <label for="expenseDescription" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
-                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping" class="app-input">
-                </div>
-                <div>
-                    <label for="expenseAmount" class="block text-sm font-medium text-gray-600 mb-1">Amount (CAD)</label>
-                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="app-input">
-                </div>
-                <div class="col-span-full md:col-span-2 lg:col-span-1">
-                    <label for="paymentMethod" class="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>
-                    <select id="paymentMethod" class="app-input app-select">
-                        <option value="">Select Method</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Debit Card">Debit Card</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Online Payment">Online Payment</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <div class="col-span-full md:col-span-2 lg:col-span-1">
-                    <label for="paidBy" class="block text-sm font-medium text-gray-600 mb-1">Paid By</label>
-                    <input type="text" id="paidBy" placeholder="e.g., John, Sarah" class="app-input">
-                </div>
-                <div class="col-span-full md:col-span-2 lg:col-span-1 flex items-center mt-3">
-                    <input type="checkbox" id="hasBill" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <label for="hasBill" class="ml-2 block text-sm font-medium text-gray-600">Do you have the bill?</label>
-                </div>
-                <div class="col-span-full md:col-span-2 lg:col-span-1" id="billTypeContainer" style="display: none;">
-                    <label for="billType" class="block text-sm font-medium text-gray-600 mb-1">Bill Type</label>
-                    <select id="billType" class="app-input app-select">
-                        <option value="">Select Type</option>
-                        <option value="Physical">Physical</option>
-                        <option value="Digital">Digital</option>
-                    </select>
-                </div>
-            </div>
             <button id="addExpenseBtn" class="btn-primary w-full">
                 Add Expense
             </button>
@@ -423,23 +465,8 @@
             <h2 class="sub-section-header">Your Expenses</h2>
             <div class="overflow-x-auto rounded-xl border border-gray-200 table-container">
                 <table class="app-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Date</th>
-                            <th scope="col">Category</th>
-                            <th scope="col">Description</th>
-                            <th scope="col">Amount (CAD)</th>
-                            <th scope="col">Amount (AED)</th>
-                            <th scope="col">Amount (INR)</th>
-                            <th scope="col">Method</th>
-                            <th scope="col">Paid By</th>
-                            <th scope="col">Has Bill?</th>
-                            <th scope="col">Bill Type</th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">Delete</span>
-                            </th>
-                        </tr>
-                    </thead>
+                    <thead id="expenseTableHead">
+                        </thead>
                     <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
                         </tbody>
                 </table>
@@ -481,7 +508,7 @@
         </div>
 
         <div class="app-card">
-            <h2 class="sub-section-header">Download Data (CSV)</h2>
+            <h2 class="sub-section-header">Download Data (Excel)</h2>
             <div class="flex flex-col md:flex-row items-center gap-4">
                 <div class="flex-grow w-full md:w-auto">
                     <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
@@ -489,19 +516,61 @@
                         <option value="">Select a month...</option>
                     </select>
                 </div>
-                <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
-                    Download CSV
+                <button id="downloadExcelBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
+                    Download Excel
                 </button>
             </div>
-            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a CSV file, compatible with Excel/Google Sheets.</p>
+            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as an Excel (.xlsx) file.</p>
         </div>
     </div>
+
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="mb-4">Expense Form Settings</h2>
+
+            <div class="mb-6">
+                <h3 class="sub-section-header text-left mb-3">Current Fields</h3>
+                <div id="currentFieldsList" class="space-y-2">
+                    </div>
+            </div>
+
+            <div class="mb-6 border-t pt-6 border-gray-200">
+                <h3 class="sub-section-header text-left mb-3">Add New Field</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="newFieldName" class="block text-sm font-medium text-gray-600 mb-1">Field Name</label>
+                        <input type="text" id="newFieldName" class="app-input" placeholder="e.g., Project Name">
+                    </div>
+                    <div>
+                        <label for="newFieldType" class="block text-sm font-medium text-gray-600 mb-1">Field Type</label>
+                        <select id="newFieldType" class="app-input app-select">
+                            <option value="text">Text</option>
+                            <option value="number">Number</option>
+                            <option value="date">Date</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="addNewFieldBtn" class="btn-primary w-full mt-4">Add Field</button>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-between border-t pt-6 border-gray-200">
+                <button id="revertFieldsBtn" class="btn-secondary flex-grow">
+                    Revert to Original
+                </button>
+                <div class="flex flex-grow gap-4 mt-4 sm:mt-0">
+                    <button id="saveSettingsBtn" class="btn-primary flex-grow">Save Settings</button>
+                    <button id="closeSettingsBtn" class="btn-secondary flex-grow">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <script type="module">
         // Import Firebase functions directly since we're in a single module script now
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
         const firebaseConfig = {
@@ -521,16 +590,10 @@
         const provider = new GoogleAuthProvider();
 
         // DOM element references
-        const expenseDateInput = document.getElementById('expenseDate');
-        const expenseCategoryInput = document.getElementById('expenseCategory');
-        const expenseDescriptionInput = document.getElementById('expenseDescription');
-        const expenseAmountInput = document.getElementById('expenseAmount');
-        const paymentMethodInput = document.getElementById('paymentMethod');
-        const paidByInput = document.getElementById('paidBy');
-        const hasBillInput = document.getElementById('hasBill');
-        const billTypeContainer = document.getElementById('billTypeContainer');
-        const billTypeInput = document.getElementById('billType');
+        // Main App Inputs (dynamic)
+        const expenseFormFieldsDiv = document.getElementById('expenseFormFields');
         const addExpenseBtn = document.getElementById('addExpenseBtn');
+        const expenseTableHead = document.getElementById('expenseTableHead'); // New
         const expenseTableBody = document.getElementById('expenseTableBody');
         const totalExpenditureSpan = document.getElementById('totalExpenditure');
         const getInsightsBtn = document.getElementById('getInsightsBtn');
@@ -538,7 +601,7 @@
         const expenseCategoryChartCtx = document.getElementById('expenseCategoryChart').getContext('2d');
         const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
         const monthSelect = document.getElementById('monthSelect');
-        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+        const downloadExcelBtn = document.getElementById('downloadExcelBtn'); // Renamed from downloadCsvBtn
 
         const authButton = document.getElementById('authButton');
         const guestButton = document.getElementById('guestButton');
@@ -547,20 +610,31 @@
         const mainAppContainer = document.getElementById('mainAppContainer');
         const loginScreen = document.getElementById('loginScreen');
         
-        // --- NEW DOM Elements for Dropdown ---
         const profileToggleButton = document.getElementById('profileToggleButton');
         const profileDropdownContent = document.getElementById('profileDropdownContent');
-        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); // This is now inside the dropdown
-        const signOutButton = document.getElementById('signOutButton');     // This is now inside the dropdown
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo');
+        const signOutButton = document.getElementById('signOutButton');
         const profileIconText = document.getElementById('profileIconText');
         const avatarInitial = document.getElementById('avatarInitial');
 
         const loadingOverlay = document.getElementById('loadingOverlay');
 
+        // --- Settings Modal Elements ---
+        const settingsButton = document.getElementById('settingsButton');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const revertFieldsBtn = document.getElementById('revertFieldsBtn');
+        const currentFieldsList = document.getElementById('currentFieldsList');
+        const newFieldNameInput = document.getElementById('newFieldName');
+        const newFieldTypeSelect = document.getElementById('newFieldType');
+        const addNewFieldBtn = document.getElementById('addNewFieldBtn');
+
         // Global state variables
         let expenses = [];
         let currentUserId = null;
         let unsubscribeFromExpenses = null;
+        let userConfiguredFields = []; // Stores the current configuration of fields for the user
 
         // Exchange rates (CAD as base) - these are hardcoded for simplicity
         const EXCHANGE_RATE_CAD_TO_AED = 2.70;
@@ -569,6 +643,23 @@
         // Chart instances
         let expenseCategoryPieChart;
         let expenseMonthlyBarChart;
+
+        // --- Default Fields Configuration ---
+        // 'id' is for internal JS use, 'label' is for UI, 'type' for input type, 'required' for validation
+        // 'displayInTable' determines if it shows in the main expense table
+        // 'predefined' means it cannot be deleted by the user
+        const defaultFields = [
+            { id: 'date', label: 'Date', type: 'date', required: true, displayInTable: true, predefined: true },
+            { id: 'category', label: 'Category', type: 'text', required: true, displayInTable: true, predefined: true },
+            { id: 'description', label: 'Description', type: 'text', required: true, displayInTable: true, predefined: true },
+            { id: 'amount', label: 'Amount (CAD)', type: 'number', required: true, displayInTable: true, predefined: true },
+            { id: 'paymentMethod', label: 'Payment Method', type: 'select', options: ['Credit Card', 'Debit Card', 'Cash', 'Bank Transfer', 'Online Payment', 'Other'], required: true, displayInTable: true, predefined: true },
+            { id: 'paidBy', label: 'Paid By', type: 'text', required: false, displayInTable: true, predefined: false }, // Made optional
+            { id: 'hasBill', label: 'Do you have the bill?', type: 'checkbox', required: false, displayInTable: true, predefined: false },
+            { id: 'billType', label: 'Bill Type', type: 'select', options: ['Physical', 'Digital'], dependsOn: 'hasBill', required: false, displayInTable: true, predefined: false },
+            // Add custom fields here if needed as part of initial setup, e.g.:
+            // { id: 'projectName', label: 'Project Name', type: 'text', required: false, displayInTable: true, predefined: false }
+        ];
 
         // --- Loading Overlay Functions ---
         function showLoading(message = "Loading...") {
@@ -625,12 +716,12 @@
             } finally {
                 hideLoading();
             }
-            // Ensure dropdown is closed after sign out
-            profileDropdownContent.classList.add('hidden');
+            profileDropdownContent.classList.add('hidden'); // Ensure dropdown is closed
+            profileDropdownContent.classList.remove('active');
         });
 
         // --- Firebase Auth State Listener ---
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             console.log("onAuthStateChanged fired. User:", user);
             if (user) {
                 currentUserId = user.uid;
@@ -657,13 +748,14 @@
 
                 console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
                 
-                listenToExpenses(user.uid);
+                await loadUserSettings(user.uid); // Load user settings
+                listenToExpenses(user.uid); // Then listen to expenses
             } else {
                 currentUserId = null;
-                userInfoDiv.textContent = 'Please sign in to save your data.';
-                mainAppUserInfo.textContent = ''; // Clear email in dropdown
-                profileIconText.textContent = 'G'; // Reset icon to Guest
-                avatarInitial.textContent = 'G';   // Reset avatar initial
+                userInfoDiv.textContent = 'Please sign in to save your data.'; 
+                mainAppUserInfo.textContent = '';
+                profileIconText.textContent = 'G';
+                avatarInitial.textContent = 'G';
 
                 mainAppContainer.classList.add('hidden');
                 loginScreen.classList.remove('hidden');
@@ -671,31 +763,276 @@
                 console.log('User signed out.');
 
                 expenses = [];
-                renderExpenses();
+                userConfiguredFields = [...defaultFields]; // Reset fields to default on sign out
+                renderExpenseForm(); // Re-render form with default fields
+                renderExpenses(); // Clear table
                 if (unsubscribeFromExpenses) {
                     unsubscribeFromExpenses();
                 }
-                showMessage('Your data will be available when you sign in.', 'info');
             }
             console.log("Auth state check complete, hiding loading overlay.");
             hideLoading();
         });
 
-        // --- Dropdown Toggle Logic ---
+        // --- Profile Dropdown Toggle Logic ---
         profileToggleButton.addEventListener('click', (event) => {
             event.stopPropagation(); // Prevent document click from closing it immediately
             profileDropdownContent.classList.toggle('hidden');
-            profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
+            profileDropdownContent.classList.toggle('active');
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', (event) => {
             if (!profileDropdownContent.contains(event.target) && !profileToggleButton.contains(event.target)) {
                 profileDropdownContent.classList.add('hidden');
                 profileDropdownContent.classList.remove('active');
             }
+            // Also close settings modal if open and clicked outside
+            if (settingsModal.classList.contains('active') && !settingsModal.querySelector('.modal-content').contains(event.target) && event.target !== settingsButton) {
+                closeSettingsModal();
+            }
         });
 
+        // --- Settings Modal Logic ---
+        settingsButton.addEventListener('click', () => {
+            if (!currentUserId) {
+                showMessage("Sign in to customize your fields.", "info");
+                return;
+            }
+            profileDropdownContent.classList.add('hidden'); // Hide profile dropdown
+            profileDropdownContent.classList.remove('active');
+            renderCurrentFieldsList(); // Populate the list in the modal
+            settingsModal.classList.add('active');
+        });
+
+        closeSettingsBtn.addEventListener('click', () => {
+            closeSettingsModal();
+        });
+
+        function closeSettingsModal() {
+            settingsModal.classList.remove('active');
+            newFieldNameInput.value = ''; // Clear new field input
+            newFieldTypeSelect.value = 'text'; // Reset type
+        }
+
+        saveSettingsBtn.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage("Cannot save settings without signing in.", "error");
+                return;
+            }
+            showLoading("Saving settings...");
+            try {
+                // Filter out any temporary/malformed fields
+                const validFields = userConfiguredFields.filter(field => field.id && field.label && field.type);
+                await setDoc(doc(db, `userSettings/${currentUserId}`), { fields: validFields });
+                showMessage("Settings saved successfully!", "success");
+                renderExpenseForm(); // Re-render the expense form with new settings
+                renderExpenses(); // Re-render the table with new headers
+            } catch (error) {
+                console.error("Error saving settings:", error);
+                showMessage("Failed to save settings.", "error");
+            } finally {
+                hideLoading();
+                closeSettingsModal();
+            }
+        });
+
+        revertFieldsBtn.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage("Sign in to revert fields.", "info");
+                return;
+            }
+            if (confirm("Are you sure you want to revert to original fields? This will delete all custom fields.")) {
+                showLoading("Reverting fields...");
+                try {
+                    userConfiguredFields = [...defaultFields]; // Reset to default
+                    await setDoc(doc(db, `userSettings/${currentUserId}`), { fields: userConfiguredFields });
+                    showMessage("Fields reverted to original!", "success");
+                    renderCurrentFieldsList(); // Update settings modal
+                    renderExpenseForm(); // Update main form
+                    renderExpenses(); // Update table headers
+                } catch (error) {
+                    console.error("Error reverting fields:", error);
+                    showMessage("Failed to revert fields.", "error");
+                } finally {
+                    hideLoading();
+                }
+            }
+        });
+
+        addNewFieldBtn.addEventListener('click', () => {
+            const fieldName = newFieldNameInput.value.trim();
+            const fieldType = newFieldTypeSelect.value;
+
+            if (!fieldName) {
+                showMessage("Field name cannot be empty.", "error");
+                return;
+            }
+
+            const fieldId = fieldName.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/\s/g, ''); // Simple ID generation
+
+            if (userConfiguredFields.some(f => f.id === fieldId)) {
+                showMessage(`Field with ID '${fieldId}' (from "${fieldName}") already exists. Please choose a different name.`, "error");
+                return;
+            }
+
+            userConfiguredFields.push({
+                id: fieldId,
+                label: fieldName,
+                type: fieldType,
+                required: false, // Custom fields are optional by default
+                displayInTable: true, // Display in table by default
+                predefined: false // Custom fields are not predefined
+            });
+
+            renderCurrentFieldsList();
+            newFieldNameInput.value = '';
+            newFieldTypeSelect.value = 'text';
+            showMessage(`'${fieldName}' field added. Click Save Settings to apply.`, 'info');
+        });
+
+        function renderCurrentFieldsList() {
+            currentFieldsList.innerHTML = '';
+            userConfiguredFields.forEach((field, index) => {
+                const fieldItem = document.createElement('div');
+                fieldItem.className = 'field-item';
+                
+                // Allow editing labels of non-predefined fields
+                if (!field.predefined) {
+                    fieldItem.innerHTML = `
+                        <label for="edit-${field.id}" class="flex-grow">${field.label}</label>
+                        <input type="text" id="edit-${field.id}" value="${field.label}" class="app-input w-40 text-sm py-1 px-2" data-index="${index}">
+                        <span class="text-sm text-gray-500">(${field.type})</span>
+                        <div class="field-actions">
+                            <button data-id="${field.id}" data-index="${index}" class="delete-field-btn btn-danger text-xs px-2 py-1">Delete</button>
+                        </div>
+                    `;
+                    const editInput = fieldItem.querySelector(`#edit-${field.id}`);
+                    editInput.addEventListener('change', (e) => {
+                        const idx = parseInt(e.target.dataset.index);
+                        userConfiguredFields[idx].label = e.target.value.trim();
+                        showMessage(`Field label changed. Click Save Settings to apply.`, 'info');
+                    });
+                } else {
+                    // Predefined fields cannot be edited or deleted
+                    fieldItem.innerHTML = `
+                        <label class="flex-grow font-semibold text-gray-700">${field.label}</label>
+                        <span class="text-sm text-gray-500">(${field.type})</span>
+                        <span class="text-xs text-gray-400 ml-2">(Predefined)</span>
+                    `;
+                }
+
+                currentFieldsList.appendChild(fieldItem);
+            });
+
+            document.querySelectorAll('.delete-field-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const fieldIdToDelete = e.target.dataset.id;
+                    if (confirm(`Are you sure you want to delete the field "${userConfiguredFields.find(f => f.id === fieldIdToDelete)?.label}"? This will also remove its data from all expenses.`)) {
+                        userConfiguredFields = userConfiguredFields.filter(f => f.id !== fieldIdToDelete);
+                        renderCurrentFieldsList(); // Re-render the list immediately
+                        showMessage(`Field deleted from configuration. Click Save Settings to apply.`, 'info');
+                    }
+                });
+            });
+        }
+
+        // --- Load User Settings from Firestore ---
+        async function loadUserSettings(userId) {
+            showLoading("Loading your settings...");
+            try {
+                const docRef = doc(db, `userSettings/${userId}`);
+                const docSnap = await getDoc(docRef); // Use getDoc instead of onSnapshot for initial load
+
+                if (docSnap.exists() && docSnap.data().fields && docSnap.data().fields.length > 0) {
+                    userConfiguredFields = docSnap.data().fields;
+                    console.log("Loaded user settings:", userConfiguredFields);
+                    showMessage("Custom settings loaded!", "info");
+                } else {
+                    userConfiguredFields = [...defaultFields]; // Use default if no custom settings found
+                    console.log("No custom settings found, using default fields.");
+                }
+                renderExpenseForm(); // Render form based on loaded/default fields
+            } catch (error) {
+                console.error("Error loading user settings:", error);
+                showMessage("Error loading custom settings. Using default fields.", "error");
+                userConfiguredFields = [...defaultFields]; // Fallback to default on error
+                renderExpenseForm();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // --- Dynamic Form Rendering ---
+        function renderExpenseForm() {
+            expenseFormFieldsDiv.innerHTML = ''; // Clear existing fields
+            let hasBillCheckbox = null; // To keep track of the hasBill checkbox
+
+            userConfiguredFields.forEach(field => {
+                const div = document.createElement('div');
+                div.className = ``; // Tailwind classes will be added based on type
+
+                if (field.type === 'checkbox') {
+                    div.className = `col-span-full md:col-span-2 lg:col-span-1 flex items-center mt-3`;
+                    div.innerHTML = `
+                        <input type="checkbox" id="${field.id}" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" ${field.required ? 'required' : ''}>
+                        <label for="${field.id}" class="ml-2 block text-sm font-medium text-gray-600">${field.label}</label>
+                    `;
+                    if (field.id === 'hasBill') {
+                        hasBillCheckbox = div.querySelector(`#${field.id}`);
+                    }
+                } else if (field.type === 'select' && field.options) {
+                     div.className = `col-span-full md:col-span-2 lg:col-span-1`; // Adjust grid span as needed
+                    let optionsHtml = '<option value="">Select Option</option>';
+                    field.options.forEach(option => {
+                        optionsHtml += `<option value="${option}">${option}</option>`;
+                    });
+                     div.innerHTML = `
+                        <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}</label>
+                        <select id="${field.id}" class="app-input app-select" ${field.required ? 'required' : ''}>
+                            ${optionsHtml}
+                        </select>
+                    `;
+                    // Handle dependency for 'billType'
+                    if (field.id === 'billType' && hasBillCheckbox) {
+                        div.id = 'billTypeContainer'; // Keep this ID for CSS
+                        div.style.display = 'none'; // Initially hidden
+                    }
+                } else {
+                    div.className = ``; // Adjust grid span as needed
+                    let placeholder = '';
+                    if (field.label === 'Category') placeholder = 'e.g., Groceries, Rent';
+                    else if (field.label === 'Description') placeholder = 'e.g., Weekly shopping';
+                    else if (field.label === 'Amount (CAD)') placeholder = 'e.g., 50.00';
+                    else if (field.label === 'Paid By') placeholder = 'e.g., John, Sarah';
+                    else placeholder = `Enter ${field.label.toLowerCase()}`;
+
+                    div.innerHTML = `
+                        <div>
+                            <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}</label>
+                            <input type="${field.type}" id="${field.id}" placeholder="${placeholder}" class="app-input" ${field.type === 'number' ? 'step="0.01"' : ''} ${field.required ? 'required' : ''}>
+                        </div>
+                    `;
+                }
+                expenseFormFieldsDiv.appendChild(div);
+            });
+
+            // Re-attach hasBill event listener after rendering
+            const currentHasBillInput = document.getElementById('hasBill');
+            const currentBillTypeContainer = document.getElementById('billTypeContainer');
+
+            if (currentHasBillInput && currentBillTypeContainer) {
+                currentHasBillInput.addEventListener('change', () => {
+                    if (currentHasBillInput.checked) {
+                        currentBillTypeContainer.style.display = 'block';
+                    } else {
+                        currentBillTypeContainer.style.display = 'none';
+                        // Optionally clear the value of billTypeInput when checkbox is unchecked
+                        const billTypeInput = currentBillTypeContainer.querySelector('select');
+                        if (billTypeInput) billTypeInput.value = '';
+                    }
+                });
+            }
+        }
 
         // --- Firestore Data Listener ---
         function listenToExpenses(userId) {
@@ -710,17 +1047,7 @@
                 const fetchedExpenses = [];
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    fetchedExpenses.push({
-                        id: doc.id,
-                        date: data.date,
-                        category: data.category,
-                        description: data.description,
-                        amount: data.amount,
-                        paymentMethod: data.paymentMethod,
-                        paidBy: data.paidBy,
-                        hasBill: data.hasBill,
-                        billType: data.billType
-                    });
+                    fetchedExpenses.push({ id: doc.id, ...data }); // Store all data including custom fields
                 });
                 expenses = fetchedExpenses;
                 renderExpenses();
@@ -734,15 +1061,6 @@
         }
 
         // --- UI Logic ---
-        hasBillInput.addEventListener('change', () => {
-            if (hasBillInput.checked) {
-                billTypeContainer.style.display = 'block';
-            } else {
-                billTypeContainer.style.display = 'none';
-                billTypeInput.value = '';
-            }
-        });
-
         function generateColors(numColors) {
             const colors = [];
             const appleLikeColors = [
@@ -764,6 +1082,17 @@
 
         function renderCategoryPieChart() {
             const categoryTotals = {};
+            // Ensure 'category' field exists and is used
+            const categoryField = userConfiguredFields.find(field => field.id === 'category');
+            if (!categoryField) {
+                console.warn("Category field not found in configuration. Cannot render category chart.");
+                // Clear or disable chart if category is not defined
+                if (expenseCategoryPieChart) expenseCategoryPieChart.destroy();
+                expenseCategoryPieChart = null;
+                expenseCategoryChartCtx.clearRect(0, 0, expenseCategoryChartCtx.canvas.width, expenseCategoryChartCtx.canvas.height);
+                return;
+            }
+
             expenses.forEach(expense => {
                 const category = expense.category ? expense.category.toLowerCase() : 'Uncategorized';
                 if (!categoryTotals[category]) {
@@ -830,6 +1159,17 @@
 
         function renderMonthlyBarChart() {
             const monthlyTotals = {};
+            // Ensure 'date' and 'amount' fields exist
+            const dateField = userConfiguredFields.find(field => field.id === 'date');
+            const amountField = userConfiguredFields.find(field => field.id === 'amount');
+            if (!dateField || !amountField) {
+                console.warn("Date or Amount field not found in configuration. Cannot render monthly chart.");
+                 if (expenseMonthlyBarChart) expenseMonthlyBarChart.destroy();
+                expenseMonthlyBarChart = null;
+                expenseMonthlyChartCtx.clearRect(0, 0, expenseMonthlyChartCtx.canvas.width, expenseMonthlyChartCtx.canvas.height);
+                return;
+            }
+
             expenses.forEach(expense => {
                 const date = new Date(expense.date);
                 const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
@@ -839,7 +1179,6 @@
                 monthlyTotals[monthYear] += parseFloat(expense.amount || 0);
             });
 
-            // Sort months chronologically
             const sortedMonthYears = Object.keys(monthlyTotals).sort((a, b) => {
                 const [monthA, yearA] = a.split(' ');
                 const [monthB, yearB] = b.split(' ');
@@ -850,7 +1189,7 @@
 
             const labels = sortedMonthYears;
             const data = sortedMonthYears.map(monthYear => monthlyTotals[monthYear]);
-            const backgroundColors = generateColors(labels.length); // Use colors for bars too
+            const backgroundColors = generateColors(labels.length);
 
             if (expenseMonthlyBarChart) {
                 expenseMonthlyBarChart.data.labels = labels;
@@ -890,7 +1229,7 @@
                         },
                         plugins: {
                             legend: {
-                                display: false // No legend needed for a single bar dataset
+                                display: false
                             },
                             tooltip: {
                                 callbacks: {
@@ -907,44 +1246,80 @@
 
         function renderExpenses() {
             expenseTableBody.innerHTML = ''; // Clear existing rows
+            expenseTableHead.innerHTML = ''; // Clear existing headers
             let total = 0;
 
-            expenses.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+            // Render table headers dynamically
+            const headerRow = document.createElement('tr');
+            const displayFields = userConfiguredFields.filter(f => f.displayInTable);
+            displayFields.forEach(field => {
+                const th = document.createElement('th');
+                th.scope = 'col';
+                th.textContent = field.label;
+                headerRow.appendChild(th);
+            });
+            // Add currency columns for fixed amounts
+            headerRow.innerHTML += `
+                <th scope="col">Amount (AED)</th>
+                <th scope="col">Amount (INR)</th>
+            `;
+            // Add action column
+            headerRow.innerHTML += `<th scope="col" class="relative px-6 py-3"><span class="sr-only">Delete</span></th>`;
+            expenseTableHead.appendChild(headerRow);
+
+            expenses.sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA; // Sort by date, newest first
+            });
 
             expenses.forEach(expense => {
-                const amountCad = parseFloat(expense.amount);
+                const amountCad = parseFloat(expense.amount || 0); // Handle potential missing amount
                 total += amountCad;
 
                 const amountAed = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
                 const amountInr = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
 
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="whitespace-nowrap">${expense.date}</td>
-                    <td class="whitespace-nowrap">${expense.category}</td>
-                    <td class="whitespace-nowrap">${expense.description}</td>
-                    <td class="whitespace-nowrap">C$${amountCad.toFixed(2)}</td>
+                let rowHtml = '';
+
+                displayFields.forEach(field => {
+                    let value = expense[field.id];
+                    if (field.id === 'amount') {
+                        value = `C$${(value || 0).toFixed(2)}`;
+                    } else if (field.type === 'checkbox') {
+                        value = value ? 'Yes' : 'No';
+                    } else if (field.id === 'billType' && !expense.hasBill) { // Specific logic for billType
+                         value = 'N/A';
+                    } else if (!value) {
+                        value = 'N/A'; // Default for empty/undefined custom fields
+                    }
+                    rowHtml += `<td class="whitespace-nowrap">${value}</td>`;
+                });
+
+                // Add fixed currency columns
+                rowHtml += `
                     <td class="whitespace-nowrap">AED ${amountAed}</td>
                     <td class="whitespace-nowrap">INR ${amountInr}</td>
-                    <td class="whitespace-nowrap">${expense.paymentMethod}</td>
-                    <td class="whitespace-nowrap">${expense.paidBy || 'N/A'}</td>
-                    <td class="whitespace-nowrap">${expense.hasBill ? 'Yes' : 'No'}</td>
-                    <td class="whitespace-nowrap">${expense.hasBill && expense.billType ? expense.billType : 'N/A'}</td>
+                `;
+
+                // Add delete button
+                rowHtml += `
                     <td class="text-right whitespace-nowrap">
                         <button data-id="${expense.id}" class="delete-btn text-red-600 hover:text-red-900 font-medium ml-2">
                             Delete
                         </button>
                     </td>
                 `;
+                row.innerHTML = rowHtml;
                 expenseTableBody.appendChild(row);
             });
 
             totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
-            updateMonthSelect(); // Update the month dropdown for CSV download
+            updateMonthSelect();
             renderCategoryPieChart();
             renderMonthlyBarChart();
 
-            // Add event listeners to newly created delete buttons
             document.querySelectorAll('.delete-btn').forEach(button => {
                 button.addEventListener('click', deleteExpense);
             });
@@ -957,32 +1332,47 @@
                 return;
             }
 
-            const date = expenseDateInput.value;
-            const category = expenseCategoryInput.value.trim();
-            const description = expenseDescriptionInput.value.trim();
-            const amount = parseFloat(expenseAmountInput.value);
-            const paymentMethod = paymentMethodInput.value;
-            const paidBy = paidByInput.value.trim();
-            const hasBill = hasBillInput.checked;
-            const billType = hasBill ? billTypeInput.value : '';
+            const newExpense = {};
+            let isValid = true;
 
-            if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod) {
-                showMessage('Please fill in all required fields (Date, Category, Description, valid Amount, Payment Method).', 'error');
+            userConfiguredFields.forEach(field => {
+                const inputElement = document.getElementById(field.id);
+                if (inputElement) {
+                    let value;
+                    if (field.type === 'checkbox') {
+                        value = inputElement.checked;
+                    } else if (field.type === 'number') {
+                        value = parseFloat(inputElement.value);
+                    } else {
+                        value = inputElement.value.trim();
+                    }
+
+                    // Basic validation for required fields
+                    if (field.required && (value === '' || isNaN(value) && field.type === 'number' || (field.type === 'select' && value === 'Select Option'))) {
+                        showMessage(`Please fill in the required field: ${field.label}.`, 'error');
+                        isValid = false;
+                        return;
+                    }
+                     // Specific validation for 'billType' if 'hasBill' is checked
+                    if (field.id === 'billType' && document.getElementById('hasBill')?.checked && (value === '' || value === 'Select Type')) {
+                         showMessage('Please select a Bill Type.', 'error');
+                         isValid = false;
+                         return;
+                    }
+
+                    newExpense[field.id] = value;
+                }
+            });
+
+            if (!isValid) {
                 return;
             }
 
             showLoading("Adding expense...");
             try {
                 await addDoc(collection(db, `users/${currentUserId}/expenses`), {
-                    date,
-                    category,
-                    description,
-                    amount,
-                    paymentMethod,
-                    paidBy,
-                    hasBill,
-                    billType,
-                    timestamp: new Date()
+                    ...newExpense, // Spread all dynamic fields
+                    timestamp: new Date() // Add a timestamp for ordering/tracking
                 });
                 showMessage('Expense added successfully!', 'success');
                 clearForm();
@@ -995,15 +1385,34 @@
         });
 
         function clearForm() {
-            expenseDateInput.value = '';
-            expenseCategoryInput.value = '';
-            expenseDescriptionInput.value = '';
-            expenseAmountInput.value = '';
-            paymentMethodInput.value = '';
-            paidByInput.value = '';
-            hasBillInput.checked = false;
-            billTypeContainer.style.display = 'none';
-            billTypeInput.value = '';
+            userConfiguredFields.forEach(field => {
+                const inputElement = document.getElementById(field.id);
+                if (inputElement) {
+                    if (field.type === 'checkbox') {
+                        inputElement.checked = false;
+                    } else if (field.type === 'select') {
+                        inputElement.value = '';
+                    } else {
+                        inputElement.value = '';
+                    }
+                }
+            });
+            // Re-hide billTypeContainer if hasBill was unchecked
+            const currentHasBillInput = document.getElementById('hasBill');
+            const currentBillTypeContainer = document.getElementById('billTypeContainer');
+            if (currentHasBillInput && !currentHasBillInput.checked && currentBillTypeContainer) {
+                 currentBillTypeContainer.style.display = 'none';
+            }
+
+            // Set today's date as default for expenseDate input if it exists
+            const expenseDateInput = document.getElementById('date'); // Use 'date' as its ID
+            if (expenseDateInput && expenseDateInput.type === 'date') {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
         }
 
         // --- Delete Expense ---
@@ -1036,7 +1445,7 @@
         function showMessage(message, type = 'info') {
             const tempDiv = document.createElement('div');
             tempDiv.textContent = message;
-            tempDiv.className = `fixed bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-white z-50 transition-all duration-300 ease-out transform ${
+            tempDiv.className = `fixed bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-white z-60 transition-all duration-300 ease-out transform ${
                 type === 'success' ? 'bg-green-500 message-success' :
                 type === 'error' ? 'bg-red-500 message-error' :
                 'bg-blue-500 message-info'
@@ -1044,13 +1453,11 @@
             
             document.body.appendChild(tempDiv);
 
-            // Animate in
             setTimeout(() => {
                 tempDiv.classList.remove('opacity-0', 'translate-y-4');
                 tempDiv.classList.add('opacity-100', 'translate-y-0');
             }, 10);
 
-            // Animate out and remove
             setTimeout(() => {
                 tempDiv.classList.remove('opacity-100', 'translate-y-0');
                 tempDiv.classList.add('opacity-0', 'translate-y-4');
@@ -1058,12 +1465,20 @@
             }, 3000);
         }
 
-        // --- CSV Download Logic ---
+        // --- Excel Download Logic ---
         function updateMonthSelect() {
             monthSelect.innerHTML = '<option value="">Select a month...</option>';
             const months = new Set();
+            // Ensure 'date' field exists for filtering
+            const dateField = userConfiguredFields.find(field => field.id === 'date');
+            if (!dateField) {
+                 console.warn("Date field not found in configuration. Cannot filter expenses by month.");
+                 return;
+            }
+
             expenses.forEach(expense => {
-                const date = new Date(expense.date);
+                // Use the 'date' field from the expense object
+                const date = new Date(expense.date); 
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1; // getMonth() is 0-indexed
                 months.add(`${year}-${String(month).padStart(2, '0')}`); // e.g., "2023-01"
@@ -1079,7 +1494,7 @@
             });
         }
 
-        downloadCsvBtn.addEventListener('click', () => {
+        downloadExcelBtn.addEventListener('click', () => {
             const selectedMonthYear = monthSelect.value;
             if (!selectedMonthYear) {
                 showMessage('Please select a month to download.', 'info');
@@ -1087,7 +1502,10 @@
             }
 
             const filteredExpenses = expenses.filter(expense => {
-                const date = new Date(expense.date);
+                const dateField = userConfiguredFields.find(field => field.id === 'date');
+                if (!dateField || !expense[dateField.id]) return false; // Skip if date field is missing or empty
+
+                const date = new Date(expense[dateField.id]);
                 const expenseMonthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 return expenseMonthYear === selectedMonthYear;
             });
@@ -1097,41 +1515,48 @@
                 return;
             }
 
-            const headers = ["Date", "Category", "Description", "Amount (CAD)", "Amount (AED)", "Amount (INR)", "Payment Method", "Paid By", "Has Bill?", "Bill Type"];
-            const csvRows = [];
-            csvRows.push(headers.join(','));
+            // Prepare headers based on user configured fields (displayInTable: true) + currency conversions
+            const excelHeaders = userConfiguredFields
+                .filter(field => field.displayInTable)
+                .map(field => field.label);
+            excelHeaders.push("Amount (AED)", "Amount (INR)"); // Add fixed currency headers
 
-            filteredExpenses.forEach(expense => {
-                const amountCad = parseFloat(expense.amount);
-                const amountAed = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
-                const amountInr = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+            // Prepare data for Excel
+            const excelData = filteredExpenses.map(expense => {
+                const rowData = {};
+                userConfiguredFields.filter(field => field.displayInTable).forEach(field => {
+                    let value = expense[field.id];
+                    if (field.type === 'checkbox') {
+                        rowData[field.label] = value ? 'Yes' : 'No';
+                    } else if (field.id === 'amount') {
+                        rowData[field.label] = parseFloat(value || 0).toFixed(2);
+                    } else if (field.id === 'billType' && !expense.hasBill) {
+                        rowData[field.label] = 'N/A';
+                    } else if (value === undefined || value === null || value === '') {
+                        rowData[field.label] = 'N/A';
+                    } else {
+                        rowData[field.label] = value;
+                    }
+                });
 
-                const row = [
-                    `"${expense.date}"`,
-                    `"${expense.category.replace(/"/g, '""')}"`,
-                    `"${expense.description.replace(/"/g, '""')}"`,
-                    amountCad.toFixed(2),
-                    amountAed,
-                    amountInr,
-                    `"${expense.paymentMethod.replace(/"/g, '""')}"`,
-                    `"${(expense.paidBy || 'N/A').replace(/"/g, '""')}"`,
-                    `"${expense.hasBill ? 'Yes' : 'No'}"`,
-                    `"${(expense.hasBill && expense.billType ? expense.billType : 'N/A').replace(/"/g, '""')}"`
-                ];
-                csvRows.push(row.join(','));
+                const amountCad = parseFloat(expense.amount || 0);
+                rowData["Amount (AED)"] = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                rowData["Amount (INR)"] = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+                return rowData;
             });
 
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `expenses_${selectedMonthYear}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showMessage(`CSV downloaded for ${monthSelect.options[monthSelect.selectedIndex].textContent}.`, 'success');
+            // Create a worksheet from JSON data, specifying headers
+            const worksheet = XLSX.utils.json_to_sheet(excelData, { header: excelHeaders });
+            
+            // Create a new workbook and add the worksheet
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses");
+
+            // Generate and download the Excel file
+            const filename = `expenses_${selectedMonthYear}.xlsx`;
+            XLSX.writeFile(workbook, filename);
+
+            showMessage(`Excel file downloaded for ${monthSelect.options[monthSelect.selectedIndex].textContent}.`, 'success');
         });
 
         // --- AI Insights (using a placeholder for now as full AI integration is complex) ---
@@ -1144,12 +1569,25 @@
             insightsDisplay.classList.remove('hidden');
             insightsDisplay.innerHTML = '<p class="font-medium text-center">Analyzing your expenses...</p>';
 
-            // Simulate API call delay
             showLoading("Generating insights...");
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             const categoryTotals = {};
             let totalAmount = 0;
+
+            const categoryField = userConfiguredFields.find(field => field.id === 'category');
+            if (!categoryField) {
+                 insightsDisplay.innerHTML = `<p class="font-medium text-center text-red-600">Cannot generate category insights: 'Category' field is not configured.</p>`;
+                 hideLoading();
+                 return;
+            }
+            const amountField = userConfiguredFields.find(field => field.id === 'amount');
+            if (!amountField) {
+                 insightsDisplay.innerHTML = `<p class="font-medium text-center text-red-600">Cannot generate total expenditure insights: 'Amount' field is not configured.</p>`;
+                 hideLoading();
+                 return;
+            }
+
             expenses.forEach(expense => {
                 const category = expense.category ? expense.category : 'Uncategorized';
                 const amount = parseFloat(expense.amount || 0);
@@ -1160,7 +1598,6 @@
                 totalAmount += amount;
             });
 
-            // Sort categories by amount spent
             const sortedCategories = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
 
             let insightsText = `<h3 class="font-bold text-lg mb-2">Spending Insights:</h3>`;
@@ -1180,25 +1617,34 @@
                 insightsText += `<p class="mt-2">No categorized spending data available for detailed insights.</p>`;
             }
 
-            // Provide a generic tip for cash flow
             insightsText += `<p class="mt-4">To better manage your cash flow, try to set a budget for each category and review your spending regularly.</p>`;
 
             insightsDisplay.innerHTML = insightsText;
             hideLoading();
         });
 
-        // Set today's date as default for expenseDate input
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- Initialize App ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set today's date as default for expenseDate input (if it exists after dynamic render)
             const today = new Date();
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
-            expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
-            
-            if (auth.currentUser !== undefined) {
-                 hideLoading();
+            const expenseDateInput = document.getElementById('date'); 
+            if (expenseDateInput) {
+                expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
             }
+
+            // Initial render of the form with default fields before auth state is known
+            // This ensures the form is ready even if no user is logged in yet
+            userConfiguredFields = [...defaultFields];
+            renderExpenseForm();
         });
+
+        // Make sure `getDoc` is imported, it's needed for `loadUserSettings`
+        // Add this to your import statement for Firestore:
+        // import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // It was missing `getDoc` in the previous snippet, now it's correctly added above.
 
     </script>
 </body>
