@@ -7,49 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // ADD signInAnonymously here
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
-        const firebaseConfig = {
-            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
-            authDomain: "my-expenese-tracker.firebaseapp.com",
-            projectId: "my-expenese-tracker",
-            storageBucket: "my-expenese-tracker.firebasestorage.app",
-            messagingSenderId: "466782350290",
-            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
-            measurementId: "G-1CF1ZNLPC2"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const provider = new GoogleAuthProvider();
-
-        // Global variables for Firebase instances (accessible by other scripts)
-        window.firebaseApp = app;
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.googleAuthProvider = provider;
-
-        // Export Firebase functions to make them available globally for use in the main script
-        window.onFirebaseAuthChanged = onAuthStateChanged;
-        window.firebaseSignInWithPopup = signInWithPopup;
-        window.firebaseSignOut = signOut;
-        window.firebaseAddDoc = addDoc;
-        window.firebaseCollection = collection;
-        window.firebaseQuery = query;
-        window.firebaseOnSnapshot = onSnapshot;
-        window.firebaseDeleteDoc = deleteDoc;
-        window.firebaseDoc = doc;
-        // EXPORT signInAnonymously
-        window.firebaseSignInAnonymously = signInAnonymously;
-    </script>
     <style>
         /* Apple-like font stack (system fonts with fallbacks) */
         body {
@@ -446,21 +403,27 @@
     </div>
 
     <script type="module">
-        // Import firebase dependencies that were made global by the first script tag
-        const auth = window.firebaseAuth;
-        const db = window.firebaseDb;
-        const provider = window.googleAuthProvider;
-        const signInWithPopup = window.firebaseSignInWithPopup;
-        const signOut = window.firebaseSignOut;
-        const onAuthStateChanged = window.onFirebaseAuthChanged;
-        const addDoc = window.firebaseAddDoc;
-        const collection = window.firebaseCollection;
-        const query = window.firebaseQuery;
-        const onSnapshot = window.firebaseOnSnapshot;
-        const deleteDoc = window.firebaseDeleteDoc;
-        const docRef = window.firebaseDoc;
-        // IMPORT signInAnonymously
-        const signInAnonymously = window.firebaseSignInAnonymously;
+        // Import Firebase functions directly since we're in a single module script now
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
+            authDomain: "my-expenese-tracker.firebaseapp.com",
+            projectId: "my-expenese-tracker",
+            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            messagingSenderId: "466782350290",
+            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com", // Double-check this appId!
+            measurementId: "G-1CF1ZNLPC2"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
 
         // DOM element references
         const expenseDateInput = document.getElementById('expenseDate');
@@ -482,14 +445,14 @@
         const monthSelect = document.getElementById('monthSelect');
         const downloadCsvBtn = document.getElementById('downloadCsvBtn');
 
-        const authButton = document.getElementById('authButton'); // Button on login screen (Google Sign-In)
-        const guestButton = document.getElementById('guestButton'); // NEW: Guest Login Button
-        const userInfoDiv = document.getElementById('userInfo'); // User info on login screen
+        const authButton = document.getElementById('authButton');
+        const guestButton = document.getElementById('guestButton');
+        const userInfoDiv = document.getElementById('userInfo');
 
-        const mainAppContainer = document.getElementById('mainAppContainer'); // Main application content
-        const loginScreen = document.getElementById('loginScreen'); // Login screen container
-        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); // User info display in main app
-        const signOutButton = document.getElementById('signOutButton'); // Sign Out button in main app
+        const mainAppContainer = document.getElementById('mainAppContainer');
+        const loginScreen = document.getElementById('loginScreen');
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo');
+        const signOutButton = document.getElementById('signOutButton');
 
         const loadingOverlay = document.getElementById('loadingOverlay');
 
@@ -514,10 +477,10 @@
 
         function hideLoading() {
             loadingOverlay.classList.add('hidden');
+            console.log("hideLoading function executed."); // Added for debugging
         }
 
         // --- Authentication Functions ---
-        // Listener for the Sign In/Sign Out button on the login screen (Google)
         authButton.addEventListener('click', async () => {
             try {
                 showLoading("Signing in with Google...");
@@ -537,7 +500,6 @@
             }
         });
 
-        // NEW: Listener for the Guest Login button
         guestButton.addEventListener('click', async () => {
             try {
                 showLoading("Signing in as Guest...");
@@ -551,7 +513,6 @@
             }
         });
 
-        // Listener for the Sign Out button within the main application
         signOutButton.addEventListener('click', async () => {
             try {
                 showLoading("Signing out...");
@@ -565,53 +526,46 @@
             }
         });
 
-
         // --- Firebase Auth State Listener ---
         onAuthStateChanged(auth, (user) => {
+            console.log("onAuthStateChanged fired. User:", user); // Added for debugging
             if (user) {
-                // User is signed in
                 currentUserId = user.uid;
                 
-                // Determine display name for user info
                 let displayMessage = '';
                 if (user.isAnonymous) {
                     displayMessage = 'Logged in as: Guest';
-                    userInfoDiv.textContent = 'Welcome, Guest!'; // For login screen (will be hidden)
+                    userInfoDiv.textContent = 'Welcome, Guest!';
                 } else {
                     displayMessage = `Logged in as: ${user.displayName || user.email}`;
-                    userInfoDiv.textContent = `Welcome, ${user.displayName || user.email}!`; // For login screen (will be hidden)
+                    userInfoDiv.textContent = `Welcome, ${user.displayName || user.email}!`;
                 }
-                mainAppUserInfo.textContent = displayMessage; // For main app
+                mainAppUserInfo.textContent = displayMessage;
 
-                // Hide login screen, show main application
                 loginScreen.classList.add('hidden');
                 mainAppContainer.classList.remove('hidden');
 
                 console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
                 
-                // Start listening to expenses for this user
                 listenToExpenses(user.uid);
             } else {
-                // User is signed out
                 currentUserId = null;
-                userInfoDiv.textContent = 'Please sign in to save your data.'; // For login screen
-                mainAppUserInfo.textContent = ''; // Clear user info in main app
+                userInfoDiv.textContent = 'Please sign in to save your data.';
+                mainAppUserInfo.textContent = '';
 
-                // Hide main application, show login screen
                 mainAppContainer.classList.add('hidden');
                 loginScreen.classList.remove('hidden');
 
                 console.log('User signed out.');
 
-                // Clear expenses from the UI and stop listening to Firestore
                 expenses = [];
-                renderExpenses(); // Re-render to clear table and charts
+                renderExpenses();
                 if (unsubscribeFromExpenses) {
-                    unsubscribeFromExpenses(); // Detach any existing Firestore listener
+                    unsubscribeFromExpenses();
                 }
                 showMessage('Your data will be available when you sign in.', 'info');
             }
-            // Ensure loading overlay is hidden after initial auth check
+            console.log("Auth state check complete, hiding loading overlay."); // Added for debugging
             hideLoading();
         });
 
@@ -663,7 +617,6 @@
 
         function generateColors(numColors) {
             const colors = [];
-            // Using a palette that leans towards Apple's default chart colors (blues, greens, purples)
             const appleLikeColors = [
                 'rgb(0, 122, 255)',  // Blue
                 'rgb(52, 199, 89)',  // Green
@@ -684,11 +637,11 @@
         function renderCategoryPieChart() {
             const categoryTotals = {};
             expenses.forEach(expense => {
-                const category = expense.category.toLowerCase();
+                const category = expense.category ? expense.category.toLowerCase() : 'Uncategorized';
                 if (!categoryTotals[category]) {
                     categoryTotals[category] = 0;
                 }
-                categoryTotals[category] += expense.amount;
+                categoryTotals[category] += parseFloat(expense.amount || 0);
             });
 
             const labels = Object.keys(categoryTotals);
@@ -708,8 +661,8 @@
                         datasets: [{
                             data: data,
                             backgroundColor: backgroundColors,
-                            hoverOffset: 8, /* Slightly larger hover offset */
-                            borderColor: 'white', /* White border for slices */
+                            hoverOffset: 8,
+                            borderColor: 'white',
                             borderWidth: 2
                         }]
                     },
@@ -717,3 +670,410 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    boxWidth: 20,
+                                    padding: 15,
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += 'C$' + context.parsed.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderMonthlyBarChart() {
+            const monthlyTotals = {};
+            expenses.forEach(expense => {
+                const date = new Date(expense.date);
+                const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+                if (!monthlyTotals[monthYear]) {
+                    monthlyTotals[monthYear] = 0;
+                }
+                monthlyTotals[monthYear] += parseFloat(expense.amount || 0);
+            });
+
+            // Sort months chronologically
+            const sortedMonthYears = Object.keys(monthlyTotals).sort((a, b) => {
+                const [monthA, yearA] = a.split(' ');
+                const [monthB, yearB] = b.split(' ');
+                const dateA = new Date(`${monthA} 1, ${yearA}`);
+                const dateB = new Date(`${monthB} 1, ${yearB}`);
+                return dateA - dateB;
+            });
+
+            const labels = sortedMonthYears;
+            const data = sortedMonthYears.map(monthYear => monthlyTotals[monthYear]);
+            const backgroundColors = generateColors(labels.length); // Use colors for bars too
+
+            if (expenseMonthlyBarChart) {
+                expenseMonthlyBarChart.data.labels = labels;
+                expenseMonthlyBarChart.data.datasets[0].data = data;
+                expenseMonthlyBarChart.data.datasets[0].backgroundColor = backgroundColors;
+                expenseMonthlyBarChart.update();
+            } else {
+                expenseMonthlyBarChart = new Chart(expenseMonthlyChartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Expenditure (CAD)',
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            borderColor: backgroundColors.map(color => color.replace('rgb', 'rgba').replace(')', ', 0.8)')), // Slightly darker border
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Amount (CAD)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Month'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false // No legend needed for a single bar dataset
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `C$${context.parsed.y.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderExpenses() {
+            expenseTableBody.innerHTML = ''; // Clear existing rows
+            let total = 0;
+
+            expenses.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+
+            expenses.forEach(expense => {
+                const amountCad = parseFloat(expense.amount);
+                total += amountCad;
+
+                const amountAed = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountInr = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="whitespace-nowrap">${expense.date}</td>
+                    <td class="whitespace-nowrap">${expense.category}</td>
+                    <td class="whitespace-nowrap">${expense.description}</td>
+                    <td class="whitespace-nowrap">C$${amountCad.toFixed(2)}</td>
+                    <td class="whitespace-nowrap">AED ${amountAed}</td>
+                    <td class="whitespace-nowrap">INR ${amountInr}</td>
+                    <td class="whitespace-nowrap">${expense.paymentMethod}</td>
+                    <td class="whitespace-nowrap">${expense.paidBy || 'N/A'}</td>
+                    <td class="whitespace-nowrap">${expense.hasBill ? 'Yes' : 'No'}</td>
+                    <td class="whitespace-nowrap">${expense.hasBill && expense.billType ? expense.billType : 'N/A'}</td>
+                    <td class="text-right whitespace-nowrap">
+                        <button data-id="${expense.id}" class="delete-btn text-red-600 hover:text-red-900 font-medium ml-2">
+                            Delete
+                        </button>
+                    </td>
+                `;
+                expenseTableBody.appendChild(row);
+            });
+
+            totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
+            updateMonthSelect(); // Update the month dropdown for CSV download
+            renderCategoryPieChart();
+            renderMonthlyBarChart();
+
+            // Add event listeners to newly created delete buttons
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', deleteExpense);
+            });
+        }
+
+        // --- Form Handling ---
+        addExpenseBtn.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to add expenses.', 'error');
+                return;
+            }
+
+            const date = expenseDateInput.value;
+            const category = expenseCategoryInput.value.trim();
+            const description = expenseDescriptionInput.value.trim();
+            const amount = parseFloat(expenseAmountInput.value);
+            const paymentMethod = paymentMethodInput.value;
+            const paidBy = paidByInput.value.trim();
+            const hasBill = hasBillInput.checked;
+            const billType = hasBill ? billTypeInput.value : '';
+
+            if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod) {
+                showMessage('Please fill in all required fields (Date, Category, Description, valid Amount, Payment Method).', 'error');
+                return;
+            }
+
+            showLoading("Adding expense...");
+            try {
+                await addDoc(collection(db, `users/${currentUserId}/expenses`), {
+                    date,
+                    category,
+                    description,
+                    amount,
+                    paymentMethod,
+                    paidBy,
+                    hasBill,
+                    billType,
+                    timestamp: new Date() // Add a timestamp for ordering
+                });
+                showMessage('Expense added successfully!', 'success');
+                clearForm();
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage('Error adding expense. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        function clearForm() {
+            expenseDateInput.value = '';
+            expenseCategoryInput.value = '';
+            expenseDescriptionInput.value = '';
+            expenseAmountInput.value = '';
+            paymentMethodInput.value = '';
+            paidByInput.value = '';
+            hasBillInput.checked = false;
+            billTypeContainer.style.display = 'none';
+            billTypeInput.value = '';
+        }
+
+        // --- Delete Expense ---
+        async function deleteExpense(event) {
+            if (!currentUserId) {
+                showMessage('Please sign in to delete expenses.', 'error');
+                return;
+            }
+            const expenseId = event.target.dataset.id;
+            if (!expenseId) {
+                showMessage('Error: No expense ID found for deletion.', 'error');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this expense?')) {
+                showLoading("Deleting expense...");
+                try {
+                    await deleteDoc(doc(db, `users/${currentUserId}/expenses`, expenseId));
+                    showMessage('Expense deleted successfully!', 'success');
+                } catch (e) {
+                    console.error("Error deleting document: ", e);
+                    showMessage('Error deleting expense. Please try again.', 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
+        }
+
+        // --- Message Display ---
+        function showMessage(message, type = 'info') {
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = message;
+            tempDiv.className = `fixed bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-white z-50 transition-all duration-300 ease-out transform ${
+                type === 'success' ? 'bg-green-500 message-success' :
+                type === 'error' ? 'bg-red-500 message-error' :
+                'bg-blue-500 message-info'
+            } opacity-0 translate-y-4`;
+            
+            document.body.appendChild(tempDiv);
+
+            // Animate in
+            setTimeout(() => {
+                tempDiv.classList.remove('opacity-0', 'translate-y-4');
+                tempDiv.classList.add('opacity-100', 'translate-y-0');
+            }, 10); // Small delay to allow reflow
+
+            // Animate out and remove
+            setTimeout(() => {
+                tempDiv.classList.remove('opacity-100', 'translate-y-0');
+                tempDiv.classList.add('opacity-0', 'translate-y-4');
+                tempDiv.addEventListener('transitionend', () => tempDiv.remove());
+            }, 3000);
+        }
+
+        // --- CSV Download Logic ---
+        function updateMonthSelect() {
+            monthSelect.innerHTML = '<option value="">Select a month...</option>';
+            const months = new Set();
+            expenses.forEach(expense => {
+                const date = new Date(expense.date);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1; // getMonth() is 0-indexed
+                months.add(`${year}-${String(month).padStart(2, '0')}`); // e.g., "2023-01"
+            });
+
+            Array.from(months).sort().forEach(monthYear => {
+                const [year, month] = monthYear.split('-');
+                const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
+                const option = document.createElement('option');
+                option.value = monthYear;
+                option.textContent = `${monthName} ${year}`;
+                monthSelect.appendChild(option);
+            });
+        }
+
+        downloadCsvBtn.addEventListener('click', () => {
+            const selectedMonthYear = monthSelect.value;
+            if (!selectedMonthYear) {
+                showMessage('Please select a month to download.', 'info');
+                return;
+            }
+
+            const filteredExpenses = expenses.filter(expense => {
+                const date = new Date(expense.date);
+                const expenseMonthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                return expenseMonthYear === selectedMonthYear;
+            });
+
+            if (filteredExpenses.length === 0) {
+                showMessage('No expenses found for the selected month.', 'info');
+                return;
+            }
+
+            const headers = ["Date", "Category", "Description", "Amount (CAD)", "Amount (AED)", "Amount (INR)", "Payment Method", "Paid By", "Has Bill?", "Bill Type"];
+            const csvRows = [];
+            csvRows.push(headers.join(','));
+
+            filteredExpenses.forEach(expense => {
+                const amountCad = parseFloat(expense.amount);
+                const amountAed = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountInr = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+
+                const row = [
+                    `"${expense.date}"`,
+                    `"${expense.category.replace(/"/g, '""')}"`,
+                    `"${expense.description.replace(/"/g, '""')}"`,
+                    amountCad.toFixed(2),
+                    amountAed,
+                    amountInr,
+                    `"${expense.paymentMethod.replace(/"/g, '""')}"`,
+                    `"${(expense.paidBy || 'N/A').replace(/"/g, '""')}"`,
+                    `"${expense.hasBill ? 'Yes' : 'No'}"`,
+                    `"${(expense.hasBill && expense.billType ? expense.billType : 'N/A').replace(/"/g, '""')}"`
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `expenses_${selectedMonthYear}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage(`CSV downloaded for ${monthSelect.options[monthSelect.selectedIndex].textContent}.`, 'success');
+        });
+
+        // --- AI Insights (using a placeholder for now as full AI integration is complex) ---
+        getInsightsBtn.addEventListener('click', async () => {
+            if (expenses.length === 0) {
+                showMessage("Add some expenses first to get insights!", "info");
+                return;
+            }
+
+            insightsDisplay.classList.remove('hidden');
+            insightsDisplay.innerHTML = '<p class="font-medium text-center">Analyzing your expenses...</p>';
+
+            // Simulate API call delay
+            showLoading("Generating insights...");
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const categoryTotals = {};
+            let totalAmount = 0;
+            expenses.forEach(expense => {
+                const category = expense.category ? expense.category : 'Uncategorized';
+                const amount = parseFloat(expense.amount || 0);
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = 0;
+                }
+                categoryTotals[category] += amount;
+                totalAmount += amount;
+            });
+
+            // Sort categories by amount spent
+            const sortedCategories = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
+
+            let insightsText = `<h3 class="font-bold text-lg mb-2">Spending Insights:</h3>`;
+            insightsText += `<p>Your total expenditure across all recorded transactions is <strong>C$${totalAmount.toFixed(2)}</strong>.</p>`;
+
+            if (sortedCategories.length > 0) {
+                insightsText += `<p class="mt-2">Here's a breakdown by category:</p><ul class="list-disc list-inside mt-1">`;
+                sortedCategories.forEach(([category, amount]) => {
+                    const percentage = (amount / totalAmount * 100).toFixed(1);
+                    insightsText += `<li><strong>${category}</strong>: C$${amount.toFixed(2)} (${percentage}%)</li>`;
+                });
+                insightsText += `</ul>`;
+
+                const topCategory = sortedCategories[0][0];
+                insightsText += `<p class="mt-2">Your largest spending category is <strong>${topCategory}</strong>. Consider reviewing expenses in this area for potential savings.</p>`;
+            } else {
+                insightsText += `<p class="mt-2">No categorized spending data available for detailed insights.</p>`;
+            }
+
+            // Provide a generic tip for cash flow
+            insightsText += `<p class="mt-4">To better manage your cash flow, try to set a budget for each category and review your spending regularly.</p>`;
+
+            insightsDisplay.innerHTML = insightsText;
+            hideLoading();
+        });
+
+        // Set today's date as default for expenseDate input
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months start at 0!
+            const dd = String(today.getDate()).padStart(2, '0');
+            expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
+            
+            // Initial call to hide loading overlay if auth state is already determined (e.g., on refresh)
+            // This is handled by onAuthStateChanged now, but good to have a fallback
+            if (auth.currentUser !== undefined) { // Check if auth state is resolved
+                 hideLoading();
+            }
+        });
+
+    </script>
+</body>
+</html>
