@@ -3,528 +3,520 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>Monthly Expenditure Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
+        /* Apple-like font stack (system fonts with fallbacks) */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 30px auto;
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            overflow: hidden; /* Clear floats for content */
-        }
-
-        h1, h2 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .app-input {
-            width: 100%;
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 1rem;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .app-input:focus {
-            border-color: #4CAF50;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
-        }
-
-        .btn-primary {
-            background-color: #4CAF50; /* Green */
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-primary:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background-color: #f0f0f0;
-            color: #555;
-            padding: 12px 25px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s ease, transform 0.2s ease, border-color 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-secondary:hover {
-            background-color: #e0e0e0;
-            transform: translateY(-2px);
-            border-color: #bbb;
-        }
-
-        .btn-danger {
-            background-color: #e74c3c; /* Red */
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-
-        .btn-danger:hover {
-            background-color: #c0392b;
-            transform: translateY(-1px);
-        }
-
-        .btn-info {
-            background-color: #3498db;
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background-color 0.3s ease;
-        }
-
-        .btn-info:hover {
-            background-color: #2980b9;
-        }
-
-        .expense-item {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f5f5f7; /* Very light gray, almost white */
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #fdfdfd;
-            border: 1px solid #eee;
-            padding: 12px 20px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333; /* Darker text for better readability */
         }
 
-        .expense-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        /* Custom scrollbar for the table container - subtle grays */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
         }
 
-        .expense-item span {
-            flex-grow: 1;
-            color: #555;
+        .table-container::-webkit-scrollbar-thumb {
+            background-color: #d1d1d6; /* Light gray */
+            border-radius: 4px;
         }
 
-        .expense-item .amount {
-            font-weight: bold;
-            color: #2c3e50;
-            margin-left: 20px;
-            white-space: nowrap; /* Prevent amount from wrapping */
+        .table-container::-webkit-scrollbar-track {
+            background-color: #e8e8ed; /* Even lighter gray */
         }
-
-        .total-expenses {
-            text-align: right;
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 2px solid #eee;
+        
+        /* Chart container styling for responsiveness */
+        .chart-container {
+            position: relative;
+            height: 400px; /* Max height for charts */
+            width: 100%;
+            margin: auto; /* Center the charts */
         }
-
-        /* --- Modals --- */
-        .modal-overlay {
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+        
+        /* Loading overlay - clean and simple */
+        .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
+            background-color: rgba(255, 255, 255, 0.95); /* More opaque white */
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 100;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
         }
-
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal-content {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 500px;
-            transform: translateY(-20px);
-            opacity: 0;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-
-        .modal-overlay.active .modal-content {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        /* --- Loading Spinner --- */
-        #loadingSpinner {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1001;
-            display: none; /* Hidden by default */
-            border: 6px solid #f3f3f3; /* Light grey */
-            border-top: 6px solid #4CAF50; /* Blue */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007aff; /* Apple blue */
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
 
-        /* --- Message Display (Toast) --- */
-        /* Ensure message container has appropriate z-index and is well-defined */
-        #messageContainer {
-            position: fixed;
-            bottom: 20px; /* Slightly higher from bottom */
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000; /* High z-index to be on top */
-            display: flex; /* Use flex to center messages if needed */
-            flex-direction: column;
-            align-items: center;
-            pointer-events: none; /* Allows clicks to pass through if no message */
+        /* General button styling for a softer, Apple-like look */
+        .btn-primary {
+            background-color: #007aff; /* Apple Blue */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px; /* More rounded */
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .btn-primary:hover {
+            background-color: #0066cc; /* Slightly darker blue on hover */
+            transform: translateY(-1px); /* Slight lift */
+        }
+        .btn-primary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.5); /* Blue ring focus */
         }
 
-        .app-message {
+        .btn-secondary {
+            background-color: #f0f0f0; /* Light gray background */
+            color: #333;
             padding: 12px 24px;
             border-radius: 12px;
             font-weight: 500;
-            margin-bottom: 8px; /* Space between multiple messages if they stack */
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            max-width: 90%; /* Max width to prevent overflow on small screens */
-            text-align: center;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            border: 1px solid #d1d1d6; /* Subtle border */
         }
-
-        .app-message.active {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto; /* Allow interaction when active */
-        }
-
-        .message-success {
-            background-color: #e6ffe6; /* Light green */
-            color: #28a745; /* Darker green */
-            border: 1px solid #28a745;
-        }
-
-        .message-error {
-            background-color: #ffe6e6; /* Light red */
-            color: #dc3545; /* Darker red */
-            border: 1px solid #dc3545;
-        }
-
-        .message-info {
-            background-color: #e6f7ff; /* Light blue */
-            color: #007bff; /* Darker blue */
-            border: 1px solid #007bff;
-        }
-
-        /* --- Header/Profile Dropdown --- */
-        header {
-            background-color: #ffffff;
-            padding: 15px 25px;
-            border-bottom: 1px solid #eee;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .profile-container {
-            position: relative;
-        }
-
-        .profile-button {
-            background-color: #f0f2f5;
-            border: 1px solid #ddd;
-            padding: 8px 15px;
-            border-radius: 25px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            font-weight: 500;
-            gap: 8px;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-        }
-
-        .profile-button:hover {
+        .btn-secondary:hover {
             background-color: #e0e0e0;
-            border-color: #ccc;
+            transform: translateY(-1px);
+        }
+        .btn-secondary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
         }
 
-        .profile-picture {
-            width: 32px;
-            height: 32px;
+        .btn-danger {
+            background-color: #ff3b30; /* Apple Red */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-danger:hover {
+            background-color: #cc0000;
+            transform: translateY(-1px);
+        }
+        .btn-danger:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.5);
+        }
+
+        /* Input field styling */
+        .app-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d1d6; /* Light gray border */
+            border-radius: 8px; /* Slightly rounded */
+            background-color: white;
+            color: #333;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .app-input:focus {
+            outline: none;
+            border-color: #007aff; /* Blue border on focus */
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2); /* Soft blue glow */
+        }
+        .app-select {
+            appearance: none; /* Remove default arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Space for the custom arrow */
+        }
+        
+        /* Card/Container styling */
+        .app-card {
+            background-color: white;
+            border-radius: 18px; /* More pronounced rounding for main cards */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05); /* Softer, more diffuse shadow */
+            padding: 32px; /* Increased padding */
+            margin-bottom: 24px; /* Consistent spacing */
+        }
+
+        /* Table styling */
+        .app-table {
+            border-collapse: separate; /* Allows for rounded corners on cells/rows */
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .app-table thead {
+            background-color: #f8f8fa; /* Very light gray for table header */
+        }
+
+        .app-table th {
+            padding: 16px 24px;
+            text-align: left;
+            font-weight: 600; /* Slightly bolder header text */
+            font-size: 0.85rem;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .app-table td {
+            padding: 14px 24px;
+            border-bottom: 1px solid #efefef; /* Lighter divider */
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .app-table tbody tr:last-child td {
+            border-bottom: none; /* No border on the last row */
+        }
+
+        .app-table tbody tr:hover {
+            background-color: #f9f9f9; /* Subtle hover effect */
+        }
+
+        /* Specific overrides for messages and totals */
+        .message-success {
+            background-color: #e6f7ed; /* Soft green */
+            color: #1a6438; /* Dark green text */
+            border-color: #8ce1a7;
+        }
+        .message-error {
+            background-color: #ffebe6; /* Soft red */
+            color: #b32f2f; /* Dark red text */
+            border-color: #ff8c8c;
+        }
+        .message-info {
+            background-color: #e6f0ff; /* Soft blue */
+            color: #004d99; /* Dark blue text */
+            border-color: #8cbaff;
+        }
+
+        #totalExpenditure {
+            font-size: 1.6rem; /* Larger total amount */
+            font-weight: 700;
+            color: #007aff; /* Apple Blue for total */
+        }
+
+        .section-header {
+            font-size: 1.8rem; /* Larger, bolder headers */
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .sub-section-header {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        /* New styles for dropdown menu */
+        .profile-dropdown-container {
+            position: relative; /* Essential for absolute positioning of dropdown */
+            z-index: 50; /* Ensure it's above other content */
+        }
+
+        .profile-toggle-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px; /* Size of the circle */
+            height: 40px;
             border-radius: 50%;
-            background-color: #ccc; /* Placeholder background */
-            object-fit: cover;
+            background-color: #e0e0e0; /* Light gray background for icon */
+            color: #555; /* Icon color */
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .profile-toggle-button:hover {
+            background-color: #d1d1d6;
         }
 
         .profile-dropdown-content {
             position: absolute;
-            top: 100%; /* Position below the button */
-            right: 0;
-            background-color: #fff;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            min-width: 200px;
-            z-index: 50;
-            padding: 10px 0;
+            top: calc(100% + 10px); /* Position below the toggle button with a small gap */
+            right: 0; /* Align to the right of the toggle button */
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Stronger shadow for dropdown */
+            padding: 20px;
+            min-width: 280px; /* Min width for readability */
             display: none; /* Hidden by default */
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            flex-direction: column;
+            gap: 15px; /* Spacing between elements */
+            border: 1px solid #e0e0e0; /* Subtle border */
         }
 
         .profile-dropdown-content.active {
-            display: block;
-            opacity: 1;
-            transform: translateY(0);
+            display: flex; /* Show when active */
         }
 
-        .profile-dropdown-content button {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
-            text-align: left;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 0.95rem;
-            color: #333;
-            transition: background-color 0.2s ease;
-        }
-
-        .profile-dropdown-content button:hover {
-            background-color: #f5f5f5;
-        }
-
-        /* --- List Management --- */
-        .list-item {
+        .profile-info {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            background-color: #fdfdfd;
-            border: 1px solid #eee;
-            padding: 10px 15px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            cursor: pointer;
-            transition: background-color 0.2s ease, border-color 0.2s ease;
+            gap: 15px;
+            margin-bottom: 10px;
         }
 
-        .list-item:hover {
-            background-color: #f5f5f5;
-            border-color: #ddd;
-        }
-
-        .list-item.active-list {
-            background-color: #e6ffe6; /* Light green for active list */
-            border-color: #4CAF50;
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #007aff; /* Blue background for avatar */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
             font-weight: 600;
         }
 
-        .list-item span {
-            flex-grow: 1;
-            color: #444;
+        .profile-email {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #333;
+            word-break: break-all; /* Allow long emails to wrap */
         }
-
-        .list-actions {
-            display: flex;
-            gap: 5px;
-            margin-left: 10px;
-        }
-
-        /* --- Splash Screen --- */
-        .splash-screen-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 200; /* Higher than modals */
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-
-        .splash-screen-container.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none; /* Allow clicks to pass through when hidden */
-        }
-
-        .welcome-card {
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 500px;
+        
+        /* Specific button styling for dropdown */
+        .dropdown-signout-btn {
+            background-color: #ff3b30;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            width: 100%; /* Full width within dropdown */
             text-align: center;
         }
-
-        /* Class to hide main app content initially */
-        .hidden-app-content {
-            display: none;
+        .dropdown-signout-btn:hover {
+            background-color: #cc0000;
         }
     </style>
 </head>
-<body>
-    <div id="splashScreen" class="splash-screen-container">
-        <div class="welcome-card">
-            <h1 class="text-3xl font-bold mb-6 text-center">Welcome to your Expense Tracker.</h1>
-            <p class="text-gray-600 text-center mb-8">
-                Sign in with your Google account to effortlessly track your spending, or proceed as a guest.
-            </p>
-            <button id="splashSignInButton" class="btn-primary w-full mb-4">Sign In with Google</button>
-            <button id="splashGuestButton" class="btn-secondary w-full">Continue as Guest</button>
-            <p class="text-gray-500 text-center text-sm mt-6">
-                Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.
-            </p>
-            <p id="splashMessage" class="text-center text-sm text-blue-600 mt-4 hidden"></p>
-        </div>
+<body class="flex flex-col items-center p-4 min-h-screen">
+    <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
+        <p class="text-gray-700 text-lg">Initializing app...</p>
     </div>
 
-    <div id="mainAppContent" class="hidden-app-content">
-        <header>
-            <div class="flex items-center">
-                <h2 class="text-xl font-semibold mr-4">Expense Tracker</h2>
-                <span id="currentListNameDisplay" class="text-gray-600 text-md">Loading...</span>
-            </div>
-            <div class="profile-container">
-                <button id="profileButton" class="profile-button">
-                    <img id="profilePicture" class="profile-picture" src="https://via.placeholder.com/32" alt="Profile">
-                    <span id="profileDisplayName">Guest</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                </button>
+    <div id="appMessageContainer" class="fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-center z-[1001] w-11/12 md:w-auto max-w-md hidden" role="alert">
+    </div>
+
+    <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
+        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
+        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
+        <div class="space-y-4">
+            <button id="authButton" class="btn-primary w-full">
+                Sign In with Google
+            </button>
+            <button id="guestButton" class="btn-secondary w-full">
+                Continue as Guest
+            </button>
+        </div>
+        <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
+        <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
+    </div>
+
+    <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
+        <div class="app-card flex flex-col md:flex-row items-center justify-between">
+            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
+            
+            <div class="profile-dropdown-container">
+                <button id="profileToggleButton" class="profile-toggle-button">
+                    <span id="profileIconText">G</span> </button>
+
                 <div id="profileDropdownContent" class="profile-dropdown-content hidden">
-                    <button id="createNewListButton">Create New List</button>
-                    <button id="loadExistingListButton">Load Existing List</button>
-                    <button id="deleteCurrentListButton" class="text-red-600 hover:bg-red-50">Delete Current List</button>
-                    <button id="signOutButton">Sign Out</button>
+                    <div class="profile-info">
+                        <div id="profileAvatar" class="profile-avatar">
+                            <span id="avatarInitial">G</span>
+                        </div>
+                        <div id="mainAppUserInfo" class="profile-email"></div>
+                    </div>
+                    <button id="signOutButton" class="dropdown-signout-btn">
+                        Sign Out
+                    </button>
                 </div>
             </div>
-        </header>
+        </div>
 
-        <div class="container">
-            <h2 class="text-2xl font-bold mb-6">Add New Expense</h2>
-            <div class="mb-4">
-                <input type="text" id="expenseDescription" class="app-input" placeholder="Expense description" required>
-                <input type="number" id="expenseAmount" class="app-input" placeholder="Amount" step="0.01" required>
-                <button id="addExpenseBtn" class="btn-primary w-full">Add Expense</button>
+        <div class="app-card">
+            <h2 class="sub-section-header">Add New Expense</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+                    <input type="date" id="expenseDate" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-600 mb-1">Amount (CAD)</label>
+                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>
+                    <select id="paymentMethod" class="app-input app-select">
+                        <option value="">Select Method</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Online Payment">Online Payment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paidBy" class="block text-sm font-medium text-gray-600 mb-1">Paid By</label>
+                    <input type="text" id="paidBy" placeholder="e.g., John, Sarah" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1 flex items-center mt-3">
+                    <input type="checkbox" id="hasBill" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="hasBill" class="ml-2 block text-sm font-medium text-gray-600">Do you have the bill?</label>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1" id="billTypeContainer" style="display: none;">
+                    <label for="billType" class="block text-sm font-medium text-gray-600 mb-1">Bill Type</label>
+                    <select id="billType" class="app-input app-select">
+                        <option value="">Select Type</option>
+                        <option value="Physical">Physical</option>
+                        <option value="Digital">Digital</option>
+                    </select>
+                </div>
             </div>
+            <button id="addExpenseBtn" class="btn-primary w-full">
+                Add Expense
+            </button>
+        </div>
 
-            <h2 class="text-2xl font-bold mb-4">Your Expenses</h2>
-            <div id="expensesList" class="space-y-3">
-                <p id="noExpensesMessage" class="text-gray-500 text-center py-4">No expenses added yet. Start by adding one above!</p>
-            </div>
-
-            <div class="total-expenses">
-                Total: <span id="totalAmount">0.00</span>
+        <div class="app-card">
+            <h2 class="sub-section-header">Your Expenses</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 table-container">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Amount (CAD)</th>
+                            <th scope="col">Amount (AED)</th>
+                            <th scope="col">Amount (INR)</th>
+                            <th scope="col">Method</th>
+                            <th scope="col">Paid By</th>
+                            <th scope="col">Has Bill?</th>
+                            <th scope="col">Bill Type</th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Delete</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
+                        </tbody>
+                </table>
             </div>
         </div>
-    </div>
 
-    <div id="createNewListModal" class="modal-overlay">
-        <div class="modal-content">
-            <h2 class="mb-4">Create New List</h2>
-            <label for="newListNameInput" class="block text-sm font-medium text-gray-600 mb-1">List Name</label>
-            <input type="text" id="newListNameInput" class="app-input mb-4" placeholder="e.g., Household Expenses, Vacation 2024">
-            <div class="flex gap-4">
-                <button id="createListConfirmBtn" class="btn-primary flex-grow">Create List</button>
-                <button id="cancelCreateListBtn" class="btn-secondary flex-grow">Cancel</button>
+        <div class="app-card flex justify-end">
+            <h2 class="text-xl font-bold text-gray-800">Total Expenditure: <span id="totalExpenditure">C$0.00</span></h2>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">AI-Powered Insights</h2>
+            <button id="getInsightsBtn" class="btn-primary w-full">
+                Get Spending Insights ✨
+            </button>
+            <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
+                <p class="font-medium">Analyzing your expenses...</p>
             </div>
         </div>
-    </div>
 
-    <div id="loadExistingListModal" class="modal-overlay">
-        <div class="modal-content">
-            <h2 class="mb-4">Load Existing List</h2>
-            <div id="existingListsContainer" class="max-h-60 overflow-y-auto pr-2">
-                <p id="noExistingListsMessage" class="text-gray-500 text-center py-4">No other lists found. Create a new one!</p>
-            </div>
-            <div class="flex justify-end mt-4">
-                <button id="cancelLoadListBtn" class="btn-secondary">Close</button>
+        <div class="app-card">
+            <h2 class="section-header">Spending Visualizations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Spending Distribution by Category</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseCategoryChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed across different categories.</p>
+                </div>
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Monthly Total Expenditure</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseMonthlyChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This bar graph shows your total expenditure for each month.</p>
+                </div>
             </div>
         </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Download Data (CSV)</h2>
+            <div class="flex flex-col md:flex-row items-center gap-4">
+                <div class="flex-grow w-full md:w-auto">
+                    <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
+                    <select id="monthSelect" class="app-input app-select">
+                        <option value="">Select a month...</option>
+                    </select>
+                </div>
+                <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
+                    Download CSV
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a CSV file, compatible with Excel/Google Sheets.</p>
+        </div>
     </div>
-
-    <div id="loadingSpinner" style="display: none;"></div>
-
-    <div id="messageContainer"></div>
 
     <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, deleteDoc, doc, setDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        // Import Firebase functions directly since we're in a single module script now
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Your Firebase configuration
+        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
         const firebaseConfig = {
             apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
-  authDomain: "my-expenese-tracker.firebaseapp.com",
-  projectId: "my-expenese-tracker",
-  storageBucket: "my-expenese-tracker.firebasestorage.app",
-  messagingSenderId: "466782350290",
-  appId: "1:466782350290:web:3547d88edfc0969b23b60b",
-  measurementId: "G-1CF1ZNLPC2"
+            authDomain: "my-expenese-tracker.firebaseapp.com",
+            projectId: "my-expenese-tracker",
+            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            messagingSenderId: "466782350290",
+            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com", // Double-check this appId!
+            measurementId: "G-1CF1ZNLPC2"
         };
 
         // Initialize Firebase
@@ -533,553 +525,410 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // --- Global Variables ---
-        let currentUserId = null;
-        let currentListId = null;
-        let currentListName = 'Default List';
-        let expenses = [];
-        let unsubscribeFromExpenses = null; // To manage Firestore subscription
-
-        // --- DOM Elements ---
-        const profileButton = document.getElementById('profileButton');
-        const profileDisplayName = document.getElementById('profileDisplayName');
-        const profilePicture = document.getElementById('profilePicture');
-        const profileDropdownContent = document.getElementById('profileDropdownContent');
-        // const authButton = document.getElementById('authButton'); // Removed: login now on splash screen
-        const signOutButton = document.getElementById('signOutButton');
-        const createNewListButton = document.getElementById('createNewListButton');
-        const loadExistingListButton = document.getElementById('loadExistingListButton');
-        const deleteCurrentListButton = document.getElementById('deleteCurrentListButton');
-
-        const currentListNameDisplay = document.getElementById('currentListNameDisplay');
+        // DOM element references
+        const expenseDateInput = document.getElementById('expenseDate');
+        const expenseCategoryInput = document.getElementById('expenseCategory');
         const expenseDescriptionInput = document.getElementById('expenseDescription');
         const expenseAmountInput = document.getElementById('expenseAmount');
+        const paymentMethodInput = document.getElementById('paymentMethod');
+        const paidByInput = document.getElementById('paidBy');
+        const hasBillInput = document.getElementById('hasBill');
+        const billTypeContainer = document.getElementById('billTypeContainer');
+        const billTypeInput = document.getElementById('billType');
         const addExpenseBtn = document.getElementById('addExpenseBtn');
-        const expensesList = document.getElementById('expensesList');
-        const totalAmountSpan = document.getElementById('totalAmount');
-        const noExpensesMessage = document.getElementById('noExpensesMessage');
+        const expenseTableBody = document.getElementById('expenseTableBody');
+        const totalExpenditureSpan = document.getElementById('totalExpenditure');
+        const getInsightsBtn = document.getElementById('getInsightsBtn');
+        const insightsDisplay = document.getElementById('insightsDisplay');
+        const expenseCategoryChartCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+        const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
+        const monthSelect = document.getElementById('monthSelect');
+        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
 
-        // --- Modals ---
-        const createNewListModal = document.getElementById('createNewListModal');
-        const newListNameInput = document.getElementById('newListNameInput');
-        const createListConfirmBtn = document.getElementById('createListConfirmBtn');
-        const cancelCreateListBtn = document.getElementById('cancelCreateListBtn');
+        const authButton = document.getElementById('authButton');
+        const guestButton = document.getElementById('guestButton');
+        const userInfoDiv = document.getElementById('userInfo');
 
-        const loadExistingListModal = document.getElementById('loadExistingListModal');
-        const existingListsContainer = document.getElementById('existingListsContainer');
-        const noExistingListsMessage = document.getElementById('noExistingListsMessage');
-        const cancelLoadListBtn = document.getElementById('cancelLoadListBtn');
+        const mainAppContainer = document.getElementById('mainAppContainer');
+        const loginScreen = document.getElementById('loginScreen');
+        
+        // --- NEW DOM Elements for Dropdown ---
+        const profileToggleButton = document.getElementById('profileToggleButton');
+        const profileDropdownContent = document.getElementById('profileDropdownContent');
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); // This is now inside the dropdown
+        const signOutButton = document.getElementById('signOutButton');      // This is now inside the dropdown
+        const profileIconText = document.getElementById('profileIconText');
+        const avatarInitial = document.getElementById('avatarInitial');
 
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const messageContainer = document.getElementById('messageContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const appMessageContainer = document.getElementById('appMessageContainer'); // NEW: Message container reference
 
-        // --- Splash Screen Elements ---
-        const splashScreen = document.getElementById('splashScreen');
-        const splashSignInButton = document.getElementById('splashSignInButton');
-        const splashGuestButton = document.getElementById('splashGuestButton');
-        const splashMessage = document.getElementById('splashMessage');
-        const mainAppContent = document.getElementById('mainAppContent');
+        // Global state variables
+        let expenses = [];
+        let currentUserId = null;
+        let unsubscribeFromExpenses = null;
 
+        // Exchange rates (CAD as base) - these are hardcoded for simplicity
+        const EXCHANGE_RATE_CAD_TO_AED = 2.70;
+        const EXCHANGE_RATE_CAD_TO_INR = 61.00;
 
-        // --- Utility Functions ---
+        // Chart instances
+        let expenseCategoryPieChart;
+        let expenseMonthlyBarChart;
 
+        // --- Loading Overlay Functions ---
         function showLoading(message = "Loading...") {
-            loadingSpinner.style.display = 'block';
-            // Optionally, you could display the message near the spinner or in the console
-            console.log(message);
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.querySelector('p').textContent = message;
         }
 
         function hideLoading() {
-            loadingSpinner.style.display = 'none';
+            loadingOverlay.classList.add('hidden');
+            console.log("hideLoading function executed.");
         }
 
+        // --- Message Display Function ---
+        let messageTimeout;
         function showMessage(message, type = 'info') {
-            // Clear any existing messages before showing a new one
-            messageContainer.innerHTML = ''; 
+            appMessageContainer.textContent = message;
+            appMessageContainer.className = 'fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-center z-[1001] w-11/12 md:w-auto max-w-md'; // Reset classes
+            appMessageContainer.classList.remove('hidden');
 
-            const messageElement = document.createElement('div');
-            messageElement.textContent = message;
-            messageElement.className = `app-message ${
-                type === 'success' ? 'message-success' :
-                type === 'error' ? 'message-error' :
-                'message-info'
-            }`;
-            
-            messageContainer.appendChild(messageElement);
+            if (type === 'success') {
+                appMessageContainer.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-300', 'message-success');
+            } else if (type === 'error') {
+                appMessageContainer.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-300', 'message-error');
+            } else { // info
+                appMessageContainer.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-300', 'message-info');
+            }
 
-            // Trigger reflow to ensure transition works
-            messageElement.offsetHeight; 
-
-            messageElement.classList.add('active');
-
-            setTimeout(() => {
-                messageElement.classList.remove('active');
-                messageElement.addEventListener('transitionend', () => messageElement.remove(), { once: true });
-            }, 3000); // Message disappears after 3 seconds
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => {
+                appMessageContainer.classList.add('hidden');
+            }, 5000); // Hide after 5 seconds
         }
 
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(amount);
-        }
-
-        function updateCurrentListNameDisplay() {
-            currentListNameDisplay.textContent = `List: ${currentListName}`;
-        }
-
-        // --- Authentication ---
-
-        profileButton.addEventListener('click', () => {
-            profileDropdownContent.classList.toggle('hidden');
-            profileDropdownContent.classList.toggle('active');
+        // --- Authentication Functions ---
+        authButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in with Google...");
+                await signInWithPopup(auth, provider);
+                showMessage('Signed in successfully with Google!', 'success');
+            } catch (error) {
+                console.error('Error signing in with Google:', error);
+                let errorMessage = 'Failed to sign in with Google.';
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign-in cancelled by user.';
+                } else if (error.message) {
+                    errorMessage += ` Error: ${error.message}`;
+                }
+                showMessage(errorMessage, 'error');
+            } finally {
+                hideLoading();
+            }
         });
 
-        // Close dropdown if clicked outside
-        window.addEventListener('click', (e) => {
-            if (!profileButton.contains(e.target) && !profileDropdownContent.contains(e.target)) {
+        guestButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in as Guest...");
+                await signInAnonymously(auth);
+                showMessage('Signed in successfully as Guest!', 'success');
+            } catch (error) {
+                console.error('Error signing in anonymously:', error);
+                showMessage('Failed to sign in as guest. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        signOutButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing out...");
+                await signOut(auth);
+                showMessage('Signed out successfully!', 'success');
+            } catch (error) {
+                console.error('Error signing out:', error);
+                showMessage('Error signing out. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+            // Ensure dropdown is closed after sign out
+            profileDropdownContent.classList.add('hidden');
+        });
+
+        // --- Firebase Auth State Listener ---
+        onAuthStateChanged(auth, (user) => {
+            console.log("onAuthStateChanged fired. User:", user);
+            if (user) {
+                currentUserId = user.uid;
+                
+                let displayEmail = user.email || 'Guest User';
+                let displayName = user.displayName || 'Guest';
+                let initial = displayName.charAt(0).toUpperCase();
+
+                if (user.isAnonymous) {
+                    displayEmail = 'guest@example.com'; // Placeholder email for guests
+                    displayName = 'Guest';
+                    initial = 'G';
+                    userInfoDiv.textContent = 'Welcome, Guest!';
+                } else {
+                    userInfoDiv.textContent = `Welcome, ${displayName}!`;
+                }
+
+                mainAppUserInfo.textContent = displayEmail; // Display full email in dropdown
+                profileIconText.textContent = initial;       // Display initial on the toggle button
+                avatarInitial.textContent = initial;         // Display initial in the avatar circle
+
+                loginScreen.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+
+                console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
+                
+                listenToExpenses(user.uid);
+            } else {
+                currentUserId = null;
+                userInfoDiv.textContent = 'Please sign in to save your data.';
+                mainAppUserInfo.textContent = ''; // Clear email in dropdown
+                profileIconText.textContent = 'G'; // Reset icon to Guest
+                avatarInitial.textContent = 'G';   // Reset avatar initial
+
+                mainAppContainer.classList.add('hidden');
+                loginScreen.classList.remove('hidden');
+
+                console.log('User signed out.');
+
+                expenses = [];
+                renderExpenses(); // Render with empty array to clear table and charts
+                if (unsubscribeFromExpenses) {
+                    unsubscribeFromExpenses();
+                }
+                showMessage('Your data will be available when you sign in.', 'info');
+            }
+            console.log("Auth state check complete, hiding loading overlay.");
+            hideLoading();
+        });
+
+        // --- Dropdown Toggle Logic ---
+        profileToggleButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from closing it immediately
+            profileDropdownContent.classList.toggle('hidden');
+            profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!profileDropdownContent.contains(event.target) && !profileToggleButton.contains(event.target)) {
                 profileDropdownContent.classList.add('hidden');
                 profileDropdownContent.classList.remove('active');
             }
         });
 
-        // Sign In from Splash Screen
-        splashSignInButton.addEventListener('click', async () => {
-            showLoading("Signing in...");
-            try {
-                await signInWithPopup(auth, provider);
-                // onAuthStateChanged will handle UI update and hide splash screen
-            } catch (error) {
-                console.error("Authentication failed:", error);
-                // Display error on splash screen
-                splashMessage.textContent = "Sign-in failed. Please try again.";
-                splashMessage.classList.remove('hidden');
-                showMessage("Sign-in failed. Please try again.", "error"); // Also show toast
-            } finally {
-                hideLoading();
-            }
-        });
-
-        // Continue as Guest from Splash Screen
-        splashGuestButton.addEventListener('click', () => {
-            currentUserId = "guest_" + Date.now(); // Simple unique ID for guest session
-            currentListId = "guest_default_" + currentUserId; // Unique list ID for guest
-            currentListName = 'Guest List';
-            
-            // Show main app content
-            splashScreen.classList.add('hidden');
-            mainAppContent.classList.remove('hidden-app-content');
-            
-            // Set guest UI state
-            profileDisplayName.textContent = 'Guest';
-            profilePicture.src = 'https://via.placeholder.com/32';
-            signOutButton.classList.remove('hidden'); // Guest can sign out (which takes them back to splash)
-            createNewListButton.classList.add('hidden'); // Guest cannot create/load/delete persistent lists
-            loadExistingListButton.classList.add('hidden');
-            deleteCurrentListButton.classList.add('hidden');
-
-            // Initialize guest experience (no Firestore persistence for true guests)
-            expenses = [];
-            renderExpenses();
-            totalAmountSpan.textContent = formatCurrency(0);
-            updateCurrentListNameDisplay();
-            showMessage("You are viewing as a Guest. Sign in to save your data.", "info");
-            hideLoading(); // If loading was shown
-        });
-
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                profileDisplayName.textContent = user.displayName || user.email || 'User';
-                profilePicture.src = user.photoURL || 'https://via.placeholder.com/32';
-                signOutButton.classList.remove('hidden');
-                createNewListButton.classList.remove('hidden');
-                loadExistingListButton.classList.remove('hidden');
-                deleteCurrentListButton.classList.remove('hidden');
-                
-                // Hide splash screen and show main app
-                splashScreen.classList.add('hidden');
-                mainAppContent.classList.remove('hidden-app-content');
-
-                await ensureUserHasList(currentUserId);
-
-            } else {
-                // User is not logged in (or just signed out)
-                currentUserId = null;
-                currentListId = null;
-                currentListName = 'Default List'; // Reset for fresh state if not logged in
-                expenses = [];
-                renderExpenses();
-                totalAmountSpan.textContent = formatCurrency(0);
-                updateCurrentListNameDisplay(); // Update display to 'Default List' if not signed in
-
-                profileDisplayName.textContent = 'Guest';
-                profilePicture.src = 'https://via.placeholder.com/32';
-                signOutButton.classList.add('hidden'); // Hide sign out button for a not-yet-signed-in state
-                createNewListButton.classList.add('hidden'); 
-                loadExistingListButton.classList.add('hidden');
-                deleteCurrentListButton.classList.add('hidden');
-
-                if (unsubscribeFromExpenses) {
-                    unsubscribeFromExpenses(); // Detach listener when user signs out
-                }
-                
-                // Show the splash screen
-                splashScreen.classList.remove('hidden');
-                mainAppContent.classList.add('hidden-app-content');
-                splashMessage.textContent = ""; // Clear any previous messages on splash
-            }
-            hideLoading();
-        });
-
-        signOutButton.addEventListener('click', async () => {
-            profileDropdownContent.classList.add('hidden');
-            profileDropdownContent.classList.remove('active');
-            showLoading("Signing out...");
-            try {
-                await signOut(auth);
-                // onAuthStateChanged will handle UI update and show splash screen
-                showMessage("Signed out successfully!", "success"); // Provide immediate feedback
-            } catch (error) {
-                console.error("Sign out failed:", error);
-                showMessage("Sign-out failed. Please try again.", "error");
-            } finally {
-                hideLoading();
-            }
-        });
-
-
-        // --- List Management Functions ---
-
-        async function ensureUserHasList(userId) {
-            showLoading("Checking your lists...");
-            try {
-                const q = query(collection(db, `users/${userId}/lists`), orderBy("lastAccessed", "desc"), limit(1));
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    console.log("No lists found for user. Creating a default list.");
-                    const defaultListName = "My First List";
-                    const newListRef = doc(collection(db, `users/${userId}/lists`));
-                    await setDoc(newListRef, {
-                        name: defaultListName,
-                        createdAt: new Date(),
-                        lastAccessed: new Date()
-                    });
-                    
-                    currentListId = newListRef.id;
-                    currentListName = defaultListName;
-                    showMessage(`Created "${defaultListName}" for you!`, "info");
-                } else {
-                    const lastAccessedList = querySnapshot.docs[0];
-                    currentListId = lastAccessedList.id;
-                    currentListName = lastAccessedList.data().name;
-                    showMessage(`Loading "${currentListName}"...`, "info");
-                }
-                updateCurrentListNameDisplay();
-                listenToExpenses(currentListId);
-            } catch (error) {
-                console.error("Error ensuring user has a list:", error);
-                showMessage("Error managing lists. Please try again.", "error");
-                currentListName = 'Default List';
-                updateCurrentListNameDisplay();
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function switchToList(listId, listName) {
-            showLoading(`Switching to ${listName}...`);
-            currentListId = listId;
-            currentListName = listName;
-            updateCurrentListNameDisplay(); 
-            
-            try {
-                await setDoc(doc(db, `users/${currentUserId}/lists`, currentListId), { lastAccessed: new Date() }, { merge: true });
-            } catch (error) {
-                console.warn("Could not update lastAccessed for list:", error);
-            }
-
-            listenToExpenses(currentListId); 
-            
-            expenses = [];
-            renderExpenses();
-            showMessage(`Switched to "${listName}".`, "success");
-            hideLoading();
-        }
-
-        // --- Create New List Modal Logic ---
-        createNewListButton.addEventListener('click', () => {
-            profileDropdownContent.classList.add('hidden'); // Hide profile dropdown
-            profileDropdownContent.classList.remove('active');
-            newListNameInput.value = ''; // Clear previous input
-            createNewListModal.classList.add('active');
-            newListNameInput.focus();
-        });
-
-        cancelCreateListBtn.addEventListener('click', () => {
-            createNewListModal.classList.remove('active');
-        });
-
-        createListConfirmBtn.addEventListener('click', async () => {
-            const listName = newListNameInput.value.trim();
-            if (!listName) {
-                showMessage("Please enter a list name.", "error");
-                return;
-            }
-            if (!currentUserId) {
-                showMessage("Please sign in to create a new list.", "error");
-                return;
-            }
-
-            showLoading("Creating new list...");
-            try {
-                const newListRef = doc(collection(db, `users/${currentUserId}/lists`));
-                await setDoc(newListRef, {
-                    name: listName,
-                    createdAt: new Date(),
-                    lastAccessed: new Date()
-                });
-                showMessage(`List "${listName}" created successfully!`, "success");
-                createNewListModal.classList.remove('active');
-                await switchToList(newListRef.id, listName); // Switch to the newly created list
-            } catch (error) {
-                console.error("Error creating new list:", error);
-                showMessage("Failed to create list. Please try again.", "error");
-            } finally {
-                hideLoading();
-            }
-        });
-
-        // --- Load Existing List Modal Logic ---
-        loadExistingListButton.addEventListener('click', async () => {
-            if (!currentUserId) {
-                showMessage("Please sign in to load your lists.", "info");
-                return;
-            }
-            profileDropdownContent.classList.add('hidden'); // Hide profile dropdown
-            profileDropdownContent.classList.remove('active');
-            await renderExistingLists(); // Populate the list of existing lists
-            loadExistingListModal.classList.add('active');
-        });
-
-        cancelLoadListBtn.addEventListener('click', () => {
-            loadExistingListModal.classList.remove('active');
-        });
-
-        async function renderExistingLists() {
-            existingListsContainer.innerHTML = '';
-            noExistingListsMessage.classList.add('hidden');
-
-            if (!currentUserId) {
-                noExistingListsMessage.classList.remove('hidden');
-                return;
-            }
-
-            showLoading("Loading lists...");
-            try {
-                const q = query(collection(db, `users/${currentUserId}/lists`), orderBy("lastAccessed", "desc"));
-                const querySnapshot = await getDocs(q);
-
-
-                if (querySnapshot.empty) {
-                    noExistingListsMessage.classList.remove('hidden');
-                    return;
-                }
-
-                querySnapshot.forEach((doc) => {
-                    const list = { id: doc.id, ...doc.data() };
-                    const listItem = document.createElement('div');
-                    listItem.className = `list-item ${list.id === currentListId ? 'active-list' : ''}`;
-                    listItem.dataset.listId = list.id;
-                    listItem.dataset.listName = list.name;
-
-                    listItem.innerHTML = `
-                        <span>${list.name}</span>
-                        <button class="btn-secondary text-sm px-3 py-1 ml-2">Load</button>
-                    `;
-                    listItem.querySelector('button').addEventListener('click', async () => {
-                        await switchToList(list.id, list.name);
-                        loadExistingListModal.classList.remove('active');
-                    });
-                    listItem.addEventListener('click', async (e) => {
-                        if (e.target.tagName !== 'BUTTON') {
-                             await switchToList(list.id, list.name);
-                             loadExistingListModal.classList.remove('active');
-                        }
-                    });
-
-                    existingListsContainer.appendChild(listItem);
-                });
-                showMessage("Lists loaded!", "info");
-            } catch (error) {
-                console.error("Error loading existing lists:", error);
-                showMessage("Failed to load existing lists.", "error");
-                noExistingListsMessage.classList.remove('hidden');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // --- Delete Current List Logic ---
-        deleteCurrentListButton.addEventListener('click', async () => {
-            if (!currentUserId || !currentListId) {
-                showMessage("No list is selected to delete.", "info");
-                return;
-            }
-
-            // Confirm with user
-            if (confirm(`Are you sure you want to delete the list "${currentListName}" and all its expenses? This action cannot be undone.`)) {
-                showLoading(`Deleting "${currentListName}"...`);
-                try {
-                    // Delete all expenses in the list first
-                    const expensesQuery = query(collection(db, `users/${currentUserId}/lists/${currentListId}/expenses`));
-                    const expensesSnapshot = await getDocs(expensesQuery);
-                    const deleteExpensePromises = [];
-                    expensesSnapshot.forEach((expDoc) => {
-                        deleteExpensePromises.push(deleteDoc(doc(db, `users/${currentUserId}/lists/${currentListId}/expenses`, expDoc.id)));
-                    });
-                    await Promise.all(deleteExpensePromises);
-
-                    // Then delete the list document itself
-                    await deleteDoc(doc(db, `users/${currentUserId}/lists`, currentListId));
-
-                    showMessage(`List "${currentListName}" deleted successfully!`, "success");
-
-                    // After deletion, re-evaluate user's lists and potentially load a new default
-                    currentListId = null; // Clear current list context
-                    await ensureUserHasList(currentUserId); // This will create a new default if no other lists exist or load another
-
-                } catch (error) {
-                    console.error("Error deleting list:", error);
-                    showMessage("Failed to delete list. Please try again.", "error");
-                } finally {
-                    hideLoading();
-                }
-            }
-            profileDropdownContent.classList.add('hidden'); // Hide profile dropdown
-            profileDropdownContent.classList.remove('active');
-        });
-
-
-        // --- Expense Tracking Functions ---
-
-        addExpenseBtn.addEventListener('click', async () => {
-            if (!currentUserId || !currentListId) {
-                showMessage("Please sign in and ensure a list is selected.", "info");
-                return;
-            }
-
-            const description = expenseDescriptionInput.value.trim();
-            const amount = parseFloat(expenseAmountInput.value);
-
-            if (description === '' || isNaN(amount) || amount <= 0) {
-                showMessage('Please enter a valid description and a positive amount.', 'error');
-                return;
-            }
-
-            showLoading("Adding expense...");
-            try {
-                await addDoc(collection(db, `users/${currentUserId}/lists/${currentListId}/expenses`), {
-                    description: description,
-                    amount: amount,
-                    timestamp: new Date() // Store timestamp for ordering
-                });
-                expenseDescriptionInput.value = '';
-                expenseAmountInput.value = '';
-                // showMessage('Expense added successfully!', 'success'); // onSnapshot will trigger message
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                showMessage('Failed to add expense. Please try again.', 'error');
-            } finally {
-                hideLoading();
-            }
-        });
-
-        // Function to listen to expenses in real-time
-        function listenToExpenses(listId) {
+        // --- Firestore Data Listener ---
+        function listenToExpenses(userId) {
             if (unsubscribeFromExpenses) {
-                unsubscribeFromExpenses(); // Detach old listener
+                unsubscribeFromExpenses();
             }
             
-            if (!currentUserId || !listId) {
-                console.warn("Cannot listen to expenses: currentUserId or listId is missing.");
-                expenses = [];
-                renderExpenses(); // Clear table
-                return;
-            }
-
-            showLoading(`Loading expenses for ${currentListName}...`);
-            const q = query(collection(db, `users/${currentUserId}/lists/${listId}/expenses`), orderBy("timestamp", "desc"));
+            showLoading("Loading your expenses...");
+            const q = query(collection(db, `users/${userId}/expenses`));
             
             unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
                 const fetchedExpenses = [];
-                let total = 0;
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    fetchedExpenses.push({ id: doc.id, ...data });
-                    total += data.amount;
+                    fetchedExpenses.push({
+                        id: doc.id,
+                        date: data.date,
+                        category: data.category,
+                        description: data.description,
+                        amount: data.amount,
+                        paymentMethod: data.paymentMethod,
+                        paidBy: data.paidBy,
+                        hasBill: data.hasBill,
+                        billType: data.billType
+                    });
                 });
                 expenses = fetchedExpenses;
-                renderExpenses();
-                totalAmountSpan.textContent = formatCurrency(total);
+                renderExpenses(); // This will now also update charts and AI insights button
                 hideLoading();
                 showMessage('Expenses synchronized from cloud!', 'success');
             }, (error) => {
                 console.error("Error fetching Firestore expenses:", error);
                 showMessage("Error loading expenses. Check console for details.", "error");
-                hideLoading();
             });
         }
 
-        // Function to render expenses to the UI
-        function renderExpenses() {
-            expensesList.innerHTML = '';
-            if (expenses.length === 0) {
-                noExpensesMessage.classList.remove('hidden');
-            } else {
-                noExpensesMessage.classList.add('hidden');
-                expenses.forEach(expense => {
-                    const expenseItem = document.createElement('div');
-                    expenseItem.className = 'expense-item';
-                    expenseItem.innerHTML = `
-                        <span>${expense.description}</span>
-                        <span class="amount">${formatCurrency(expense.amount)}</span>
-                        <button class="btn-danger ml-4" data-id="${expense.id}">Delete</button>
-                    `;
-                    expensesList.appendChild(expenseItem);
-                });
+        // --- Expense CRUD Operations (from your previous code) ---
 
-                // Add event listeners to delete buttons
-                document.querySelectorAll('.btn-danger').forEach(button => {
-                    button.addEventListener('click', async (e) => {
-                        const expenseId = e.target.dataset.id;
-                        if (confirm('Are you sure you want to delete this expense?')) {
-                            showLoading("Deleting expense...");
-                            try {
-                                if (currentUserId && currentListId) {
-                                    await deleteDoc(doc(db, `users/${currentUserId}/lists/${currentListId}/expenses`, expenseId));
-                                    // showMessage('Expense deleted successfully!', 'success'); // onSnapshot will trigger message
-                                } else {
-                                    showMessage("Cannot delete: not signed in or no list selected.", "error");
-                                }
-                            } catch (error) {
-                                console.error("Error deleting expense:", error);
-                                showMessage('Failed to delete expense. Please try again.', 'error');
-                            } finally {
-                                hideLoading();
-                            }
-                        }
-                    });
-                });
+        // Toggle Bill Type visibility
+        hasBillInput.addEventListener('change', () => {
+            if (hasBillInput.checked) {
+                billTypeContainer.style.display = 'block';
+            } else {
+                billTypeContainer.style.display = 'none';
+                billTypeInput.value = ''; // Clear bill type if checkbox is unchecked
             }
+        });
+
+        addExpenseBtn.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage("Please sign in to add expenses.", "info");
+                return;
+            }
+
+            const date = expenseDateInput.value;
+            const category = expenseCategoryInput.value.trim();
+            const description = expenseDescriptionInput.value.trim();
+            const amount = parseFloat(expenseAmountInput.value);
+            const paymentMethod = paymentMethodInput.value;
+            const paidBy = paidByInput.value.trim();
+            const hasBill = hasBillInput.checked;
+            const billType = hasBill ? billTypeInput.value : '';
+
+            if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod) {
+                showMessage('Please fill in all required fields (Date, Category, Description, Amount, Payment Method) with valid data.', 'error');
+                return;
+            }
+
+            showLoading("Adding expense...");
+            try {
+                await addDoc(collection(db, `users/${currentUserId}/expenses`), {
+                    date,
+                    category,
+                    description,
+                    amount,
+                    paymentMethod,
+                    paidBy,
+                    hasBill,
+                    billType,
+                    timestamp: new Date() // Add a timestamp for consistent ordering
+                });
+                showMessage('Expense added successfully!', 'success');
+                // Clear form
+                expenseDateInput.value = '';
+                expenseCategoryInput.value = '';
+                expenseDescriptionInput.value = '';
+                expenseAmountInput.value = '';
+                paymentMethodInput.value = '';
+                paidByInput.value = '';
+                hasBillInput.checked = false;
+                billTypeContainer.style.display = 'none';
+                billTypeInput.value = '';
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage('Error adding expense. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Event delegation for delete buttons
+        expenseTableBody.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('delete-btn') || event.target.closest('.delete-btn')) {
+                if (!currentUserId) {
+                    showMessage("Please sign in to delete expenses.", "info");
+                    return;
+                }
+                const button = event.target.closest('.delete-btn');
+                const expenseId = button.dataset.id;
+                if (confirm('Are you sure you want to delete this expense?')) {
+                    showLoading("Deleting expense...");
+                    try {
+                        await deleteDoc(doc(db, `users/${currentUserId}/expenses`, expenseId));
+                        showMessage('Expense deleted successfully!', 'success');
+                    } catch (e) {
+                        console.error("Error deleting document: ", e);
+                        showMessage('Error deleting expense. Please try again.', 'error');
+                    } finally {
+                        hideLoading();
+                    }
+                }
+            }
+        });
+
+        // CSV Download & Month Select
+        function updateMonthSelect(currentExpenses) {
+            monthSelect.innerHTML = '<option value="">Select a month...</option>';
+            const months = new Set();
+            currentExpenses.forEach(exp => {
+                const date = new Date(exp.date);
+                const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`; // YYYY-MM
+                months.add(monthYear);
+            });
+
+            Array.from(months).sort().forEach(monthYear => {
+                const [year, month] = monthYear.split('-');
+                const option = document.createElement('option');
+                option.value = monthYear;
+                option.textContent = `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}`;
+                monthSelect.appendChild(option);
+            });
         }
 
-        // Initial call to update current list name display
-        // This will be overridden by onAuthStateChanged, but good for initial setup.
-        updateCurrentListNameDisplay();
+        downloadCsvBtn.addEventListener('click', () => {
+            const selectedMonthYear = monthSelect.value;
+            if (!selectedMonthYear) {
+                showMessage("Please select a month to download.", "info");
+                return;
+            }
+
+            const filteredExpenses = expenses.filter(exp => {
+                const expenseDate = new Date(exp.date);
+                const expenseMonthYear = `${expenseDate.getFullYear()}-${(expenseDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                return expenseMonthYear === selectedMonthYear;
+            });
+
+            if (filteredExpenses.length === 0) {
+                showMessage("No expenses found for the selected month.", "info");
+                return;
+            }
+
+            const headers = ["Date", "Category", "Description", "Amount (CAD)", "Amount (AED)", "Amount (INR)", "Payment Method", "Paid By", "Has Bill?", "Bill Type"];
+            const rows = filteredExpenses.map(exp => {
+                const amountCad = parseFloat(exp.amount).toFixed(2);
+                const amountAed = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountInr = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+
+                return [
+                    exp.date,
+                    exp.category,
+                    exp.description,
+                    amountCad,
+                    amountAed,
+                    amountInr,
+                    exp.paymentMethod,
+                    exp.paidBy,
+                    exp.hasBill ? 'Yes' : 'No',
+                    exp.billType || 'N/A'
+                ];
+            });
+
+            let csvContent = headers.map(header => `"${header.replace(/"/g, '""')}"`).join(',') + '\n';
+            rows.forEach(row => {
+                csvContent += row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            const [year, month] = selectedMonthYear.split('-');
+            const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `expenses_${monthName}-${year}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showMessage(`Expenses for ${monthName} ${year} downloaded successfully!`, 'success');
+        });
+
+        // Initialize charts and AI button state on first load (before data comes from Firestore)
+        // They will be updated once data streams in via onAuthStateChanged -> listenToExpenses -> renderExpenses
+        updateCategoryChart([]); // Initialize empty charts
+        updateMonthlyChart([]);
+        getInsightsBtn.disabled = true; // Disable until data is loaded
     </script>
 </body>
 </html>
