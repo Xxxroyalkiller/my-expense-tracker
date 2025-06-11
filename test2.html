@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Expenditure Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // ADD signInAnonymously here
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
+            authDomain: "my-expenese-tracker.firebaseapp.com",
+            projectId: "my-expenese-tracker",
+            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            messagingSenderId: "466782350290",
+            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
+            measurementId: "G-1CF1ZNLPC2"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // Global variables for Firebase instances (accessible by other scripts)
+        window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.googleAuthProvider = provider;
+
+        // Export Firebase functions to make them available globally for use in the main script
+        window.onFirebaseAuthChanged = onAuthStateChanged;
+        window.firebaseSignInWithPopup = signInWithPopup;
+        window.firebaseSignOut = signOut;
+        window.firebaseAddDoc = addDoc;
+        window.firebaseCollection = collection;
+        window.firebaseQuery = query;
+        window.firebaseOnSnapshot = onSnapshot;
+        window.firebaseDeleteDoc = deleteDoc;
+        window.firebaseDoc = doc;
+        // EXPORT signInAnonymously
+        window.firebaseSignInAnonymously = signInAnonymously;
+    </script>
+    <style>
+        /* Apple-like font stack (system fonts with fallbacks) */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f5f5f7; /* Very light gray, almost white */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333; /* Darker text for better readability */
+        }
+
+        /* Custom scrollbar for the table container - subtle grays */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background-color: #d1d1d6; /* Light gray */
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background-color: #e8e8ed; /* Even lighter gray */
+        }
+        
+        /* Chart container styling for responsiveness */
+        .chart-container {
+            position: relative;
+            height: 400px; /* Max height for charts */
+            width: 100%;
+            margin: auto; /* Center the charts */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+        
+        /* Loading overlay - clean and simple */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95); /* More opaque white */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007aff; /* Apple blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* General button styling for a softer, Apple-like look */
+        .btn-primary {
+            background-color: #007aff; /* Apple Blue */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px; /* More rounded */
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .btn-primary:hover {
+            background-color: #0066cc; /* Slightly darker blue on hover */
+            transform: translateY(-1px); /* Slight lift */
+        }
+        .btn-primary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.5); /* Blue ring focus */
+        }
+
+        .btn-secondary {
+            background-color: #f0f0f0; /* Light gray background */
+            color: #333;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            border: 1px solid #d1d1d6; /* Subtle border */
+        }
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-1px);
+        }
+        .btn-secondary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-danger {
+            background-color: #ff3b30; /* Apple Red */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-danger:hover {
+            background-color: #cc0000;
+            transform: translateY(-1px);
+        }
+        .btn-danger:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.5);
+        }
+
+        /* Input field styling */
+        .app-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d1d6; /* Light gray border */
+            border-radius: 8px; /* Slightly rounded */
+            background-color: white;
+            color: #333;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .app-input:focus {
+            outline: none;
+            border-color: #007aff; /* Blue border on focus */
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2); /* Soft blue glow */
+        }
+        .app-select {
+            appearance: none; /* Remove default arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Space for the custom arrow */
+        }
+        
+        /* Card/Container styling */
+        .app-card {
+            background-color: white;
+            border-radius: 18px; /* More pronounced rounding for main cards */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05); /* Softer, more diffuse shadow */
+            padding: 32px; /* Increased padding */
+            margin-bottom: 24px; /* Consistent spacing */
+        }
+
+        /* Table styling */
+        .app-table {
+            border-collapse: separate; /* Allows for rounded corners on cells/rows */
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .app-table thead {
+            background-color: #f8f8fa; /* Very light gray for table header */
+        }
+
+        .app-table th {
+            padding: 16px 24px;
+            text-align: left;
+            font-weight: 600; /* Slightly bolder header text */
+            font-size: 0.85rem;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .app-table td {
+            padding: 14px 24px;
+            border-bottom: 1px solid #efefef; /* Lighter divider */
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .app-table tbody tr:last-child td {
+            border-bottom: none; /* No border on the last row */
+        }
+
+        .app-table tbody tr:hover {
+            background-color: #f9f9f9; /* Subtle hover effect */
+        }
+
+        /* Specific overrides for messages and totals */
+        .message-success {
+            background-color: #e6f7ed; /* Soft green */
+            color: #1a6438; /* Dark green text */
+            border-color: #8ce1a7;
+        }
+        .message-error {
+            background-color: #ffebe6; /* Soft red */
+            color: #b32f2f; /* Dark red text */
+            border-color: #ff8c8c;
+        }
+        .message-info {
+            background-color: #e6f0ff; /* Soft blue */
+            color: #004d99; /* Dark blue text */
+            border-color: #8cbaff;
+        }
+
+        #totalExpenditure {
+            font-size: 1.6rem; /* Larger total amount */
+            font-weight: 700;
+            color: #007aff; /* Apple Blue for total */
+        }
+
+        .section-header {
+            font-size: 1.8rem; /* Larger, bolder headers */
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .sub-section-header {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+    </style>
+</head>
+<body class="flex flex-col items-center p-4 min-h-screen">
+    <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
+        <p class="text-gray-700 text-lg">Initializing app...</p>
+    </div>
+
+    <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
+        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
+        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
+        <div class="space-y-4">
+            <button id="authButton" class="btn-primary w-full">
+                Sign In with Google
+            </button>
+            <button id="guestButton" class="btn-secondary w-full">
+                Continue as Guest
+            </button>
+        </div>
+        <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
+        <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
+    </div>
+
+    <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
+        <div class="app-card flex flex-col md:flex-row items-center justify-between">
+            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
+            <div class="flex items-center gap-4">
+                <div id="mainAppUserInfo" class="text-gray-600 text-center md:text-right text-sm"></div>
+                <button id="signOutButton" class="btn-danger">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Add New Expense</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+                    <input type="date" id="expenseDate" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-600 mb-1">Amount (CAD)</label>
+                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>
+                    <select id="paymentMethod" class="app-input app-select">
+                        <option value="">Select Method</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Online Payment">Online Payment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paidBy" class="block text-sm font-medium text-gray-600 mb-1">Paid By</label>
+                    <input type="text" id="paidBy" placeholder="e.g., John, Sarah" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1 flex items-center mt-3">
+                    <input type="checkbox" id="hasBill" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="hasBill" class="ml-2 block text-sm font-medium text-gray-600">Do you have the bill?</label>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1" id="billTypeContainer" style="display: none;">
+                    <label for="billType" class="block text-sm font-medium text-gray-600 mb-1">Bill Type</label>
+                    <select id="billType" class="app-input app-select">
+                        <option value="">Select Type</option>
+                        <option value="Physical">Physical</option>
+                        <option value="Digital">Digital</option>
+                    </select>
+                </div>
+            </div>
+            <button id="addExpenseBtn" class="btn-primary w-full">
+                Add Expense
+            </button>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Your Expenses</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 table-container">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Amount (CAD)</th>
+                            <th scope="col">Amount (AED)</th>
+                            <th scope="col">Amount (INR)</th>
+                            <th scope="col">Method</th>
+                            <th scope="col">Paid By</th>
+                            <th scope="col">Has Bill?</th>
+                            <th scope="col">Bill Type</th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Delete</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="app-card flex justify-end">
+            <h2 class="text-xl font-bold text-gray-800">Total Expenditure: <span id="totalExpenditure">C$0.00</span></h2>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">AI-Powered Insights</h2>
+            <button id="getInsightsBtn" class="btn-primary w-full">
+                Get Spending Insights ✨
+            </button>
+            <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
+                <p class="font-medium">Analyzing your expenses...</p>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="section-header">Spending Visualizations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Spending Distribution by Category</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseCategoryChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed across different categories.</p>
+                </div>
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Monthly Total Expenditure</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseMonthlyChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This bar graph shows your total expenditure for each month.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Download Data (CSV)</h2>
+            <div class="flex flex-col md:flex-row items-center gap-4">
+                <div class="flex-grow w-full md:w-auto">
+                    <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
+                    <select id="monthSelect" class="app-input app-select">
+                        <option value="">Select a month...</option>
+                    </select>
+                </div>
+                <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
+                    Download CSV
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a CSV file, compatible with Excel/Google Sheets.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import firebase dependencies that were made global by the first script tag
+        const auth = window.firebaseAuth;
+        const db = window.firebaseDb;
+        const provider = window.googleAuthProvider;
+        const signInWithPopup = window.firebaseSignInWithPopup;
+        const signOut = window.firebaseSignOut;
+        const onAuthStateChanged = window.onFirebaseAuthChanged;
+        const addDoc = window.firebaseAddDoc;
+        const collection = window.firebaseCollection;
+        const query = window.firebaseQuery;
+        const onSnapshot = window.firebaseOnSnapshot;
+        const deleteDoc = window.firebaseDeleteDoc;
+        const docRef = window.firebaseDoc;
+        // IMPORT signInAnonymously
+        const signInAnonymously = window.firebaseSignInAnonymously;
+
+        // DOM element references
+        const expenseDateInput = document.getElementById('expenseDate');
+        const expenseCategoryInput = document.getElementById('expenseCategory');
+        const expenseDescriptionInput = document.getElementById('expenseDescription');
+        const expenseAmountInput = document.getElementById('expenseAmount');
+        const paymentMethodInput = document.getElementById('paymentMethod');
+        const paidByInput = document.getElementById('paidBy');
+        const hasBillInput = document.getElementById('hasBill');
+        const billTypeContainer = document.getElementById('billTypeContainer');
+        const billTypeInput = document.getElementById('billType');
+        const addExpenseBtn = document.getElementById('addExpenseBtn');
+        const expenseTableBody = document.getElementById('expenseTableBody');
+        const totalExpenditureSpan = document.getElementById('totalExpenditure');
+        const getInsightsBtn = document.getElementById('getInsightsBtn');
+        const insightsDisplay = document.getElementById('insightsDisplay');
+        const expenseCategoryChartCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+        const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
+        const monthSelect = document.getElementById('monthSelect');
+        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+
+        const authButton = document.getElementById('authButton'); // Button on login screen (Google Sign-In)
+        const guestButton = document.getElementById('guestButton'); // NEW: Guest Login Button
+        const userInfoDiv = document.getElementById('userInfo'); // User info on login screen
+
+        const mainAppContainer = document.getElementById('mainAppContainer'); // Main application content
+        const loginScreen = document.getElementById('loginScreen'); // Login screen container
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); // User info display in main app
+        const signOutButton = document.getElementById('signOutButton'); // Sign Out button in main app
+
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // Global state variables
+        let expenses = [];
+        let currentUserId = null;
+        let unsubscribeFromExpenses = null;
+
+        // Exchange rates (CAD as base) - these are hardcoded for simplicity
+        const EXCHANGE_RATE_CAD_TO_AED = 2.70;
+        const EXCHANGE_RATE_CAD_TO_INR = 61.00;
+
+        // Chart instances
+        let expenseCategoryPieChart;
+        let expenseMonthlyBarChart;
+
+        // --- Loading Overlay Functions ---
+        function showLoading(message = "Loading...") {
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.querySelector('p').textContent = message;
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
+
+        // --- Authentication Functions ---
+        // Listener for the Sign In/Sign Out button on the login screen (Google)
+        authButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in with Google...");
+                await signInWithPopup(auth, provider);
+                showMessage('Signed in successfully with Google!', 'success');
+            } catch (error) {
+                console.error('Error signing in with Google:', error);
+                let errorMessage = 'Failed to sign in with Google.';
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign-in cancelled by user.';
+                } else if (error.message) {
+                    errorMessage += ` Error: ${error.message}`;
+                }
+                showMessage(errorMessage, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // NEW: Listener for the Guest Login button
+        guestButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in as Guest...");
+                await signInAnonymously(auth);
+                showMessage('Signed in successfully as Guest!', 'success');
+            } catch (error) {
+                console.error('Error signing in anonymously:', error);
+                showMessage('Failed to sign in as guest. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Listener for the Sign Out button within the main application
+        signOutButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing out...");
+                await signOut(auth);
+                showMessage('Signed out successfully!', 'success');
+            } catch (error) {
+                console.error('Error signing out:', error);
+                showMessage('Error signing out. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+
+        // --- Firebase Auth State Listener ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in
+                currentUserId = user.uid;
+                
+                // Determine display name for user info
+                let displayMessage = '';
+                if (user.isAnonymous) {
+                    displayMessage = 'Logged in as: Guest';
+                    userInfoDiv.textContent = 'Welcome, Guest!'; // For login screen (will be hidden)
+                } else {
+                    displayMessage = `Logged in as: ${user.displayName || user.email}`;
+                    userInfoDiv.textContent = `Welcome, ${user.displayName || user.email}!`; // For login screen (will be hidden)
+                }
+                mainAppUserInfo.textContent = displayMessage; // For main app
+
+                // Hide login screen, show main application
+                loginScreen.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+
+                console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
+                
+                // Start listening to expenses for this user
+                listenToExpenses(user.uid);
+            } else {
+                // User is signed out
+                currentUserId = null;
+                userInfoDiv.textContent = 'Please sign in to save your data.'; // For login screen
+                mainAppUserInfo.textContent = ''; // Clear user info in main app
+
+                // Hide main application, show login screen
+                mainAppContainer.classList.add('hidden');
+                loginScreen.classList.remove('hidden');
+
+                console.log('User signed out.');
+
+                // Clear expenses from the UI and stop listening to Firestore
+                expenses = [];
+                renderExpenses(); // Re-render to clear table and charts
+                if (unsubscribeFromExpenses) {
+                    unsubscribeFromExpenses(); // Detach any existing Firestore listener
+                }
+                showMessage('Your data will be available when you sign in.', 'info');
+            }
+            // Ensure loading overlay is hidden after initial auth check
+            hideLoading();
+        });
+
+        // --- Firestore Data Listener ---
+        function listenToExpenses(userId) {
+            if (unsubscribeFromExpenses) {
+                unsubscribeFromExpenses();
+            }
+            
+            showLoading("Loading your expenses...");
+            const q = query(collection(db, `users/${userId}/expenses`));
+            
+            unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
+                const fetchedExpenses = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    fetchedExpenses.push({
+                        id: doc.id,
+                        date: data.date,
+                        category: data.category,
+                        description: data.description,
+                        amount: data.amount,
+                        paymentMethod: data.paymentMethod,
+                        paidBy: data.paidBy,
+                        hasBill: data.hasBill,
+                        billType: data.billType
+                    });
+                });
+                expenses = fetchedExpenses;
+                renderExpenses();
+                hideLoading();
+                showMessage('Expenses synchronized from cloud!', 'success');
+            }, (error) => {
+                console.error("Error fetching Firestore expenses:", error);
+                showMessage("Error loading expenses. Check console for details.", "error");
+                hideLoading();
+            });
+        }
+
+        // --- UI Logic ---
+        hasBillInput.addEventListener('change', () => {
+            if (hasBillInput.checked) {
+                billTypeContainer.style.display = 'block';
+            } else {
+                billTypeContainer.style.display = 'none';
+                billTypeInput.value = '';
+            }
+        });
+
+        function generateColors(numColors) {
+            const colors = [];
+            // Using a palette that leans towards Apple's default chart colors (blues, greens, purples)
+            const appleLikeColors = [
+                'rgb(0, 122, 255)',  // Blue
+                'rgb(52, 199, 89)',  // Green
+                'rgb(175, 82, 222)', // Purple
+                'rgb(255, 149, 0)',  // Orange
+                'rgb(255, 59, 48)',  // Red
+                'rgb(88, 86, 214)',  // Indigo
+                'rgb(94, 92, 230)',  // Gray-ish Blue
+                'rgb(0, 199, 190)',  // Teal
+            ];
+
+            for (let i = 0; i < numColors; i++) {
+                colors.push(appleLikeColors[i % appleLikeColors.length]);
+            }
+            return colors;
+        }
+
+        function renderCategoryPieChart() {
+            const categoryTotals = {};
+            expenses.forEach(expense => {
+                const category = expense.category.toLowerCase();
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = 0;
+                }
+                categoryTotals[category] += expense.amount;
+            });
+
+            const labels = Object.keys(categoryTotals);
+            const data = Object.values(categoryTotals);
+            const backgroundColors = generateColors(labels.length);
+
+            if (expenseCategoryPieChart) {
+                expenseCategoryPieChart.data.labels = labels;
+                expenseCategoryPieChart.data.datasets[0].data = data;
+                expenseCategoryPieChart.data.datasets[0].backgroundColor = backgroundColors;
+                expenseCategoryPieChart.update();
+            } else {
+                expenseCategoryPieChart = new Chart(expenseCategoryChartCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            hoverOffset: 8, /* Slightly larger hover offset */
+                            borderColor: 'white', /* White border for slices */
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
