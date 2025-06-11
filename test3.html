@@ -386,47 +386,99 @@
             gap: 5px;
             margin-left: 10px;
         }
+
+        /* --- Splash Screen --- */
+        .splash-screen-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200; /* Higher than modals */
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .splash-screen-container.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none; /* Allow clicks to pass through when hidden */
+        }
+
+        .welcome-card {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        /* Class to hide main app content initially */
+        .hidden-app-content {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <header>
-        <div class="flex items-center">
-            <h2 class="text-xl font-semibold mr-4">Expense Tracker</h2>
-            <span id="currentListNameDisplay" class="text-gray-600 text-md">Loading...</span>
+    <div id="splashScreen" class="splash-screen-container">
+        <div class="welcome-card">
+            <h1 class="text-3xl font-bold mb-6 text-center">Welcome to your Expense Tracker.</h1>
+            <p class="text-gray-600 text-center mb-8">
+                Sign in with your Google account to effortlessly track your spending, or proceed as a guest.
+            </p>
+            <button id="splashSignInButton" class="btn-primary w-full mb-4">Sign In with Google</button>
+            <button id="splashGuestButton" class="btn-secondary w-full">Continue as Guest</button>
+            <p class="text-gray-500 text-center text-sm mt-6">
+                Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.
+            </p>
+            <p id="splashMessage" class="text-center text-sm text-blue-600 mt-4 hidden"></p>
         </div>
-        <div class="profile-container">
-            <button id="profileButton" class="profile-button">
-                <img id="profilePicture" class="profile-picture" src="https://via.placeholder.com/32" alt="Profile">
-                <span id="profileDisplayName">Guest</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
-            </button>
-            <div id="profileDropdownContent" class="profile-dropdown-content hidden">
-                <button id="authButton">Sign In with Google</button>
-                <button id="createNewListButton">Create New List</button>
-                <button id="loadExistingListButton">Load Existing List</button>
-                <button id="deleteCurrentListButton" class="text-red-600 hover:bg-red-50">Delete Current List</button>
-                <button id="signOutButton" class="hidden">Sign Out</button>
+    </div>
+
+    <div id="mainAppContent" class="hidden-app-content">
+        <header>
+            <div class="flex items-center">
+                <h2 class="text-xl font-semibold mr-4">Expense Tracker</h2>
+                <span id="currentListNameDisplay" class="text-gray-600 text-md">Loading...</span>
             </div>
-        </div>
-    </header>
+            <div class="profile-container">
+                <button id="profileButton" class="profile-button">
+                    <img id="profilePicture" class="profile-picture" src="https://via.placeholder.com/32" alt="Profile">
+                    <span id="profileDisplayName">Guest</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div id="profileDropdownContent" class="profile-dropdown-content hidden">
+                    <button id="createNewListButton">Create New List</button>
+                    <button id="loadExistingListButton">Load Existing List</button>
+                    <button id="deleteCurrentListButton" class="text-red-600 hover:bg-red-50">Delete Current List</button>
+                    <button id="signOutButton">Sign Out</button>
+                </div>
+            </div>
+        </header>
 
-    <div class="container">
-        <h2 class="text-2xl font-bold mb-6">Add New Expense</h2>
-        <div class="mb-4">
-            <input type="text" id="expenseDescription" class="app-input" placeholder="Expense description" required>
-            <input type="number" id="expenseAmount" class="app-input" placeholder="Amount" step="0.01" required>
-            <button id="addExpenseBtn" class="btn-primary w-full">Add Expense</button>
-        </div>
+        <div class="container">
+            <h2 class="text-2xl font-bold mb-6">Add New Expense</h2>
+            <div class="mb-4">
+                <input type="text" id="expenseDescription" class="app-input" placeholder="Expense description" required>
+                <input type="number" id="expenseAmount" class="app-input" placeholder="Amount" step="0.01" required>
+                <button id="addExpenseBtn" class="btn-primary w-full">Add Expense</button>
+            </div>
 
-        <h2 class="text-2xl font-bold mb-4">Your Expenses</h2>
-        <div id="expensesList" class="space-y-3">
-            <p id="noExpensesMessage" class="text-gray-500 text-center py-4">No expenses added yet. Start by adding one above!</p>
-        </div>
+            <h2 class="text-2xl font-bold mb-4">Your Expenses</h2>
+            <div id="expensesList" class="space-y-3">
+                <p id="noExpensesMessage" class="text-gray-500 text-center py-4">No expenses added yet. Start by adding one above!</p>
+            </div>
 
-        <div class="total-expenses">
-            Total: <span id="totalAmount">0.00</span>
+            <div class="total-expenses">
+                Total: <span id="totalAmount">0.00</span>
+            </div>
         </div>
     </div>
 
@@ -466,12 +518,12 @@
 
         // Your Firebase configuration
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "YOUR_API_KEY", // <--- REPLACE THIS
+            authDomain: "YOUR_AUTH_DOMAIN", // <--- REPLACE THIS
+            projectId: "YOUR_PROJECT_ID", // <--- REPLACE THIS
+            storageBucket: "YOUR_STORAGE_BUCKET", // <--- REPLACE THIS
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // <--- REPLACE THIS
+            appId: "YOUR_APP_ID" // <--- REPLACE THIS
         };
 
         // Initialize Firebase
@@ -492,7 +544,7 @@
         const profileDisplayName = document.getElementById('profileDisplayName');
         const profilePicture = document.getElementById('profilePicture');
         const profileDropdownContent = document.getElementById('profileDropdownContent');
-        const authButton = document.getElementById('authButton');
+        // const authButton = document.getElementById('authButton'); // Removed: login now on splash screen
         const signOutButton = document.getElementById('signOutButton');
         const createNewListButton = document.getElementById('createNewListButton');
         const loadExistingListButton = document.getElementById('loadExistingListButton');
@@ -519,6 +571,13 @@
 
         const loadingSpinner = document.getElementById('loadingSpinner');
         const messageContainer = document.getElementById('messageContainer');
+
+        // --- Splash Screen Elements ---
+        const splashScreen = document.getElementById('splashScreen');
+        const splashSignInButton = document.getElementById('splashSignInButton');
+        const splashGuestButton = document.getElementById('splashGuestButton');
+        const splashMessage = document.getElementById('splashMessage');
+        const mainAppContent = document.getElementById('mainAppContent');
 
 
         // --- Utility Functions ---
@@ -584,19 +643,94 @@
             }
         });
 
-        authButton.addEventListener('click', async () => {
-            profileDropdownContent.classList.add('hidden');
-            profileDropdownContent.classList.remove('active');
+        // Sign In from Splash Screen
+        splashSignInButton.addEventListener('click', async () => {
             showLoading("Signing in...");
             try {
                 await signInWithPopup(auth, provider);
-                // onAuthStateChanged will handle UI update
+                // onAuthStateChanged will handle UI update and hide splash screen
             } catch (error) {
                 console.error("Authentication failed:", error);
-                showMessage("Sign-in failed. Please try again.", "error");
+                // Display error on splash screen
+                splashMessage.textContent = "Sign-in failed. Please try again.";
+                splashMessage.classList.remove('hidden');
+                showMessage("Sign-in failed. Please try again.", "error"); // Also show toast
             } finally {
                 hideLoading();
             }
+        });
+
+        // Continue as Guest from Splash Screen
+        splashGuestButton.addEventListener('click', () => {
+            currentUserId = "guest_" + Date.now(); // Simple unique ID for guest session
+            currentListId = "guest_default_" + currentUserId; // Unique list ID for guest
+            currentListName = 'Guest List';
+            
+            // Show main app content
+            splashScreen.classList.add('hidden');
+            mainAppContent.classList.remove('hidden-app-content');
+            
+            // Set guest UI state
+            profileDisplayName.textContent = 'Guest';
+            profilePicture.src = 'https://via.placeholder.com/32';
+            signOutButton.classList.remove('hidden'); // Guest can sign out (which takes them back to splash)
+            createNewListButton.classList.add('hidden'); // Guest cannot create/load/delete persistent lists
+            loadExistingListButton.classList.add('hidden');
+            deleteCurrentListButton.classList.add('hidden');
+
+            // Initialize guest experience (no Firestore persistence for true guests)
+            expenses = [];
+            renderExpenses();
+            totalAmountSpan.textContent = formatCurrency(0);
+            updateCurrentListNameDisplay();
+            showMessage("You are viewing as a Guest. Sign in to save your data.", "info");
+            hideLoading(); // If loading was shown
+        });
+
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                profileDisplayName.textContent = user.displayName || user.email || 'User';
+                profilePicture.src = user.photoURL || 'https://via.placeholder.com/32';
+                signOutButton.classList.remove('hidden');
+                createNewListButton.classList.remove('hidden');
+                loadExistingListButton.classList.remove('hidden');
+                deleteCurrentListButton.classList.remove('hidden');
+                
+                // Hide splash screen and show main app
+                splashScreen.classList.add('hidden');
+                mainAppContent.classList.remove('hidden-app-content');
+
+                await ensureUserHasList(currentUserId);
+
+            } else {
+                // User is not logged in (or just signed out)
+                currentUserId = null;
+                currentListId = null;
+                currentListName = 'Default List'; // Reset for fresh state if not logged in
+                expenses = [];
+                renderExpenses();
+                totalAmountSpan.textContent = formatCurrency(0);
+                updateCurrentListNameDisplay(); // Update display to 'Default List' if not signed in
+
+                profileDisplayName.textContent = 'Guest';
+                profilePicture.src = 'https://via.placeholder.com/32';
+                signOutButton.classList.add('hidden'); // Hide sign out button for a not-yet-signed-in state
+                createNewListButton.classList.add('hidden'); 
+                loadExistingListButton.classList.add('hidden');
+                deleteCurrentListButton.classList.add('hidden');
+
+                if (unsubscribeFromExpenses) {
+                    unsubscribeFromExpenses(); // Detach listener when user signs out
+                }
+                
+                // Show the splash screen
+                splashScreen.classList.remove('hidden');
+                mainAppContent.classList.add('hidden-app-content');
+                splashMessage.textContent = ""; // Clear any previous messages on splash
+            }
+            hideLoading();
         });
 
         signOutButton.addEventListener('click', async () => {
@@ -605,7 +739,8 @@
             showLoading("Signing out...");
             try {
                 await signOut(auth);
-                // onAuthStateChanged will handle UI update
+                // onAuthStateChanged will handle UI update and show splash screen
+                showMessage("Signed out successfully!", "success"); // Provide immediate feedback
             } catch (error) {
                 console.error("Sign out failed:", error);
                 showMessage("Sign-out failed. Please try again.", "error");
@@ -614,44 +749,6 @@
             }
         });
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                profileDisplayName.textContent = user.displayName || user.email || 'User';
-                profilePicture.src = user.photoURL || 'https://via.placeholder.com/32';
-                authButton.classList.add('hidden');
-                signOutButton.classList.remove('hidden');
-                createNewListButton.classList.remove('hidden');
-                loadExistingListButton.classList.remove('hidden');
-                deleteCurrentListButton.classList.remove('hidden');
-                
-                await ensureUserHasList(currentUserId);
-
-            } else {
-                currentUserId = null;
-                currentListId = null;
-                currentListName = 'Guest List'; // Reset for guest users
-                expenses = [];
-                renderExpenses();
-                updateCurrentListNameDisplay(); // Update display for guest list
-
-                profileDisplayName.textContent = 'Guest';
-                profilePicture.src = 'https://via.placeholder.com/32';
-                authButton.classList.remove('hidden');
-                signOutButton.classList.add('hidden');
-                createNewListButton.classList.add('hidden');
-                loadExistingListButton.classList.add('hidden');
-                deleteCurrentListButton.classList.add('hidden');
-
-                if (unsubscribeFromExpenses) {
-                    unsubscribeFromExpenses(); // Detach listener when user signs out
-                }
-
-                // For guest users, create a temporary local list or offer sign-in
-                showMessage("You are viewing as a Guest. Sign in to save your data.", "info");
-            }
-            hideLoading();
-        });
 
         // --- List Management Functions ---
 
@@ -980,6 +1077,7 @@
         }
 
         // Initial call to update current list name display
+        // This will be overridden by onAuthStateChanged, but good for initial setup.
         updateCurrentListNameDisplay();
     </script>
 </body>
