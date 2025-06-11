@@ -6,6 +6,7 @@
     <title>Monthly Expenditure Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
         /* Apple-like font stack (system fonts with fallbacks) */
@@ -238,6 +239,91 @@
             margin-bottom: 16px;
         }
 
+        /* New styles for dropdown menu */
+        .profile-dropdown-container {
+            position: relative; /* Essential for absolute positioning of dropdown */
+            z-index: 50; /* Ensure it's above other content */
+        }
+
+        .profile-toggle-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px; /* Size of the circle */
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e0e0e0; /* Light gray background for icon */
+            color: #555; /* Icon color */
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .profile-toggle-button:hover {
+            background-color: #d1d1d6;
+        }
+
+        .profile-dropdown-content {
+            position: absolute;
+            top: calc(100% + 10px); /* Position below the toggle button with a small gap */
+            right: 0; /* Align to the right of the toggle button */
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Stronger shadow for dropdown */
+            padding: 20px;
+            min-width: 280px; /* Min width for readability */
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 15px; /* Spacing between elements */
+            border: 1px solid #e0e0e0; /* Subtle border */
+        }
+
+        .profile-dropdown-content.active {
+            display: flex; /* Show when active */
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #007aff; /* Blue background for avatar */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .profile-email {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #333;
+            word-break: break-all; /* Allow long emails to wrap */
+        }
+        
+        /* Specific button styling for dropdown */
+        .dropdown-signout-btn {
+            background-color: #ff3b30;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            width: 100%; /* Full width within dropdown */
+            text-align: center;
+        }
+        .dropdown-signout-btn:hover {
+            background-color: #cc0000;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center p-4 min-h-screen">
@@ -263,11 +349,22 @@
     <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
         <div class="app-card flex flex-col md:flex-row items-center justify-between">
             <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
-            <div class="flex items-center gap-4">
-                <div id="mainAppUserInfo" class="text-gray-600 text-center md:text-right text-sm"></div>
-                <button id="signOutButton" class="btn-danger">
-                    Sign Out
-                </button>
+            
+            <div class="profile-dropdown-container">
+                <button id="profileToggleButton" class="profile-toggle-button">
+                    <span id="profileIconText">G</span> </button>
+
+                <div id="profileDropdownContent" class="profile-dropdown-content hidden">
+                    <div class="profile-info">
+                        <div id="profileAvatar" class="profile-avatar">
+                            <span id="avatarInitial">G</span>
+                        </div>
+                        <div id="mainAppUserInfo" class="profile-email"></div>
+                    </div>
+                    <button id="signOutButton" class="dropdown-signout-btn">
+                        Sign Out
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -451,8 +548,14 @@
 
         const mainAppContainer = document.getElementById('mainAppContainer');
         const loginScreen = document.getElementById('loginScreen');
-        const mainAppUserInfo = document.getElementById('mainAppUserInfo');
-        const signOutButton = document.getElementById('signOutButton');
+        
+        // --- NEW DOM Elements for Dropdown ---
+        const profileToggleButton = document.getElementById('profileToggleButton');
+        const profileDropdownContent = document.getElementById('profileDropdownContent');
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); // This is now inside the dropdown
+        const signOutButton = document.getElementById('signOutButton');     // This is now inside the dropdown
+        const profileIconText = document.getElementById('profileIconText');
+        const avatarInitial = document.getElementById('avatarInitial');
 
         const loadingOverlay = document.getElementById('loadingOverlay');
 
@@ -477,7 +580,7 @@
 
         function hideLoading() {
             loadingOverlay.classList.add('hidden');
-            console.log("hideLoading function executed."); // Added for debugging
+            console.log("hideLoading function executed.");
         }
 
         // --- Authentication Functions ---
@@ -524,23 +627,32 @@
             } finally {
                 hideLoading();
             }
+            // Ensure dropdown is closed after sign out
+            profileDropdownContent.classList.add('hidden');
         });
 
         // --- Firebase Auth State Listener ---
         onAuthStateChanged(auth, (user) => {
-            console.log("onAuthStateChanged fired. User:", user); // Added for debugging
+            console.log("onAuthStateChanged fired. User:", user);
             if (user) {
                 currentUserId = user.uid;
                 
-                let displayMessage = '';
+                let displayEmail = user.email || 'Guest User';
+                let displayName = user.displayName || 'Guest';
+                let initial = displayName.charAt(0).toUpperCase();
+
                 if (user.isAnonymous) {
-                    displayMessage = 'Logged in as: Guest';
+                    displayEmail = 'guest@example.com'; // Placeholder email for guests
+                    displayName = 'Guest';
+                    initial = 'G';
                     userInfoDiv.textContent = 'Welcome, Guest!';
                 } else {
-                    displayMessage = `Logged in as: ${user.displayName || user.email}`;
-                    userInfoDiv.textContent = `Welcome, ${user.displayName || user.email}!`;
+                    userInfoDiv.textContent = `Welcome, ${displayName}!`;
                 }
-                mainAppUserInfo.textContent = displayMessage;
+
+                mainAppUserInfo.textContent = displayEmail; // Display full email in dropdown
+                profileIconText.textContent = initial;      // Display initial on the toggle button
+                avatarInitial.textContent = initial;        // Display initial in the avatar circle
 
                 loginScreen.classList.add('hidden');
                 mainAppContainer.classList.remove('hidden');
@@ -551,7 +663,9 @@
             } else {
                 currentUserId = null;
                 userInfoDiv.textContent = 'Please sign in to save your data.';
-                mainAppUserInfo.textContent = '';
+                mainAppUserInfo.textContent = ''; // Clear email in dropdown
+                profileIconText.textContent = 'G'; // Reset icon to Guest
+                avatarInitial.textContent = 'G';   // Reset avatar initial
 
                 mainAppContainer.classList.add('hidden');
                 loginScreen.classList.remove('hidden');
@@ -565,9 +679,25 @@
                 }
                 showMessage('Your data will be available when you sign in.', 'info');
             }
-            console.log("Auth state check complete, hiding loading overlay."); // Added for debugging
+            console.log("Auth state check complete, hiding loading overlay.");
             hideLoading();
         });
+
+        // --- Dropdown Toggle Logic ---
+        profileToggleButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from closing it immediately
+            profileDropdownContent.classList.toggle('hidden');
+            profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!profileDropdownContent.contains(event.target) && !profileToggleButton.contains(event.target)) {
+                profileDropdownContent.classList.add('hidden');
+                profileDropdownContent.classList.remove('active');
+            }
+        });
+
 
         // --- Firestore Data Listener ---
         function listenToExpenses(userId) {
@@ -854,7 +984,7 @@
                     paidBy,
                     hasBill,
                     billType,
-                    timestamp: new Date() // Add a timestamp for ordering
+                    timestamp: new Date()
                 });
                 showMessage('Expense added successfully!', 'success');
                 clearForm();
@@ -920,7 +1050,7 @@
             setTimeout(() => {
                 tempDiv.classList.remove('opacity-0', 'translate-y-4');
                 tempDiv.classList.add('opacity-100', 'translate-y-0');
-            }, 10); // Small delay to allow reflow
+            }, 10);
 
             // Animate out and remove
             setTimeout(() => {
@@ -1063,13 +1193,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
             const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months start at 0!
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
             expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
             
-            // Initial call to hide loading overlay if auth state is already determined (e.g., on refresh)
-            // This is handled by onAuthStateChanged now, but good to have a fallback
-            if (auth.currentUser !== undefined) { // Check if auth state is resolved
+            if (auth.currentUser !== undefined) {
                  hideLoading();
             }
         });
