@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Expenditure Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        /* Apple-like font stack (system fonts with fallbacks) */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f5f5f7; /* Very light gray, almost white */
+            /* Removed justify-content: center and padding to allow full width */
+            display: flex;
+            flex-direction: column; /* Changed to column to stack content vertically */
+            align-items: center; /* Keep content centered horizontally within the full width */
+            min-height: 100vh;
+            box-sizing: border-box;
+            color: #333; /* Darker text for better readability */
+            width: 100%; /* Ensure body takes full width */
+        }
+
+        /* Custom scrollbar for the table container - subtle grays */
+        .table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background-color: #d1d1d6; /* Light gray */
+            border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background-color: #e8e8ed; /* Even lighter gray */
+        }
+        
+        /* Chart container styling for responsiveness */
+        .chart-container {
+            position: relative;
+            height: 400px; /* Max height for charts */
+            width: 100%;
+            margin: auto; /* Center the charts */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+        
+        /* Loading overlay - clean and simple */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95); /* More opaque white */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007aff; /* Apple blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* General button styling for a softer, Apple-like look */
+        .btn-primary {
+            background-color: #007aff; /* Apple Blue */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px; /* More rounded */
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .btn-primary:hover {
+            background-color: #0066cc; /* Slightly darker blue on hover */
+            transform: translateY(-1px); /* Slight lift */
+        }
+        .btn-primary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.5); /* Blue ring focus */
+        }
+
+        .btn-secondary {
+            background-color: #f0f0f0; /* Light gray background */
+            color: #333;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            border: 1px solid #d1d1d6; /* Subtle border */
+        }
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-1px);
+        }
+        .btn-secondary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-danger {
+            background-color: #ff3b30; /* Apple Red */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-danger:hover {
+            background-color: #cc0000;
+            transform: translateY(-1px);
+        }
+        .btn-danger:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.5);
+        }
+
+        /* Input field styling */
+        .app-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d1d6; /* Light gray border */
+            border-radius: 8px; /* Slightly rounded */
+            background-color: white;
+            color: #333;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .app-input:focus {
+            outline: none;
+            border-color: #007aff; /* Blue border on focus */
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2); /* Soft blue glow */
+        }
+        .app-select {
+            appearance: none; /* Remove default arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Space for the custom arrow */
+        }
+        
+        /* Card/Container styling */
+        .app-card {
+            background-color: white;
+            border-radius: 18px; /* More pronounced rounding for main cards */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05); /* Softer, more diffuse shadow */
+            padding: 32px; /* Increased padding */
+            margin-bottom: 24px; /* Consistent spacing */
+        }
+
+        /* Table styling */
+        .app-table {
+            border-collapse: separate; /* Allows for rounded corners on cells/rows */
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .app-table thead {
+            background-color: #f8f8fa; /* Very light gray for table header */
+        }
+
+        .app-table th {
+            padding: 16px 24px;
+            text-align: left;
+            font-weight: 600; /* Slightly bolder header text */
+            font-size: 0.85rem;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .app-table td {
+            padding: 14px 24px;
+            border-bottom: 1px solid #efefef; /* Lighter divider */
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .app-table tbody tr:last-child td {
+            border-bottom: none; /* No border on the last row */
+        }
+
+        .app-table tbody tr:hover {
+            background-color: #f9f9f9; /* Subtle hover effect */
+        }
+
+        /* Specific overrides for messages and totals */
+        .message-success {
+            background-color: #e6f7ed; /* Soft green */
+            color: #1a6438; /* Dark green text */
+            border-color: #8ce1a7;
+        }
+        .message-error {
+            background-color: #ffebe6; /* Soft red */
+            color: #b32f2f; /* Dark red text */
+            border-color: #ff8c8c;
+        }
+        .message-info {
+            background-color: #e6f0ff; /* Soft blue */
+            color: #004d99; /* Dark blue text */
+            border-color: #8cbaff;
+        }
+
+        #totalExpenditure {
+            font-size: 1.6rem; /* Larger total amount */
+            font-weight: 700;
+            color: #007aff; /* Apple Blue for total */
+        }
+
+        .section-header {
+            font-size: 1.8rem; /* Larger, bolder headers */
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .sub-section-header {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        /* New styles for dropdown menu */
+        .profile-dropdown-container {
+            position: relative; /* Essential for absolute positioning of dropdown */
+            z-index: 50; /* Ensure it's above other content */
+        }
+
+        .profile-toggle-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px; /* Size of the circle */
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e0e0e0; /* Light gray background for icon */
+            color: #555; /* Icon color */
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .profile-toggle-button:hover {
+            background-color: #d1d1d6;
+        }
+
+        .profile-dropdown-content {
+            position: absolute;
+            top: calc(100% + 10px); /* Position below the toggle button with a small gap */
+            right: 0; /* Align to the right of the toggle button */
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Stronger shadow for dropdown */
+            padding: 20px;
+            min-width: 280px; /* Min width for readability */
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 15px; /* Spacing between elements */
+            border: 1px solid #e0e0e0; /* Subtle border */
+        }
+
+        .profile-dropdown-content.active {
+            display: flex; /* Show when active */
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #007aff; /* Blue background for avatar */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .profile-email {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #333;
+            word-break: break-all; /* Allow long emails to wrap */
+        }
+        
+        /* Specific button styling for dropdown */
+        .dropdown-signout-btn {
+            background-color: #ff3b30;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            width: 100%; /* Full width within dropdown */
+            text-align: center;
+        }
+        .dropdown-signout-btn:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen w-full"> <div id="loadingOverlay" class="loading-overlay"> <div class="spinner"></div>
+        <p class="text-gray-700 text-lg">Initializing app...</p>
+    </div>
+
+    <div id="loginScreen" class="app-card w-full max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-3xl text-center"> <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
+        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
+        <div class="space-y-4">
+            <button id="authButton" class="btn-primary w-full">
+                Sign In with Google
+            </button>
+            <button id="guestButton" class="btn-secondary w-full">
+                Continue as Guest
+            </button>
+        </div>
+        <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
+        <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
+    </div>
+
+    <div id="mainAppContainer" class="w-full max-w-4xl md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl space-y-6 hidden p-4"> <div class="app-card flex flex-col md:flex-row items-center justify-between">
+            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
+            
+            <div class="profile-dropdown-container">
+                <button id="profileToggleButton" class="profile-toggle-button">
+                    <span id="profileIconText">G</span> </button>
+
+                <div id="profileDropdownContent" class="profile-dropdown-content hidden">
+                    <div class="profile-info">
+                        <div id="profileAvatar" class="profile-avatar">
+                            <span id="avatarInitial">G</span>
+                        </div>
+                        <div id="mainAppUserInfo" class="profile-email"></div>
+                    </div>
+                    <button id="signOutButton" class="dropdown-signout-btn">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Add New Expense</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+                    <input type="date" id="expenseDate" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping" class="app-input">
+                </div>
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-600 mb-1">Amount (CAD)</label>
+                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>
+                    <select id="paymentMethod" class="app-input app-select">
+                        <option value="">Select Method</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Debit Card">Debit Card</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Online Payment">Online Payment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1">
+                    <label for="paidBy" class="block text-sm font-medium text-gray-600 mb-1">Paid By</label>
+                    <input type="text" id="paidBy" placeholder="e.g., John, Sarah" class="app-input">
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1 flex items-center mt-3">
+                    <input type="checkbox" id="hasBill" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="hasBill" class="ml-2 block text-sm font-medium text-gray-600">Do you have the bill?</label>
+                </div>
+                <div class="col-span-full md:col-span-2 lg:col-span-1" id="billTypeContainer" style="display: none;">
+                    <label for="billType" class="block text-sm font-medium text-gray-600 mb-1">Bill Type</label>
+                    <select id="billType" class="app-input app-select">
+                        <option value="">Select Type</option>
+                        <option value="Physical">Physical</option>
+                        <option value="Digital">Digital</option>
+                    </select>
+                </div>
+            </div>
+            <button id="addExpenseBtn" class="btn-primary w-full">
+                Add Expense
+            </button>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Your Expenses</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-200 table-container">
+                <table class="app-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Date</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Amount (CAD)</th>
+                            <th scope="col">Amount (AED)</th>
+                            <th scope="col">Amount (INR)</th>
+                            <th scope="col">Method</th>
+                            <th scope="col">Paid By</th>
+                            <th scope="col">Has Bill?</th>
+                            <th scope="col">Bill Type</th>
+                            <th scope="col" class="relative px-6 py-3">
+                                <span class="sr-only">Delete</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="app-card flex justify-end">
+            <h2 class="text-xl font-bold text-gray-800">Total Expenditure: <span id="totalExpenditure">C$0.00</span></h2>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">AI-Powered Insights</h2>
+            <button id="getInsightsBtn" class="btn-primary w-full">
+                Get Spending Insights ✨
+            </button>
+            <div id="insightsDisplay" class="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 hidden">
+                <p class="font-medium">Analyzing your expenses...</p>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="section-header">Spending Visualizations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Spending Distribution by Category</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseCategoryChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This pie chart visualizes how your spending is distributed across different categories.</p>
+                </div>
+                <div>
+                    <h3 class="sub-section-header text-center mb-4">Monthly Total Expenditure</h3>
+                    <div class="chart-container">
+                        <canvas id="expenseMonthlyChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-4">This bar graph shows your total expenditure for each month.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <h2 class="sub-section-header">Download Data (CSV)</h2>
+            <div class="flex flex-col md:flex-row items-center gap-4">
+                <div class="flex-grow w-full md:w-auto">
+                    <label for="monthSelect" class="block text-sm font-medium text-gray-600 mb-1">Select Month to Download:</label>
+                    <select id="monthSelect" class="app-input app-select">
+                        <option value="">Select a month...</option>
+                    </select>
+                </div>
+                <button id="downloadCsvBtn" class="btn-secondary w-full md:w-auto mt-3 md:mt-0">
+                    Download CSV
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 mt-3">Select a month to download its expenses as a CSV file, compatible with Excel/Google Sheets.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase functions directly since we're in a single module script now
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
+            authDomain: "my-expenese-tracker.firebaseapp.com",
+            projectId: "my-expenese-tracker",
+            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            messagingSenderId: "466782350290",
+            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com", // Double-check this appId!
+            measurementId: "G-1CF1ZNLPC2"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // DOM element references
+        const expenseDateInput = document.getElementById('expenseDate');
+        const expenseCategoryInput = document.getElementById('expenseCategory');
+        const expenseDescriptionInput = document.getElementById('expenseDescription');
+        const expenseAmountInput = document.getElementById('expenseAmount');
+        const paymentMethodInput = document.getElementById('paymentMethod');
+        const paidByInput = document.getElementById('paidBy');
+        const hasBillInput = document.getElementById('hasBill');
+        const billTypeContainer = document.getElementById('billTypeContainer');
+        const billTypeInput = document.getElementById('billType');
+        const addExpenseBtn = document.getElementById('addExpenseBtn');
+        const expenseTableBody = document.getElementById('expenseTableBody');
+        const totalExpenditureSpan = document.getElementById('totalExpenditure');
+        const getInsightsBtn = document.getElementById('getInsightsBtn');
+        const insightsDisplay = document.getElementById('insightsDisplay');
+        const expenseCategoryChartCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+        const expenseMonthlyChartCtx = document.getElementById('expenseMonthlyChart').getContext('2d');
+        const monthSelect = document.getElementById('monthSelect');
+        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+
+        const authButton = document.getElementById('authButton');
+        const guestButton = document.getElementById('guestButton');
+        const userInfoDiv = document.getElementById('userInfo');
+
+        const mainAppContainer = document.getElementById('mainAppContainer');
+        const loginScreen = document.getElementById('loginScreen');
+        
+        // --- NEW DOM Elements for Dropdown ---
+        const profileToggleButton = document.getElementById('profileToggleButton');
+        const profileDropdownContent = document.getElementById('profileDropdownContent');
+        const mainAppUserInfo = document.getElementById('mainAppUserInfo'); // This is now inside the dropdown
+        const signOutButton = document.getElementById('signOutButton');     // This is now inside the dropdown
+        const profileIconText = document.getElementById('profileIconText');
+        const avatarInitial = document.getElementById('avatarInitial');
+
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // Global state variables
+        let expenses = [];
+        let currentUserId = null;
+        let unsubscribeFromExpenses = null;
+
+        // Exchange rates (CAD as base) - these are hardcoded for simplicity
+        const EXCHANGE_RATE_CAD_TO_AED = 2.70;
+        const EXCHANGE_RATE_CAD_TO_INR = 61.00;
+
+        // Chart instances
+        let expenseCategoryPieChart;
+        let expenseMonthlyBarChart;
+
+        // --- Loading Overlay Functions ---
+        function showLoading(message = "Loading...") {
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.querySelector('p').textContent = message;
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+            console.log("hideLoading function executed.");
+        }
+
+        // --- Authentication Functions ---
+        authButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in with Google...");
+                await signInWithPopup(auth, provider);
+                showMessage('Signed in successfully with Google!', 'success');
+            } catch (error) {
+                console.error('Error signing in with Google:', error);
+                let errorMessage = 'Failed to sign in with Google.';
+                if (error.code === 'auth/popup-closed-by-user') {
+                    errorMessage = 'Sign-in cancelled by user.';
+                } else if (error.message) {
+                    errorMessage += ` Error: ${error.message}`;
+                }
+                showMessage(errorMessage, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        guestButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in as Guest...");
+                await signInAnonymously(auth);
+                showMessage('Signed in successfully as Guest!', 'success');
+            } catch (error) {
+                console.error('Error signing in anonymously:', error);
+                showMessage('Failed to sign in as guest. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        signOutButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing out...");
+                await signOut(auth);
+                showMessage('Signed out successfully!', 'success');
+            } catch (error) {
+                console.error('Error signing out:', error);
+                showMessage('Error signing out. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+            // Ensure dropdown is closed after sign out
+            profileDropdownContent.classList.add('hidden');
+        });
+
+        // --- Firebase Auth State Listener ---
+        onAuthStateChanged(auth, (user) => {
+            console.log("onAuthStateChanged fired. User:", user);
+            if (user) {
+                currentUserId = user.uid;
+                
+                let displayEmail = user.email || 'Guest User';
+                let displayName = user.displayName || 'Guest';
+                let initial = displayName.charAt(0).toUpperCase();
+
+                if (user.isAnonymous) {
+                    displayEmail = 'guest@example.com'; // Placeholder email for guests
+                    displayName = 'Guest';
+                    initial = 'G';
+                    userInfoDiv.textContent = 'Welcome, Guest!';
+                } else {
+                    userInfoDiv.textContent = `Welcome, ${displayName}!`;
+                }
+
+                mainAppUserInfo.textContent = displayEmail; // Display full email in dropdown
+                profileIconText.textContent = initial;      // Display initial on the toggle button
+                avatarInitial.textContent = initial;        // Display initial in the avatar circle
+
+                loginScreen.classList.add('hidden');
+                mainAppContainer.classList.remove('hidden');
+
+                console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
+                
+                listenToExpenses(user.uid);
+            } else {
+                currentUserId = null;
+                userInfoDiv.textContent = 'Please sign in to save your data.';
+                mainAppUserInfo.textContent = ''; // Clear email in dropdown
+                profileIconText.textContent = 'G'; // Reset icon to Guest
+                avatarInitial.textContent = 'G';   // Reset avatar initial
+
+                mainAppContainer.classList.add('hidden');
+                loginScreen.classList.remove('hidden');
+
+                console.log('User signed out.');
+
+                expenses = [];
+                renderExpenses();
+                if (unsubscribeFromExpenses) {
+                    unsubscribeFromExpenses();
+                }
+                showMessage('Your data will be available when you sign in.', 'info');
+            }
+            console.log("Auth state check complete, hiding loading overlay.");
+            hideLoading();
+        });
+
+        // --- Dropdown Toggle Logic ---
+        profileToggleButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from closing it immediately
+            profileDropdownContent.classList.toggle('hidden');
+            profileDropdownContent.classList.toggle('active'); // Add/remove active class for display flex
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!profileDropdownContent.contains(event.target) && !profileToggleButton.contains(event.target)) {
+                profileDropdownContent.classList.add('hidden');
+                profileDropdownContent.classList.remove('active');
+            }
+        });
+
+
+        // --- Firestore Data Listener ---
+        function listenToExpenses(userId) {
+            if (unsubscribeFromExpenses) {
+                unsubscribeFromExpenses();
+            }
+            
+            showLoading("Loading your expenses...");
+            const q = query(collection(db, `users/${userId}/expenses`));
+            
+            unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
+                const fetchedExpenses = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    fetchedExpenses.push({
+                        id: doc.id,
+                        date: data.date,
+                        category: data.category,
+                        description: data.description,
+                        amount: data.amount,
+                        paymentMethod: data.paymentMethod,
+                        paidBy: data.paidBy,
+                        hasBill: data.hasBill,
+                        billType: data.billType
+                    });
+                });
+                expenses = fetchedExpenses;
+                renderExpenses();
+                hideLoading();
+                showMessage('Expenses synchronized from cloud!', 'success');
+            }, (error) => {
+                console.error("Error fetching Firestore expenses:", error);
+                showMessage("Error loading expenses. Check console for details.", "error");
+                hideLoading();
+            });
+        }
+
+        // --- UI Logic ---
+        hasBillInput.addEventListener('change', () => {
+            if (hasBillInput.checked) {
+                billTypeContainer.style.display = 'block';
+            } else {
+                billTypeContainer.style.display = 'none';
+                billTypeInput.value = '';
+            }
+        });
+
+        function generateColors(numColors) {
+            const colors = [];
+            const appleLikeColors = [
+                'rgb(0, 122, 255)',  // Blue
+                'rgb(52, 199, 89)',  // Green
+                'rgb(175, 82, 222)', // Purple
+                'rgb(255, 149, 0)',  // Orange
+                'rgb(255, 59, 48)',  // Red
+                'rgb(88, 86, 214)',  // Indigo
+                'rgb(94, 92, 230)',  // Gray-ish Blue
+                'rgb(0, 199, 190)',  // Teal
+            ];
+
+            for (let i = 0; i < numColors; i++) {
+                colors.push(appleLikeColors[i % appleLikeColors.length]);
+            }
+            return colors;
+        }
+
+        function renderCategoryPieChart() {
+            const categoryTotals = {};
+            expenses.forEach(expense => {
+                const category = expense.category ? expense.category.toLowerCase() : 'Uncategorized';
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = 0;
+                }
+                categoryTotals[category] += parseFloat(expense.amount || 0);
+            });
+
+            const labels = Object.keys(categoryTotals);
+            const data = Object.values(categoryTotals);
+            const backgroundColors = generateColors(labels.length);
+
+            if (expenseCategoryPieChart) {
+                expenseCategoryPieChart.data.labels = labels;
+                expenseCategoryPieChart.data.datasets[0].data = data;
+                expenseCategoryPieChart.data.datasets[0].backgroundColor = backgroundColors;
+                expenseCategoryPieChart.update();
+            } else {
+                expenseCategoryPieChart = new Chart(expenseCategoryChartCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            hoverOffset: 8,
+                            borderColor: 'white',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    boxWidth: 20,
+                                    padding: 15,
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += 'C$' + context.parsed.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderMonthlyBarChart() {
+            const monthlyTotals = {};
+            expenses.forEach(expense => {
+                const date = new Date(expense.date);
+                const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+                if (!monthlyTotals[monthYear]) {
+                    monthlyTotals[monthYear] = 0;
+                }
+                monthlyTotals[monthYear] += parseFloat(expense.amount || 0);
+            });
+
+            // Sort months chronologically
+            const sortedMonthYears = Object.keys(monthlyTotals).sort((a, b) => {
+                const [monthA, yearA] = a.split(' ');
+                const [monthB, yearB] = b.split(' ');
+                const dateA = new Date(`${monthA} 1, ${yearA}`);
+                const dateB = new Date(`${monthB} 1, ${yearB}`);
+                return dateA - dateB;
+            });
+
+            const labels = sortedMonthYears;
+            const data = sortedMonthYears.map(monthYear => monthlyTotals[monthYear]);
+            const backgroundColors = generateColors(labels.length); // Use colors for bars too
+
+            if (expenseMonthlyBarChart) {
+                expenseMonthlyBarChart.data.labels = labels;
+                expenseMonthlyBarChart.data.datasets[0].data = data;
+                expenseMonthlyBarChart.data.datasets[0].backgroundColor = backgroundColors;
+                expenseMonthlyBarChart.update();
+            } else {
+                expenseMonthlyBarChart = new Chart(expenseMonthlyChartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Expenditure (CAD)',
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            borderColor: backgroundColors.map(color => color.replace('rgb', 'rgba').replace(')', ', 0.8)')), // Slightly darker border
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Amount (CAD)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Month'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false // No legend needed for a single bar dataset
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `C$${context.parsed.y.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderExpenses() {
+            expenseTableBody.innerHTML = ''; // Clear existing rows
+            let total = 0;
+
+            expenses.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+
+            expenses.forEach(expense => {
+                const amountCad = parseFloat(expense.amount);
+                total += amountCad;
+
+                const amountAed = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountInr = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="whitespace-nowrap">${expense.date}</td>
+                    <td class="whitespace-nowrap">${expense.category}</td>
+                    <td class="whitespace-nowrap">${expense.description}</td>
+                    <td class="whitespace-nowrap">C$${amountCad.toFixed(2)}</td>
+                    <td class="whitespace-nowrap">AED ${amountAed}</td>
+                    <td class="whitespace-nowrap">INR ${amountInr}</td>
+                    <td class="whitespace-nowrap">${expense.paymentMethod}</td>
+                    <td class="whitespace-nowrap">${expense.paidBy || 'N/A'}</td>
+                    <td class="whitespace-nowrap">${expense.hasBill ? 'Yes' : 'No'}</td>
+                    <td class="whitespace-nowrap">${expense.hasBill && expense.billType ? expense.billType : 'N/A'}</td>
+                    <td class="text-right whitespace-nowrap">
+                        <button data-id="${expense.id}" class="delete-btn text-red-600 hover:text-red-900 font-medium ml-2">
+                            Delete
+                        </button>
+                    </td>
+                `;
+                expenseTableBody.appendChild(row);
+            });
+
+            totalExpenditureSpan.textContent = `C$${total.toFixed(2)}`;
+            updateMonthSelect(); // Update the month dropdown for CSV download
+            renderCategoryPieChart();
+            renderMonthlyBarChart();
+
+            // Add event listeners to newly created delete buttons
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', deleteExpense);
+            });
+        }
+
+        // --- Form Handling ---
+        addExpenseBtn.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage('Please sign in to add expenses.', 'error');
+                return;
+            }
+
+            const date = expenseDateInput.value;
+            const category = expenseCategoryInput.value.trim();
+            const description = expenseDescriptionInput.value.trim();
+            const amount = parseFloat(expenseAmountInput.value);
+            const paymentMethod = paymentMethodInput.value;
+            const paidBy = paidByInput.value.trim();
+            const hasBill = hasBillInput.checked;
+            const billType = hasBill ? billTypeInput.value : '';
+
+            if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod) {
+                showMessage('Please fill in all required fields (Date, Category, Description, valid Amount, Payment Method).', 'error');
+                return;
+            }
+
+            showLoading("Adding expense...");
+            try {
+                await addDoc(collection(db, `users/${currentUserId}/expenses`), {
+                    date,
+                    category,
+                    description,
+                    amount,
+                    paymentMethod,
+                    paidBy,
+                    hasBill,
+                    billType,
+                    timestamp: new Date()
+                });
+                showMessage('Expense added successfully!', 'success');
+                clearForm();
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessage('Error adding expense. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        function clearForm() {
+            expenseDateInput.value = '';
+            expenseCategoryInput.value = '';
+            expenseDescriptionInput.value = '';
+            expenseAmountInput.value = '';
+            paymentMethodInput.value = '';
+            paidByInput.value = '';
+            hasBillInput.checked = false;
+            billTypeContainer.style.display = 'none';
+            billTypeInput.value = '';
+        }
+
+        // --- Delete Expense ---
+        async function deleteExpense(event) {
+            if (!currentUserId) {
+                showMessage('Please sign in to delete expenses.', 'error');
+                return;
+            }
+            const expenseId = event.target.dataset.id;
+            if (!expenseId) {
+                showMessage('Error: No expense ID found for deletion.', 'error');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this expense?')) {
+                showLoading("Deleting expense...");
+                try {
+                    await deleteDoc(doc(db, `users/${currentUserId}/expenses`, expenseId));
+                    showMessage('Expense deleted successfully!', 'success');
+                } catch (e) {
+                    console.error("Error deleting document: ", e);
+                    showMessage('Error deleting expense. Please try again.', 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
+        }
+
+        // --- Message Display ---
+        function showMessage(message, type = 'info') {
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = message;
+            tempDiv.className = `fixed bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-white z-50 transition-all duration-300 ease-out transform ${
+                type === 'success' ? 'bg-green-500 message-success' :
+                type === 'error' ? 'bg-red-500 message-error' :
+                'bg-blue-500 message-info'
+            } opacity-0 translate-y-4`;
+            
+            document.body.appendChild(tempDiv);
+
+            // Animate in
+            setTimeout(() => {
+                tempDiv.classList.remove('opacity-0', 'translate-y-4');
+                tempDiv.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+
+            // Animate out and remove
+            setTimeout(() => {
+                tempDiv.classList.remove('opacity-100', 'translate-y-0');
+                tempDiv.classList.add('opacity-0', 'translate-y-4');
+                tempDiv.addEventListener('transitionend', () => tempDiv.remove());
+            }, 3000);
+        }
+
+        // --- CSV Download Logic ---
+        function updateMonthSelect() {
+            monthSelect.innerHTML = '<option value="">Select a month...</option>';
+            const months = new Set();
+            expenses.forEach(expense => {
+                const date = new Date(expense.date);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1; // getMonth() is 0-indexed
+                months.add(`${year}-${String(month).padStart(2, '0')}`); // e.g., "2023-01"
+            });
+
+            Array.from(months).sort().forEach(monthYear => {
+                const [year, month] = monthYear.split('-');
+                const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
+                const option = document.createElement('option');
+                option.value = monthYear;
+                option.textContent = `${monthName} ${year}`;
+                monthSelect.appendChild(option);
+            });
+        }
+
+        downloadCsvBtn.addEventListener('click', () => {
+            const selectedMonthYear = monthSelect.value;
+            if (!selectedMonthYear) {
+                showMessage('Please select a month to download.', 'info');
+                return;
+            }
+
+            const filteredExpenses = expenses.filter(expense => {
+                const date = new Date(expense.date);
+                const expenseMonthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                return expenseMonthYear === selectedMonthYear;
+            });
+
+            if (filteredExpenses.length === 0) {
+                showMessage('No expenses found for the selected month.', 'info');
+                return;
+            }
+
+            const headers = ["Date", "Category", "Description", "Amount (CAD)", "Amount (AED)", "Amount (INR)", "Payment Method", "Paid By", "Has Bill?", "Bill Type"];
+            const csvRows = [];
+            csvRows.push(headers.join(','));
+
+            filteredExpenses.forEach(expense => {
+                const amountCad = parseFloat(expense.amount);
+                const amountAed = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
+                const amountInr = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
+
+                const row = [
+                    `"${expense.date}"`,
+                    `"${expense.category.replace(/"/g, '""')}"`,
+                    `"${expense.description.replace(/"/g, '""')}"`,
+                    amountCad.toFixed(2),
+                    amountAed,
+                    amountInr,
+                    `"${expense.paymentMethod.replace(/"/g, '""')}"`,
+                    `"${(expense.paidBy || 'N/A').replace(/"/g, '""')}"`,
+                    `"${expense.hasBill ? 'Yes' : 'No'}"`,
+                    `"${(expense.hasBill && expense.billType ? expense.billType : 'N/A').replace(/"/g, '""')}"`
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `expenses_${selectedMonthYear}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage(`CSV downloaded for ${monthSelect.options[monthSelect.selectedIndex].textContent}.`, 'success');
+        });
+
+        // --- AI Insights (using a placeholder for now as full AI integration is complex) ---
+        getInsightsBtn.addEventListener('click', async () => {
+            if (expenses.length === 0) {
+                showMessage("Add some expenses first to get insights!", "info");
+                return;
+            }
+
+            insightsDisplay.classList.remove('hidden');
+            insightsDisplay.innerHTML = '<p class="font-medium text-center">Analyzing your expenses...</p>';
+
+            // Simulate API call delay
+            showLoading("Generating insights...");
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const categoryTotals = {};
+            let totalAmount = 0;
+            expenses.forEach(expense => {
+                const category = expense.category ? expense.category : 'Uncategorized';
+                const amount = parseFloat(expense.amount || 0);
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = 0;
+                }
+                categoryTotals[category] += amount;
+                totalAmount += amount;
+            });
+
+            // Sort categories by amount spent
+            const sortedCategories = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
+
+            let insightsText = `<h3 class="font-bold text-lg mb-2">Spending Insights:</h3>`;
+            insightsText += `<p>Your total expenditure across all recorded transactions is <strong>C$${totalAmount.toFixed(2)}</strong>.</p>`;
+
+            if (sortedCategories.length > 0) {
+                insightsText += `<p class="mt-2">Here's a breakdown by category:</p><ul class="list-disc list-inside mt-1">`;
+                sortedCategories.forEach(([category, amount]) => {
+                    const percentage = (amount / totalAmount * 100).toFixed(1);
+                    insightsText += `<li><strong>${category}</strong>: C$${amount.toFixed(2)} (${percentage}%)</li>`;
+                });
+                insightsText += `</ul>`;
+
+                const topCategory = sortedCategories[0][0];
+                insightsText += `<p class="mt-2">Your largest spending category is <strong>${topCategory}</strong>. Consider reviewing expenses in this area for potential savings.</p>`;
+            } else {
+                insightsText += `<p class="mt-2">No categorized spending data available for detailed insights.</p>`;
+            }
+
+            // Provide a generic tip for cash flow
+            insightsText += `<p class="mt-4">To better manage your cash flow, try to set a budget for each category and review your spending regularly.</p>`;
+
+            insightsDisplay.innerHTML = insightsText;
+            hideLoading();
+        });
+
+        // Set today's date as default for expenseDate input
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
+            
+            if (auth.currentUser !== undefined) {
+                 hideLoading();
+            }
+        });
+
+    </script>
+</body>
+</html>
