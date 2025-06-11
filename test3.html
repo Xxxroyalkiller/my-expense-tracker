@@ -206,22 +206,6 @@
         }
 
         /* Specific overrides for messages and totals */
-        .message-success {
-            background-color: #e6f7ed; /* Soft green */
-            color: #1a6438; /* Dark green text */
-            border-color: #8ce1a7;
-        }
-        .message-error {
-            background-color: #ffebe6; /* Soft red */
-            color: #b32f2f; /* Dark red text */
-            border-color: #ff8c8c;
-        }
-        .message-info {
-            background-color: #e6f0ff; /* Soft blue */
-            color: #004d99; /* Dark blue text */
-            border-color: #8cbaff;
-        }
-
         #totalExpenditure {
             font-size: 1.6rem; /* Larger total amount */
             font-weight: 700;
@@ -315,7 +299,7 @@
         }
         
         /* Specific button styling for dropdown */
-        .dropdown-signout-btn, .dropdown-settings-btn {
+        .dropdown-button { /* General style for all buttons in dropdown */
             background-color: #f0f0f0; /* Light gray background */
             color: #333;
             padding: 10px 20px;
@@ -326,11 +310,11 @@
             text-align: center;
             border: 1px solid #d1d1d6;
         }
-        .dropdown-signout-btn:hover, .dropdown-settings-btn:hover {
+        .dropdown-button:hover {
             background-color: #e0e0e0;
             transform: translateY(-1px);
         }
-        .dropdown-signout-btn:focus, .dropdown-settings-btn:focus {
+        .dropdown-button:focus {
             outline: none;
             box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
         }
@@ -406,6 +390,76 @@
             font-size: 0.8rem;
             margin-left: 5px;
         }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .list-item:hover {
+            background-color: #eef;
+            border-color: #007aff;
+        }
+        .list-item.active-list {
+            background-color: #e6f0ff; /* Light blue for active list */
+            border-color: #007aff;
+            font-weight: 600;
+        }
+
+        /* Message Overlay & Content */
+        #messageContainer {
+            position: fixed;
+            bottom: 20px; /* Slightly higher from bottom */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000; /* High z-index to be on top */
+            display: flex; /* Use flex to center messages if needed */
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none; /* Allows clicks to pass through if no message */
+        }
+
+        .app-message {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            margin-bottom: 8px; /* Space between multiple messages if they stack */
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 90%; /* Max width to prevent overflow on small screens */
+            text-align: center;
+        }
+
+        .app-message.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto; /* Allow interaction when active */
+        }
+
+        /* Specific message colors */
+        .message-success {
+            background-color: #e6f7ed; /* Soft green */
+            color: #1a6438; /* Dark green text */
+            border-color: #8ce1a7;
+        }
+        .message-error {
+            background-color: #ffebe6; /* Soft red */
+            color: #b32f2f; /* Dark red text */
+            border-color: #ff8c8c;
+        }
+        .message-info {
+            background-color: #e6f0ff; /* Soft blue */
+            color: #004d99; /* Dark blue text */
+            border-color: #8cbaff;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen w-full">
@@ -429,7 +483,10 @@
 
     <div id="mainAppContainer" class="w-full max-w-4xl md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl space-y-6 hidden p-4">
         <div class="app-card flex flex-col md:flex-row items-center justify-between">
-            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
+            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">
+                Expense Tracker 
+                <span id="currentListNameDisplay" class="text-gray-500 text-base block md:inline-block font-normal ml-2">(List: Default List)</span>
+            </h1>
             
             <div class="profile-dropdown-container">
                 <button id="profileToggleButton" class="profile-toggle-button">
@@ -442,8 +499,14 @@
                         </div>
                         <div id="mainAppUserInfo" class="profile-email"></div>
                     </div>
-                    <button id="settingsButton" class="dropdown-settings-btn">
+                    <button id="settingsButton" class="dropdown-button">
                         Settings
+                    </button>
+                    <button id="createNewListButton" class="dropdown-button">
+                        Create New List
+                    </button>
+                    <button id="loadExistingListButton" class="dropdown-button">
+                        Load Existing List
                     </button>
                     <button id="signOutButton" class="dropdown-signout-btn">
                         Sign Out
@@ -565,19 +628,44 @@
         </div>
     </div>
 
+    <div id="createNewListModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="mb-4">Create New Expense List</h2>
+            <label for="newListName" class="block text-sm font-medium text-gray-600 mb-1">List Name</label>
+            <input type="text" id="newListName" class="app-input mb-4" placeholder="e.g., Household Budget, Vacation Trip 2024">
+            <div class="flex gap-4">
+                <button id="createListConfirmBtn" class="btn-primary flex-grow">Create List</button>
+                <button id="cancelCreateListBtn" class="btn-secondary flex-grow">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadExistingListModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="mb-4">Load Existing Expense List</h2>
+            <div id="existingListsContainer" class="space-y-3 mb-6">
+                <p class="text-center text-gray-500" id="noListsMessage">No lists found. Create a new one!</p>
+            </div>
+            <div class="flex justify-end">
+                <button id="closeLoadListBtn" class="btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageContainer"></div>
 
     <script type="module">
         // Import Firebase functions directly since we're in a single module script now
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
         const firebaseConfig = {
             apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
             authDomain: "my-expenese-tracker.firebaseapp.com",
             projectId: "my-expenese-tracker",
-            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            storageBucket: "my-expenese-tracker.firebaseapp.com",
             messagingSenderId: "466782350290",
             appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com", // Double-check this appId!
             measurementId: "G-1CF1ZNLPC2"
@@ -616,6 +704,7 @@
         const signOutButton = document.getElementById('signOutButton');
         const profileIconText = document.getElementById('profileIconText');
         const avatarInitial = document.getElementById('avatarInitial');
+        const currentListNameDisplay = document.getElementById('currentListNameDisplay');
 
         const loadingOverlay = document.getElementById('loadingOverlay');
 
@@ -630,9 +719,27 @@
         const newFieldTypeSelect = document.getElementById('newFieldType');
         const addNewFieldBtn = document.getElementById('addNewFieldBtn');
 
+        // --- New List Management Elements ---
+        const createNewListButton = document.getElementById('createNewListButton');
+        const loadExistingListButton = document.getElementById('loadExistingListButton');
+        const createNewListModal = document.getElementById('createNewListModal');
+        const newListNameInput = document.getElementById('newListName');
+        const createListConfirmBtn = document.getElementById('createListConfirmBtn');
+        const cancelCreateListBtn = document.getElementById('cancelCreateListBtn');
+        const loadExistingListModal = document.getElementById('loadExistingListModal');
+        const existingListsContainer = document.getElementById('existingListsContainer');
+        const noListsMessage = document.getElementById('noListsMessage');
+        const closeLoadListBtn = document.getElementById('closeLoadListBtn');
+
+        // --- Message Container ---
+        const messageContainer = document.getElementById('messageContainer');
+
+
         // Global state variables
         let expenses = [];
         let currentUserId = null;
+        let currentListId = null; // New: To track the currently active list
+        let currentListName = 'Default List'; // New: To display the name of the current list
         let unsubscribeFromExpenses = null;
         let userConfiguredFields = []; // Stores the current configuration of fields for the user
 
@@ -657,8 +764,6 @@
             { id: 'paidBy', label: 'Paid By', type: 'text', required: false, displayInTable: true, predefined: false }, // Made optional
             { id: 'hasBill', label: 'Do you have the bill?', type: 'checkbox', required: false, displayInTable: true, predefined: false },
             { id: 'billType', label: 'Bill Type', type: 'select', options: ['Physical', 'Digital'], dependsOn: 'hasBill', required: false, displayInTable: true, predefined: false },
-            // Add custom fields here if needed as part of initial setup, e.g.:
-            // { id: 'projectName', label: 'Project Name', type: 'text', required: false, displayInTable: true, predefined: false }
         ];
 
         // --- Loading Overlay Functions ---
@@ -698,8 +803,8 @@
                 await signInAnonymously(auth);
                 showMessage('Signed in successfully as Guest!', 'success');
             } catch (error) {
-                console.error('Error signing in anonymously:', error);
-                showMessage('Failed to sign in as guest. Please try again.', 'error');
+                    console.error('Error signing in anonymously:', error);
+                    showMessage('Failed to sign in as guest. Please try again.', 'error');
             } finally {
                 hideLoading();
             }
@@ -748,10 +853,14 @@
 
                 console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
                 
-                await loadUserSettings(user.uid); // Load user settings
-                listenToExpenses(user.uid); // Then listen to expenses
+                await loadUserSettings(user.uid); // Load user settings (fields)
+                await ensureUserHasList(user.uid); // New: Ensure user has at least one list
+                // The listenToExpenses will be called by ensureUserHasList or switchToList
             } else {
                 currentUserId = null;
+                currentListId = null;
+                currentListName = 'Default List'; // Reset to default
+                updateCurrentListNameDisplay(); // Update UI
                 userInfoDiv.textContent = 'Please sign in to save your data.'; 
                 mainAppUserInfo.textContent = '';
                 profileIconText.textContent = 'G';
@@ -786,10 +895,13 @@
                 profileDropdownContent.classList.add('hidden');
                 profileDropdownContent.classList.remove('active');
             }
-            // Also close settings modal if open and clicked outside
-            if (settingsModal.classList.contains('active') && !settingsModal.querySelector('.modal-content').contains(event.target) && event.target !== settingsButton) {
-                closeSettingsModal();
-            }
+            // Also close any open modals if clicked outside
+            const modals = [settingsModal, createNewListModal, loadExistingListModal];
+            modals.forEach(modal => {
+                if (modal.classList.contains('active') && !modal.querySelector('.modal-content').contains(event.target)) {
+                    modal.classList.remove('active');
+                }
+            });
         });
 
         // --- Settings Modal Logic ---
@@ -805,14 +917,10 @@
         });
 
         closeSettingsBtn.addEventListener('click', () => {
-            closeSettingsModal();
-        });
-
-        function closeSettingsModal() {
             settingsModal.classList.remove('active');
             newFieldNameInput.value = ''; // Clear new field input
             newFieldTypeSelect.value = 'text'; // Reset type
-        }
+        });
 
         saveSettingsBtn.addEventListener('click', async () => {
             if (!currentUserId) {
@@ -826,13 +934,13 @@
                 await setDoc(doc(db, `userSettings/${currentUserId}`), { fields: validFields });
                 showMessage("Settings saved successfully!", "success");
                 renderExpenseForm(); // Re-render the expense form with new settings
-                renderExpenses(); // Re-render the table with new headers
+                renderExpenses(); // Re-render the table with new headers (due to field changes)
             } catch (error) {
                 console.error("Error saving settings:", error);
                 showMessage("Failed to save settings.", "error");
             } finally {
                 hideLoading();
-                closeSettingsModal();
+                settingsModal.classList.remove('active');
             }
         });
 
@@ -941,7 +1049,7 @@
             showLoading("Loading your settings...");
             try {
                 const docRef = doc(db, `userSettings/${userId}`);
-                const docSnap = await getDoc(docRef); // Use getDoc instead of onSnapshot for initial load
+                const docSnap = await getDoc(docRef); 
 
                 if (docSnap.exists() && docSnap.data().fields && docSnap.data().fields.length > 0) {
                     userConfiguredFields = docSnap.data().fields;
@@ -961,6 +1069,189 @@
                 hideLoading();
             }
         }
+
+        // --- New: List Management Functions ---
+        createNewListButton.addEventListener('click', () => {
+            if (!currentUserId) {
+                showMessage("Sign in to create a new list.", "info");
+                return;
+            }
+            profileDropdownContent.classList.add('hidden'); // Hide profile dropdown
+            profileDropdownContent.classList.remove('active');
+            newListNameInput.value = ''; // Clear previous input
+            createNewListModal.classList.add('active');
+            newListNameInput.focus();
+        });
+
+        cancelCreateListBtn.addEventListener('click', () => {
+            createNewListModal.classList.remove('active');
+        });
+
+        createListConfirmBtn.addEventListener('click', async () => {
+            const listName = newListNameInput.value.trim();
+            if (!listName) {
+                showMessage("List name cannot be empty.", "error");
+                return;
+            }
+
+            showLoading("Creating new list...");
+            try {
+                // Generate a new document ID for the list
+                const newListRef = doc(collection(db, `users/${currentUserId}/lists`));
+                await setDoc(newListRef, {
+                    name: listName,
+                    createdAt: new Date(),
+                    lastAccessed: new Date() // Store last accessed for potential future "recent lists" feature
+                });
+                showMessage(`List "${listName}" created successfully!`, "success");
+                createNewListModal.classList.remove('active');
+                await switchToList(newListRef.id, listName); // Switch to the new list
+            } catch (error) {
+                console.error("Error creating new list:", error);
+                showMessage("Failed to create new list.", "error");
+            } finally {
+                hideLoading();
+            }
+        });
+
+        loadExistingListButton.addEventListener('click', async () => {
+            if (!currentUserId) {
+                showMessage("Sign in to load existing lists.", "info");
+                return;
+            }
+            profileDropdownContent.classList.add('hidden'); // Hide profile dropdown
+            profileDropdownContent.classList.remove('active');
+            await renderExistingLists(); // Populate the list in the modal
+            loadExistingListModal.classList.add('active');
+        });
+
+        closeLoadListBtn.addEventListener('click', () => {
+            loadExistingListModal.classList.remove('active');
+        });
+
+        async function renderExistingLists() {
+            existingListsContainer.innerHTML = ''; // Clear existing list
+            noListsMessage.classList.add('hidden'); // Hide message initially
+
+            showLoading("Loading lists...");
+            try {
+                const q = query(collection(db, `users/${currentUserId}/lists`));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    noListsMessage.classList.remove('hidden');
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const listData = doc.data();
+                    const listItem = document.createElement('div');
+                    listItem.className = `list-item ${doc.id === currentListId ? 'active-list' : ''}`;
+                    listItem.dataset.listId = doc.id;
+                    listItem.dataset.listName = listData.name;
+                    listItem.innerHTML = `
+                        <span>${listData.name}</span>
+                        <button class="btn-secondary text-sm px-3 py-1 ml-2">Load</button>
+                    `;
+                    listItem.querySelector('button').addEventListener('click', async () => {
+                        await switchToList(doc.id, listData.name);
+                        loadExistingListModal.classList.remove('active');
+                    });
+                     // Also allow clicking anywhere on the item to load
+                    listItem.addEventListener('click', async (e) => {
+                        if (e.target.tagName !== 'BUTTON') { // Avoid double-trigger if button is clicked
+                             await switchToList(doc.id, listData.name);
+                             loadExistingListModal.classList.remove('active');
+                        }
+                    });
+
+                    existingListsContainer.appendChild(listItem);
+                });
+                showMessage("Lists loaded!", "info");
+            } catch (error) {
+                console.error("Error loading existing lists:", error);
+                showMessage("Failed to load existing lists.", "error");
+                noListsMessage.classList.remove('hidden'); // Show message on error
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function switchToList(listId, listName) {
+            if (currentListId === listId) {
+                showMessage(`Already on "${listName}".`, "info");
+                return;
+            }
+            showLoading(`Switching to list: ${listName}...`);
+            currentListId = listId;
+            currentListName = listName;
+            updateCurrentListNameDisplay(); // Update the UI
+            
+            // Update last accessed time for this list
+            try {
+                await setDoc(doc(db, `users/${currentUserId}/lists`, currentListId), { lastAccessed: new Date() }, { merge: true });
+            } catch (error) {
+                console.warn("Could not update lastAccessed for list:", error);
+            }
+
+            // Unsubscribe from previous expenses and subscribe to new list's expenses
+            listenToExpenses(currentUserId, currentListId); 
+            
+            // Clear current expenses and re-render to reflect new list's data
+            expenses = [];
+            renderExpenses(); // This will clear the table until new data loads
+            showMessage(`Switched to "${listName}".`, "success");
+            hideLoading();
+        }
+
+        async function ensureUserHasList(userId) {
+            showLoading("Checking your lists...");
+            try {
+                const listsCollectionRef = collection(db, `users/${userId}/lists`);
+                const querySnapshot = await getDocs(listsCollectionRef);
+
+                if (querySnapshot.empty) {
+                    console.log("No lists found for user. Creating a default list.");
+                    // Create a default list if none exist
+                    const defaultListName = "My First List";
+                    const newListRef = doc(listsCollectionRef); // Let Firestore generate the ID
+                    await setDoc(newListRef, {
+                        name: defaultListName,
+                        createdAt: new Date(),
+                        lastAccessed: new Date()
+                    });
+                    currentListId = newListRef.id;
+                    currentListName = defaultListName;
+                    showMessage(`Created "${defaultListName}" for you!`, "info");
+                } else {
+                    // Load the most recently accessed list
+                    const sortedLists = querySnapshot.docs
+                        .map(doc => ({ id: doc.id, ...doc.data() }))
+                        .sort((a, b) => (b.lastAccessed?.toDate() || new Date(0)) - (a.lastAccessed?.toDate() || new Date(0)));
+                    
+                    const lastAccessedList = sortedLists[0];
+                    currentListId = lastAccessedList.id;
+                    currentListName = lastAccessedList.name;
+                    showMessage(`Loading "${currentListName}"...`, "info");
+                }
+                updateCurrentListNameDisplay();
+                // Now that currentListId is set, start listening to expenses for that list
+                listenToExpenses(userId, currentListId);
+            } catch (error) {
+                console.error("Error ensuring user has a list:", error);
+                showMessage("Error managing lists. Please try again.", "error");
+                // Fallback to default list name if something goes wrong
+                currentListName = 'Default List';
+                updateCurrentListNameDisplay();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function updateCurrentListNameDisplay() {
+            currentListNameDisplay.textContent = `(List: ${currentListName})`;
+        }
+
 
         // --- Dynamic Form Rendering ---
         function renderExpenseForm() {
@@ -987,10 +1278,12 @@
                         optionsHtml += `<option value="${option}">${option}</option>`;
                     });
                      div.innerHTML = `
-                        <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}</label>
-                        <select id="${field.id}" class="app-input app-select" ${field.required ? 'required' : ''}>
-                            ${optionsHtml}
-                        </select>
+                        <div>
+                            <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}</label>
+                            <select id="${field.id}" class="app-input app-select" ${field.required ? 'required' : ''}>
+                                ${optionsHtml}
+                            </select>
+                        </div>
                     `;
                     // Handle dependency for 'billType'
                     if (field.id === 'billType' && hasBillCheckbox) {
@@ -1035,13 +1328,21 @@
         }
 
         // --- Firestore Data Listener ---
-        function listenToExpenses(userId) {
+        // Modified to accept listId
+        function listenToExpenses(userId, listId) {
             if (unsubscribeFromExpenses) {
-                unsubscribeFromExpenses();
+                unsubscribeFromExpenses(); // Detach old listener
             }
             
-            showLoading("Loading your expenses...");
-            const q = query(collection(db, `users/${userId}/expenses`));
+            if (!userId || !listId) {
+                console.warn("Cannot listen to expenses: userId or listId is missing.");
+                expenses = [];
+                renderExpenses(); // Clear table
+                return;
+            }
+
+            showLoading(`Loading expenses for ${currentListName}...`);
+            const q = query(collection(db, `users/${userId}/lists/${listId}/expenses`));
             
             unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
                 const fetchedExpenses = [];
@@ -1291,7 +1592,10 @@
                         value = value ? 'Yes' : 'No';
                     } else if (field.id === 'billType' && !expense.hasBill) { // Specific logic for billType
                          value = 'N/A';
-                    } else if (!value) {
+                    } else if (value instanceof Object && 'toDate' in value) { // Handle Firestore Timestamps
+                        value = value.toDate().toLocaleDateString();
+                    }
+                    else if (!value) {
                         value = 'N/A'; // Default for empty/undefined custom fields
                     }
                     rowHtml += `<td class="whitespace-nowrap">${value}</td>`;
@@ -1327,8 +1631,8 @@
 
         // --- Form Handling ---
         addExpenseBtn.addEventListener('click', async () => {
-            if (!currentUserId) {
-                showMessage('Please sign in to add expenses.', 'error');
+            if (!currentUserId || !currentListId) {
+                showMessage('Please sign in and ensure a list is active to add expenses.', 'error');
                 return;
             }
 
@@ -1370,7 +1674,8 @@
 
             showLoading("Adding expense...");
             try {
-                await addDoc(collection(db, `users/${currentUserId}/expenses`), {
+                // Use currentListId in the path
+                await addDoc(collection(db, `users/${currentUserId}/lists/${currentListId}/expenses`), {
                     ...newExpense, // Spread all dynamic fields
                     timestamp: new Date() // Add a timestamp for ordering/tracking
                 });
@@ -1417,8 +1722,8 @@
 
         // --- Delete Expense ---
         async function deleteExpense(event) {
-            if (!currentUserId) {
-                showMessage('Please sign in to delete expenses.', 'error');
+            if (!currentUserId || !currentListId) {
+                showMessage('Please sign in and ensure a list is active to delete expenses.', 'error');
                 return;
             }
             const expenseId = event.target.dataset.id;
@@ -1430,7 +1735,8 @@
             if (confirm('Are you sure you want to delete this expense?')) {
                 showLoading("Deleting expense...");
                 try {
-                    await deleteDoc(doc(db, `users/${currentUserId}/expenses`, expenseId));
+                    // Use currentListId in the path
+                    await deleteDoc(doc(db, `users/${currentUserId}/lists/${currentListId}/expenses`, expenseId));
                     showMessage('Expense deleted successfully!', 'success');
                 } catch (e) {
                     console.error("Error deleting document: ", e);
@@ -1443,26 +1749,28 @@
 
         // --- Message Display ---
         function showMessage(message, type = 'info') {
-            const tempDiv = document.createElement('div');
-            tempDiv.textContent = message;
-            tempDiv.className = `fixed bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-lg text-white z-60 transition-all duration-300 ease-out transform ${
-                type === 'success' ? 'bg-green-500 message-success' :
-                type === 'error' ? 'bg-red-500 message-error' :
-                'bg-blue-500 message-info'
-            } opacity-0 translate-y-4`;
+            // Clear any existing messages before showing a new one
+            messageContainer.innerHTML = ''; 
+
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            messageElement.className = `app-message ${
+                type === 'success' ? 'message-success' :
+                type === 'error' ? 'message-error' :
+                'message-info'
+            }`;
             
-            document.body.appendChild(tempDiv);
+            messageContainer.appendChild(messageElement);
+
+            // Trigger reflow to ensure transition works
+            messageElement.offsetHeight; 
+
+            messageElement.classList.add('active');
 
             setTimeout(() => {
-                tempDiv.classList.remove('opacity-0', 'translate-y-4');
-                tempDiv.classList.add('opacity-100', 'translate-y-0');
-            }, 10);
-
-            setTimeout(() => {
-                tempDiv.classList.remove('opacity-100', 'translate-y-0');
-                tempDiv.classList.add('opacity-0', 'translate-y-4');
-                tempDiv.addEventListener('transitionend', () => tempDiv.remove());
-            }, 3000);
+                messageElement.classList.remove('active');
+                messageElement.addEventListener('transitionend', () => messageElement.remove(), { once: true });
+            }, 3000); // Message disappears after 3 seconds
         }
 
         // --- Excel Download Logic ---
@@ -1478,7 +1786,15 @@
 
             expenses.forEach(expense => {
                 // Use the 'date' field from the expense object
-                const date = new Date(expense.date); 
+                // Handle Firestore Timestamp objects if 'date' is coming from Firestore
+                let dateValue = expense[dateField.id];
+                let date;
+                if (dateValue instanceof Object && 'toDate' in dateValue) {
+                    date = dateValue.toDate();
+                } else {
+                    date = new Date(dateValue); 
+                }
+
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1; // getMonth() is 0-indexed
                 months.add(`${year}-${String(month).padStart(2, '0')}`); // e.g., "2023-01"
@@ -1505,7 +1821,14 @@
                 const dateField = userConfiguredFields.find(field => field.id === 'date');
                 if (!dateField || !expense[dateField.id]) return false; // Skip if date field is missing or empty
 
-                const date = new Date(expense[dateField.id]);
+                let dateValue = expense[dateField.id];
+                let date;
+                if (dateValue instanceof Object && 'toDate' in dateValue) {
+                    date = dateValue.toDate();
+                } else {
+                    date = new Date(dateValue); 
+                }
+
                 const expenseMonthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 return expenseMonthYear === selectedMonthYear;
             });
@@ -1532,6 +1855,8 @@
                         rowData[field.label] = parseFloat(value || 0).toFixed(2);
                     } else if (field.id === 'billType' && !expense.hasBill) {
                         rowData[field.label] = 'N/A';
+                    } else if (value instanceof Object && 'toDate' in value) { // Convert Firestore Timestamp to readable date
+                        rowData[field.label] = value.toDate().toLocaleDateString();
                     } else if (value === undefined || value === null || value === '') {
                         rowData[field.label] = 'N/A';
                     } else {
@@ -1600,7 +1925,7 @@
 
             const sortedCategories = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
 
-            let insightsText = `<h3 class="font-bold text-lg mb-2">Spending Insights:</h3>`;
+            let insightsText = `<h3 class="font-bold text-lg mb-2">Spending Insights for "${currentListName}":</h3>`;
             insightsText += `<p>Your total expenditure across all recorded transactions is <strong>C$${totalAmount.toFixed(2)}</strong>.</p>`;
 
             if (sortedCategories.length > 0) {
@@ -1625,26 +1950,13 @@
 
         // --- Initialize App ---
         document.addEventListener('DOMContentLoaded', async () => {
-            // Set today's date as default for expenseDate input (if it exists after dynamic render)
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const expenseDateInput = document.getElementById('date'); 
-            if (expenseDateInput) {
-                expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
-            }
-
             // Initial render of the form with default fields before auth state is known
             // This ensures the form is ready even if no user is logged in yet
             userConfiguredFields = [...defaultFields];
             renderExpenseForm();
+            updateCurrentListNameDisplay(); // Display default list name
+            clearForm(); // Set initial date on form
         });
-
-        // Make sure `getDoc` is imported, it's needed for `loadUserSettings`
-        // Add this to your import statement for Firestore:
-        // import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // It was missing `getDoc` in the previous snippet, now it's correctly added above.
 
     </script>
 </body>
