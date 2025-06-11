@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Data Dashboard</title>
+    <title>Monthly Expense Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -462,7 +462,7 @@
     </div>
 
     <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
-        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Personal Data Dashboard.</h1>
+        <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Monthly Expense Tracker.</h1>
         <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track and organize your data, or proceed as a guest.</p>
         <div class="space-y-4">
             <button id="authButton" class="btn-primary w-full">
@@ -478,7 +478,7 @@
 
     <div id="mainAppContainer" class="max-w-4xl w-full space-y-6 hidden">
         <div class="app-card flex flex-col md:flex-row items-center justify-between">
-            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">My Dashboard</h1>
+            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">My Expense Tracker</h1>
 
             <div class="flex items-center gap-4">
                 <!-- Removed standalone Main Settings Button -->
@@ -605,7 +605,11 @@
 
         <div id="visualizationsSection" class="app-card">
             <h2 class="section-header">Spending Visualizations</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div id="noChartsMessage" class="text-center text-gray-500 py-8 hidden">
+                <p class="mb-2"><i class="fas fa-chart-pie text-2xl mb-2"></i></p>
+                <p>Add expenses to see your spending visualizations here!</p>
+            </div>
+            <div id="chartsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                     <h3 class="sub-section-header text-center mb-4">Spending Distribution by Category</h3>
                     <div class="chart-container">
@@ -823,6 +827,9 @@
         const aiInsightsSection = document.getElementById('aiInsightsSection');
         const visualizationsSection = document.getElementById('visualizationsSection');
         const downloadSection = document.getElementById('downloadSection');
+        const noChartsMessage = document.getElementById('noChartsMessage'); // New element
+        const chartsContainer = document.getElementById('chartsContainer'); // New element
+
 
         // Expense Form Elements
         const expenseDateInput = document.getElementById('expenseDate');
@@ -1044,6 +1051,19 @@
 
                 console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
 
+                // Initial authentication for Canvas environment if __initial_auth_token is provided
+                if (typeof __initial_auth_token !== 'undefined' && user.isAnonymous) {
+                     try {
+                         console.log("Attempting to sign in with custom token from Canvas environment.");
+                         await signInWithCustomToken(auth, __initial_auth_token);
+                         console.log("Signed in with custom token successfully.");
+                     } catch (error) {
+                         console.error("Error signing in with custom token:", error);
+                         // If custom token fails, let the anonymous user proceed or handle as needed.
+                     }
+                 }
+
+
                 // Fetch user data from Firestore to get customDataTypes and settings
                 const userDocRef = doc(db, 'users', currentUserId);
                 try {
@@ -1257,11 +1277,24 @@
         }
 
         function renderExpenses() {
-            console.log("Rendering expenses...");
+            console.log("Rendering expenses. Current expense count:", expenses.length);
             expenseTableBody.innerHTML = '';
             let total = 0;
 
             const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (sortedExpenses.length === 0) {
+                noChartsMessage.classList.remove('hidden');
+                chartsContainer.classList.add('hidden');
+                totalExpenditureSpan.textContent = `C$0.00`;
+                if (expenseCategoryPieChart) expenseCategoryPieChart.destroy();
+                if (expenseMonthlyBarChart) expenseMonthlyBarChart.destroy();
+                populateMonthSelect(); // Still populate for "No expenses" option
+                return;
+            } else {
+                noChartsMessage.classList.add('hidden');
+                chartsContainer.classList.remove('hidden');
+            }
 
             sortedExpenses.forEach(exp => {
                 total += exp.amount;
@@ -1343,6 +1376,7 @@
                     }
                 }
             });
+            console.log("Pie chart initialized.");
         }
 
         function updateMonthlyChart() {
@@ -1405,6 +1439,7 @@
                     }
                 }
             });
+            console.log("Bar chart initialized.");
         }
 
         // --- AI Insights (Placeholder) ---
