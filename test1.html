@@ -10,7 +10,8 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // ADD signInAnonymously here
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your Firebase project configuration (REPLACE THIS WITH YOUR ACTUAL CONFIG)
@@ -46,6 +47,8 @@
         window.firebaseOnSnapshot = onSnapshot;
         window.firebaseDeleteDoc = deleteDoc;
         window.firebaseDoc = doc;
+        // EXPORT signInAnonymously
+        window.firebaseSignInAnonymously = signInAnonymously;
     </script>
     <style>
         /* Apple-like font stack (system fonts with fallbacks) */
@@ -287,10 +290,16 @@
 
     <div id="loginScreen" class="app-card max-w-md w-full text-center hidden">
         <h1 class="text-4xl font-bold text-gray-900 mb-6 section-header">Welcome to your Expense Tracker.</h1>
-        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending.</p>
-        <button id="authButton" class="btn-primary w-full">
-            Sign In with Google
-        </button>
+        <p class="text-gray-600 text-lg mb-8">Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
+        <div class="space-y-4">
+            <button id="authButton" class="btn-primary w-full">
+                Sign In with Google
+            </button>
+            <button id="guestButton" class="btn-secondary w-full">
+                Continue as Guest
+            </button>
+        </div>
+        <p class="text-gray-500 text-xs mt-4">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
         <div id="userInfo" class="text-gray-500 mt-6 text-sm"></div>
     </div>
 
@@ -450,6 +459,8 @@
         const onSnapshot = window.firebaseOnSnapshot;
         const deleteDoc = window.firebaseDeleteDoc;
         const docRef = window.firebaseDoc;
+        // IMPORT signInAnonymously
+        const signInAnonymously = window.firebaseSignInAnonymously;
 
         // DOM element references
         const expenseDateInput = document.getElementById('expenseDate');
@@ -471,7 +482,8 @@
         const monthSelect = document.getElementById('monthSelect');
         const downloadCsvBtn = document.getElementById('downloadCsvBtn');
 
-        const authButton = document.getElementById('authButton'); // Button on login screen
+        const authButton = document.getElementById('authButton'); // Button on login screen (Google Sign-In)
+        const guestButton = document.getElementById('guestButton'); // NEW: Guest Login Button
         const userInfoDiv = document.getElementById('userInfo'); // User info on login screen
 
         const mainAppContainer = document.getElementById('mainAppContainer'); // Main application content
@@ -505,22 +517,35 @@
         }
 
         // --- Authentication Functions ---
-        // Listener for the Sign In/Sign Out button on the login screen
+        // Listener for the Sign In/Sign Out button on the login screen (Google)
         authButton.addEventListener('click', async () => {
-            // This button is only visible when logged out, so it always performs sign-in
             try {
-                showLoading("Signing in...");
+                showLoading("Signing in with Google...");
                 await signInWithPopup(auth, provider);
-                showMessage('Signed in successfully!', 'success');
+                showMessage('Signed in successfully with Google!', 'success');
             } catch (error) {
                 console.error('Error signing in with Google:', error);
-                let errorMessage = 'Failed to sign in.';
+                let errorMessage = 'Failed to sign in with Google.';
                 if (error.code === 'auth/popup-closed-by-user') {
                     errorMessage = 'Sign-in cancelled by user.';
                 } else if (error.message) {
                     errorMessage += ` Error: ${error.message}`;
                 }
                 showMessage(errorMessage, 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // NEW: Listener for the Guest Login button
+        guestButton.addEventListener('click', async () => {
+            try {
+                showLoading("Signing in as Guest...");
+                await signInAnonymously(auth);
+                showMessage('Signed in successfully as Guest!', 'success');
+            } catch (error) {
+                console.error('Error signing in anonymously:', error);
+                showMessage('Failed to sign in as guest. Please try again.', 'error');
             } finally {
                 hideLoading();
             }
@@ -546,15 +571,23 @@
             if (user) {
                 // User is signed in
                 currentUserId = user.uid;
-                // Update user info for both login screen (which will be hidden) and main app
-                userInfoDiv.textContent = `Welcome, ${user.displayName || user.email}!`; // For login screen (will be hidden)
-                mainAppUserInfo.textContent = `Logged in as: ${user.displayName || user.email}`; // For main app
+                
+                // Determine display name for user info
+                let displayMessage = '';
+                if (user.isAnonymous) {
+                    displayMessage = 'Logged in as: Guest';
+                    userInfoDiv.textContent = 'Welcome, Guest!'; // For login screen (will be hidden)
+                } else {
+                    displayMessage = `Logged in as: ${user.displayName || user.email}`;
+                    userInfoDiv.textContent = `Welcome, ${user.displayName || user.email}!`; // For login screen (will be hidden)
+                }
+                mainAppUserInfo.textContent = displayMessage; // For main app
 
                 // Hide login screen, show main application
                 loginScreen.classList.add('hidden');
                 mainAppContainer.classList.remove('hidden');
 
-                console.log('User signed in:', user.uid);
+                console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
                 
                 // Start listening to expenses for this user
                 listenToExpenses(user.uid);
@@ -875,7 +908,7 @@
 
         async function addExpense() {
             if (!currentUserId) {
-                showMessage("Please sign in to add expenses.", "error");
+                showMessage("Please sign in or continue as guest to add expenses.", "error");
                 return;
             }
 
@@ -918,7 +951,7 @@
 
         async function deleteExpense(expenseId) {
             if (!currentUserId) {
-                showMessage("You must be signed in to delete expenses.", "error");
+                showMessage("You must be signed in or continued as guest to delete expenses.", "error");
                 return;
             }
 
