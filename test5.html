@@ -3,37 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker</title>
+    <title>Expense Tracker - Professional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Light gray background */
+            background-color: #f8fafc; /* Lighter gray background */
         }
         .app-card {
             background-color: #ffffff;
             border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
-            padding: 1.5rem; /* p-6 */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); /* Enhanced shadow */
+            padding: 2rem; /* p-8 */
             margin-bottom: 1.5rem; /* mb-6 */
+            transition: all 0.3s ease-in-out;
+        }
+        .app-card:hover {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
         }
         .btn-primary {
-            @apply bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50;
+            @apply bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-70 font-semibold;
         }
         .btn-secondary {
-            @apply bg-gray-200 text-gray-800 px-5 py-2 rounded-lg hover:bg-gray-300 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50;
+            @apply bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-70 font-semibold;
         }
         .btn-danger {
-            @apply bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50;
+            @apply bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 font-semibold;
         }
         .app-input {
-            @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500;
+            @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
         }
         .app-select {
-            @apply w-full p-3 border border-gray-300 rounded-lg bg-white appearance-none focus:ring-blue-500 focus:border-blue-500;
+            @apply w-full p-3 border border-gray-300 rounded-lg bg-white appearance-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
@@ -43,10 +48,10 @@
             @apply min-w-full divide-y divide-gray-200;
         }
         .app-table th {
-            @apply px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+            @apply px-6 py-4 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider;
         }
         .app-table td {
-            @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+            @apply px-6 py-4 whitespace-nowrap text-sm text-gray-800;
         }
         .section-header {
             @apply text-3xl font-extrabold text-gray-900 mb-6;
@@ -72,40 +77,46 @@
             opacity: 0;
             transform: translateY(-20px);
             transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-            min-width: 250px;
-            max-width: 350px;
+            min-width: 280px; /* Slightly wider */
+            max-width: 400px;
         }
         .message.show {
             opacity: 1;
             transform: translateY(0);
         }
-        .message-success { background-color: #4CAF50; }
-        .message-error { background-color: #f44336; }
-        .message-info { background-color: #2196F3; }
+        .message-success { background-color: #28a745; } /* Darker green */
+        .message-error { background-color: #dc3545; } /* Darker red */
+        .message-info { background-color: #007bff; } /* Darker blue */
+
         .loading-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1001;
             color: white;
-            font-size: 1.5rem;
+            font-size: 1.75rem; /* Larger text */
             flex-direction: column;
-            gap: 10px;
-            pointer-events: all; /* Allow interaction with overlay */
+            gap: 15px; /* More space */
+            pointer-events: all;
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0; /* Start hidden for transition */
+        }
+        .loading-overlay.visible {
+            opacity: 1;
         }
         .loading-spinner {
-            border: 8px solid #f3f3f3; /* Light grey */
-            border-top: 8px solid #3498db; /* Blue */
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
             border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 2s linear infinite;
+            width: 70px; /* Larger spinner */
+            height: 70px;
+            animation: spin 1s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -118,25 +129,26 @@
         }
 
         .profile-button {
-            background-color: #eff6ff; /* blue-50 */
-            color: #1d4ed8; /* blue-700 */
-            width: 48px;
-            height: 48px;
+            background-color: #e0f2fe; /* blue-100 */
+            color: #1e40af; /* blue-800 */
+            width: 52px; /* Slightly larger */
+            height: 52px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 1.25rem;
+            font-size: 1.35rem; /* Larger font */
             cursor: pointer;
             border: 2px solid #93c5fd; /* blue-300 */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* Slightly stronger shadow */
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
 
         .profile-button:hover {
-            background-color: #dbeafe; /* blue-100 */
+            background-color: #bfdbfe; /* blue-200 */
             border-color: #60a5fa; /* blue-400 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .profile-picture {
@@ -151,12 +163,18 @@
             position: absolute;
             right: 0;
             background-color: white;
-            min-width: 250px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 1;
-            border-radius: 0.5rem;
+            min-width: 280px; /* Slightly wider */
+            box-shadow: 0px 8px 20px 0px rgba(0,0,0,0.2); /* Stronger shadow */
+            z-index: 10; /* Ensure it's above other content */
+            border-radius: 0.75rem; /* rounded-xl */
             overflow: hidden;
-            margin-top: 0.5rem;
+            margin-top: 0.75rem; /* More space */
+            animation: fadeInScale 0.2s ease-out forwards; /* Add animation */
+            transform-origin: top right;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95) translateY(-5px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .profile-dropdown-content.show {
@@ -164,23 +182,23 @@
         }
 
         .dropdown-item {
-            padding: 12px 16px;
+            padding: 14px 20px; /* More padding */
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px; /* More space */
             text-decoration: none;
-            color: black;
+            color: #333; /* Darker text */
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
         .dropdown-item:hover {
-            background-color: #f1f1f1;
+            background-color: #f5f5f5; /* Lighter hover */
         }
         
         .avatar-small {
-            width: 32px;
-            height: 32px;
+            width: 36px; /* Slightly larger */
+            height: 36px;
             border-radius: 50%;
             object-fit: cover;
             display: flex;
@@ -189,7 +207,7 @@
             background-color: #bfdbfe; /* blue-200 */
             color: #1e40af; /* blue-800 */
             font-weight: bold;
-            font-size: 0.875rem;
+            font-size: 0.95rem; /* Slightly larger font */
         }
 
         /* Modal Styles */
@@ -199,42 +217,64 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
+            background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            opacity: 0; /* Start hidden for transition */
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
         }
 
         .modal-content {
             background-color: #fff;
-            padding: 2.5rem; /* p-10 */
-            border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            padding: 3rem; /* p-12 */
+            border-radius: 1rem; /* rounded-2xl */
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25); /* Stronger shadow */
             position: relative;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh; /* Limit height for scrollable content */
-            overflow-y: auto; /* Enable scrolling for content that overflows */
+            width: 95%; /* Wider on small screens */
+            max-width: 650px; /* Max width */
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.95) translateY(20px); /* Start slightly smaller and lower */
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
         }
+        .modal-overlay.visible .modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
 
         .modal-close-btn {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
+            top: 1.25rem; /* More space */
+            right: 1.25rem;
             background: none;
             border: none;
-            font-size: 2rem;
+            font-size: 2.25rem; /* Larger icon */
             color: #9ca3af; /* gray-400 */
             cursor: pointer;
             line-height: 1;
+            transition: color 0.2s ease-in-out;
         }
         .modal-close-btn:hover {
             color: #6b7280; /* gray-500 */
         }
+
+        /* Empty state for tables/lists */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+            font-style: italic;
+        }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 sm:p-6 md:p-8">
 
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="loading-spinner"></div>
@@ -243,33 +283,35 @@
 
     <div id="messageContainer" class="message-container"></div>
 
-    <div id="loginScreen" class="bg-white p-8 rounded-xl shadow-md w-full max-w-md text-center">
-        <h1 class="text-3xl font-bold mb-6 text-gray-900">Welcome to Expense Tracker</h1>
-        <p class="text-gray-600 mb-8">Sign in to manage your expenses.</p>
-        <button id="googleSignInBtn" class="w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-3 hover:bg-blue-700 transition duration-300 mb-4">
+    <div id="loginScreen" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
+        <h1 class="text-4xl font-bold mb-6 text-gray-900">Welcome to Expense Tracker</h1>
+        <p class="text-gray-600 mb-8 text-lg">Sign in to manage your expenses.</p>
+        <button id="googleSignInBtn" class="w-full btn-primary py-3 flex items-center justify-center gap-3 mb-4">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon" class="w-6 h-6">
             Sign in with Google
         </button>
-        <button id="guestSignInBtn" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg flex items-center justify-center gap-3 hover:bg-gray-300 transition duration-300">
-            <i class="fas fa-user text-gray-600"></i>
+        <button id="guestSignInBtn" class="w-full btn-secondary py-3 flex items-center justify-center gap-3">
+            <i class="fas fa-user text-gray-600 text-lg"></i>
             Continue as Guest
         </button>
     </div>
 
-    <div id="mainAppContainer" class="hidden w-full max-w-6xl">
-        <div class="app-card flex flex-col md:flex-row items-center justify-between">
-            <h1 class="text-4xl font-bold text-gray-900 section-header md:text-left mb-4 md:mb-0">Expense Tracker</h1>
-
-            <div class="flex flex-col items-center md:items-start gap-2 mb-4 md:mb-0">
+    <div id="mainAppContainer" class="hidden w-full max-w-7xl mx-auto">
+        <div class="app-card flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 md:text-left mb-4 md:mb-0">Expense Tracker</h1>
+            
+            <div class="flex flex-col items-center md:items-start gap-2">
                 <label for="currentDatasetSelect" class="text-sm font-medium text-gray-600">Current Dataset:</label>
-                <div class="flex items-center gap-2">
-                    <select id="currentDatasetSelect" class="app-input app-select px-4 py-2 rounded-lg text-lg font-semibold w-auto">
+                <div class="flex items-center gap-3 w-full">
+                    <select id="currentDatasetSelect" class="app-input app-select px-4 py-2 rounded-lg text-lg font-semibold w-full md:w-auto min-w-[180px]">
                         </select>
-                    <button id="manageDatasetsBtn" class="btn-secondary p-2 rounded-full text-gray-700 hover:text-gray-900">
-                        <i class="fas fa-cog"></i> </button>
+                    <button id="manageDatasetsBtn" class="btn-secondary p-3 rounded-full text-gray-700 hover:text-gray-900">
+                        <i class="fas fa-cog"></i>
+                    </button>
                 </div>
                 <p id="currentDatasetDescription" class="text-gray-500 text-sm mt-1 text-center md:text-left hidden"></p>
             </div>
+            
             <div class="profile-dropdown-container">
                 <button id="profileButton" class="profile-button">
                     <img id="profilePicture" class="profile-picture hidden" alt="Profile Picture">
@@ -279,11 +321,11 @@
                     <div class="dropdown-item">
                         <img id="avatarPicture" class="avatar-small hidden" alt="Avatar">
                         <span id="avatarInitial" class="avatar-small">G</span>
-                        <span id="mainAppUserInfo" class="font-semibold text-gray-800">Guest User</span>
+                        <span id="mainAppUserInfo" class="font-semibold text-gray-800 break-words max-w-[150px] overflow-hidden text-ellipsis">Guest User</span>
                     </div>
                     <hr class="border-gray-200 my-1">
                     <a href="#" id="settingsLink" class="dropdown-item">
-                        <i class="fas fa-cog w-5"></i> Settings
+                        <i class="fas fa-sliders-h w-5 text-gray-600"></i> Settings
                     </a>
                     <a href="#" id="signOutBtn" class="dropdown-item text-red-600 hover:bg-red-50">
                         <i class="fas fa-sign-out-alt w-5"></i> Sign Out
@@ -294,71 +336,77 @@
 
         <div class="app-card">
             <h2 class="sub-section-header">Add New Expense</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 <div>
-                    <label for="expenseDate" class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
                     <input type="date" id="expenseDate" class="app-input">
                 </div>
                 <div>
-                    <label for="expenseCategory" class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
                     <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Transport" class="app-input">
                 </div>
-                <div class="md:col-span-2">
-                    <label for="expenseDescription" class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping, Uber ride" class="app-input">
                 </div>
                 <div>
-                    <label for="expenseAmount" class="block text-sm font-medium text-gray-600 mb-1">Amount (CAD)</label>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Amount (CAD)</label>
                     <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="app-input">
                 </div>
                 <div>
-                    <label for="paymentMethod" class="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                     <input type="text" id="paymentMethod" placeholder="e.g., Credit Card, Cash" class="app-input">
                 </div>
                 <div>
-                    <label for="paidBy" class="block text-sm font-medium text-gray-600 mb-1">Paid By</label>
+                    <label for="paidBy" class="block text-sm font-medium text-gray-700 mb-1">Paid By</label>
                     <input type="text" id="paidBy" placeholder="e.g., John, Jane" class="app-input">
                 </div>
-                <div class="flex items-center mt-3">
-                    <input type="checkbox" id="hasBill" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <label for="hasBill" class="ml-2 block text-sm text-gray-900">Has Bill?</label>
+                <div class="flex items-center col-span-1 md:col-span-2 lg:col-span-1 mt-2">
+                    <input type="checkbox" id="hasBill" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="hasBill" class="ml-2 block text-base text-gray-900">Has Bill?</label>
                 </div>
-                <div id="billTypeContainer" class="hidden">
-                    <label for="billType" class="block text-sm font-medium text-gray-600 mb-1">Bill Type</label>
+                <div id="billTypeContainer" class="hidden col-span-1 md:col-span-2 lg:col-span-1">
+                    <label for="billType" class="block text-sm font-medium text-gray-700 mb-1">Bill Type</label>
                     <input type="text" id="billType" placeholder="e.g., Digital, Physical" class="app-input">
                 </div>
             </div>
-            <button id="addExpenseBtn" class="btn-primary w-full">Add Expense</button>
+            <button id="addExpenseBtn" class="btn-primary w-full mt-4">Add Expense</button>
         </div>
 
-        <div class="app-card grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="app-card grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
                 <h2 class="sub-section-header">Monthly Expenditure</h2>
-                <canvas id="monthlyChart"></canvas>
+                <div class="chart-container relative h-64 md:h-80">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+                <p id="monthlyChartEmptyState" class="empty-state hidden">No monthly expense data to display.</p>
             </div>
             <div>
                 <h2 class="sub-section-header">Expenses by Category</h2>
-                <canvas id="categoryChart"></canvas>
+                <div class="chart-container relative h-64 md:h-80">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <p id="categoryChartEmptyState" class="empty-state hidden">No category expense data to display.</p>
             </div>
         </div>
 
         <div class="app-card">
             <h2 class="sub-section-header">Upload Expenses from Excel</h2>
-            <p class="text-gray-700 mb-4">Upload an Excel file (.xlsx, .xls) containing your expenses. Ensure your file has columns like 'Date', 'Category', 'Description', 'Amount', 'Payment Method', 'Paid By', 'Has Bill?', and 'Bill Type'.</p>
+            <p class="text-gray-700 mb-4 text-base">Upload an Excel file (.xlsx, .xls) containing your expenses. Ensure your file has columns like 'Date', 'Category', 'Description', 'Amount', 'Payment Method', 'Paid By', 'Has Bill?', and 'Bill Type'.</p>
             <div class="flex flex-col md:flex-row items-center gap-4">
                 <input type="file" id="excelUploadInput" accept=".xlsx, .xls" class="app-input flex-grow">
                 <button id="uploadExcelBtn" class="btn-primary w-full md:w-auto mt-3 md:mt-0">
-                    Upload Expenses
+                    <i class="fas fa-upload mr-2"></i> Upload Expenses
                 </button>
             </div>
-            <div id="uploadStatus" class="mt-4 p-3 text-sm rounded-lg hidden"></div>
+            <div id="uploadStatus" class="mt-4 p-3 text-sm rounded-lg border hidden"></div>
         </div>
 
         <div class="app-card">
             <h2 class="sub-section-header">Export Data</h2>
             <div class="flex flex-col md:flex-row items-center gap-4">
                 <button id="exportAllDataBtn" class="btn-secondary w-full md:w-auto">
-                    Export All Data (Current Dataset)
+                    <i class="fas fa-file-excel mr-2"></i> Export All Data (Current Dataset)
                 </button>
                 <div class="flex-grow">
                     <label for="monthSelect" class="sr-only">Select Month</label>
@@ -367,7 +415,7 @@
                     </select>
                 </div>
                 <button id="downloadExcelBtn" class="btn-primary w-full md:w-auto mt-3 md:mt-0">
-                    Download Monthly Data
+                    <i class="fas fa-download mr-2"></i> Download Monthly Data
                 </button>
             </div>
         </div>
@@ -375,44 +423,46 @@
         <div class="app-card">
             <h2 class="sub-section-header">Your Expenses</h2>
 
-            <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 class="text-lg font-semibold mb-3 text-gray-800">Filter Expenses</h3>
+            <div class="mb-6 p-5 bg-blue-50 rounded-lg border border-blue-200">
+                <h3 class="text-lg font-semibold mb-3 text-blue-800"><i class="fas fa-filter mr-2"></i> Filter Expenses</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div>
-                        <label for="filterCategory" class="block text-sm font-medium text-gray-600 mb-1">Filter by Category</label>
+                        <label for="filterCategory" class="block text-sm font-medium text-gray-700 mb-1">Filter by Category</label>
                         <select id="filterCategory" class="app-input app-select">
                             <option value="">All Categories</option>
                             </select>
                     </div>
                     <div>
-                        <label for="filterPaymentMethod" class="block text-sm font-medium text-gray-600 mb-1">Filter by Payment Method</label>
+                        <label for="filterPaymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Filter by Payment Method</label>
                         <select id="filterPaymentMethod" class="app-input app-select">
                             <option value="">All Methods</option>
                             </select>
                     </div>
                     <div class="col-span-full md:col-span-1">
-                        <label class="block text-sm font-medium text-gray-600 mb-1">View Data From</label>
-                        <div class="flex items-center space-x-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">View Data From</label>
+                        <div class="flex items-center space-x-4 flex-wrap gap-2">
                             <label class="inline-flex items-center">
-                                <input type="radio" name="dataSourceFilter" value="" checked class="form-radio h-4 w-4 text-blue-600">
-                                <span class="ml-2 text-gray-700">All Sources</span>
+                                <input type="radio" name="dataSourceFilter" value="" checked class="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-800 text-sm">All Sources</span>
                             </label>
                             <label class="inline-flex items-center">
-                                <input type="radio" name="dataSourceFilter" value="manual" class="form-radio h-4 w-4 text-blue-600">
-                                <span class="ml-2 text-gray-700">Manual Entry</span>
+                                <input type="radio" name="dataSourceFilter" value="manual" class="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-800 text-sm">Manual Entry</span>
                             </label>
                             <label class="inline-flex items-center">
-                                <input type="radio" name="dataSourceFilter" value="uploaded" class="form-radio h-4 w-4 text-blue-600">
-                                <span class="ml-2 text-gray-700">Uploaded File</span>
+                                <input type="radio" name="dataSourceFilter" value="uploaded" class="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-800 text-sm">Uploaded File</span>
                             </label>
                         </div>
                     </div>
-                    <div class="col-span-full md:col-span-1 flex justify-start md:justify-end">
-                        <button id="clearFiltersBtn" class="btn-secondary w-full md:w-auto">Clear All Filters</button>
+                    <div class="col-span-full flex justify-start md:justify-end">
+                        <button id="clearFiltersBtn" class="btn-secondary w-full md:w-auto">
+                            <i class="fas fa-times-circle mr-2"></i> Clear All Filters
+                        </button>
                     </div>
                 </div>
             </div>
-            <div class="overflow-x-auto rounded-xl border border-gray-200 table-container">
+            <div class="overflow-x-auto rounded-xl border border-gray-200 table-container shadow-sm">
                 <table class="app-table">
                     <thead>
                         <tr>
@@ -432,8 +482,9 @@
                     <tbody id="expenseTableBody" class="divide-y divide-gray-200">
                         </tbody>
                 </table>
+                <p id="expenseTableEmptyState" class="empty-state hidden">No expenses to display for the current filters.</p>
             </div>
-            <div class="mt-6 p-4 bg-blue-50 rounded-lg text-blue-800 font-semibold text-lg flex justify-between items-center">
+            <div class="mt-6 p-4 bg-blue-100 rounded-lg text-blue-800 font-bold text-xl flex justify-between items-center shadow-inner">
                 <span>Total Expenditure (CAD):</span>
                 <span id="totalExpenditureSpan">C$0.00</span>
             </div>
@@ -443,57 +494,54 @@
     <div id="settingsModal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="closeSettingsModal" class="modal-close-btn">&times;</button>
-            <h2 class="section-header text-2xl mb-6">Settings</h2>
-            <div class="mb-4">
-                <label for="defaultCurrencySelect" class="block text-sm font-medium text-gray-700 mb-2">Default Display Currency:</label>
+            <h2 class="section-header text-3xl mb-6">Settings</h2>
+            <div class="mb-6">
+                <label for="defaultCurrencySelect" class="block text-base font-medium text-gray-700 mb-2">Default Display Currency:</label>
                 <select id="defaultCurrencySelect" class="app-select">
                     <option value="CAD">CAD - Canadian Dollar</option>
                     <option value="AED">AED - United Arab Emirates Dirham</option>
                     <option value="INR">INR - Indian Rupee</option>
                 </select>
             </div>
-            <button id="saveSettingsBtn" class="btn-primary w-full">Save Settings</button>
+            <button id="saveSettingsBtn" class="btn-primary w-full"><i class="fas fa-save mr-2"></i> Save Settings</button>
         </div>
     </div>
 
     <div id="datasetModal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="closeDatasetModal" class="modal-close-btn">&times;</button>
-            <h2 class="section-header text-2xl mb-6">Manage Datasets</h2>
-            <div class="space-y-6">
-                <div>
-                    <h3 class="sub-section-header text-xl mb-2">Create New Dataset</h3>
-                    <label for="newDatasetName" class="block text-sm font-medium text-gray-600 mb-1">Dataset Name</label>
+            <h2 class="section-header text-3xl mb-6">Manage Datasets</h2>
+            <div class="space-y-8">
+                <div class="p-6 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 class="sub-section-header text-xl mb-4 text-blue-800"><i class="fas fa-plus-circle mr-2"></i> Create New Dataset</h3>
+                    <label for="newDatasetName" class="block text-sm font-medium text-gray-700 mb-1">Dataset Name</label>
                     <input type="text" id="newDatasetName" placeholder="e.g., Summer Vacation 2024" class="app-input mb-3">
-                    <label for="newDatasetDescription" class="block text-sm font-medium text-gray-600 mb-1">Description (Optional)</label>
-                    <textarea id="newDatasetDescription" placeholder="e.g., Expenses for my trip to Hawaii" class="app-input resize-y min-h-[60px] mb-4"></textarea>
-                    <button id="createDatasetBtn" class="btn-primary w-full">Create Dataset</button>
+                    <label for="newDatasetDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                    <textarea id="newDatasetDescription" placeholder="e.g., Expenses for my trip to Hawaii" class="app-input resize-y min-h-[80px] mb-4"></textarea>
+                    <button id="createDatasetBtn" class="btn-primary w-full"><i class="fas fa-plus mr-2"></i> Create Dataset</button>
                 </div>
 
-                <hr class="border-gray-200">
-
                 <div>
-                    <h3 class="sub-section-header text-xl mb-2">Your Datasets</h3>
-                    <ul id="datasetsList" class="space-y-2 max-h-60 overflow-y-auto pr-2">
-                        <li class="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                    <h3 class="sub-section-header text-xl mb-4 text-gray-800"><i class="fas fa-list-alt mr-2"></i> Your Datasets</h3>
+                    <ul id="datasetsList" class="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                        <li class="p-4 bg-gray-50 rounded-lg flex items-center justify-between text-gray-800 shadow-sm">
                             <span>Loading datasets...</span>
                         </li>
                     </ul>
-                    <p id="noDatasetsMessage" class="text-gray-500 mt-2 hidden">You haven't created any datasets yet.</p>
+                    <p id="noDatasetsMessage" class="empty-state mt-4 hidden">You haven't created any datasets yet.</p>
                 </div>
             </div>
-            <button id="doneDatasetBtn" class="btn-primary w-full mt-8">Done</button>
+            <button id="doneDatasetBtn" class="btn-primary w-full mt-10">Done</button>
         </div>
     </div>
 
     <script type="module">
-        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Your Firebase configuration
-        // Replace with your actual Firebase project configuration
+        // !!! IMPORTANT: REPLACE WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION !!!
         const firebaseConfig = {
             apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
   authDomain: "my-expenese-tracker.firebaseapp.com",
@@ -515,7 +563,6 @@
         const googleSignInBtn = document.getElementById('googleSignInBtn');
         const guestSignInBtn = document.getElementById('guestSignInBtn');
         const mainAppContainer = document.getElementById('mainAppContainer');
-        // const userInfoDiv = document.getElementById('userInfo'); // REMOVED - Using mainAppUserInfo instead
         const signOutBtn = document.getElementById('signOutBtn');
         const addExpenseBtn = document.getElementById('addExpenseBtn');
         const expenseDateInput = document.getElementById('expenseDate');
@@ -572,6 +619,12 @@
         const noDatasetsMessage = document.getElementById('noDatasetsMessage');
         const doneDatasetBtn = document.getElementById('doneDatasetBtn');
 
+        // Empty state messages for elements
+        const expenseTableEmptyState = document.getElementById('expenseTableEmptyState');
+        const monthlyChartEmptyState = document.getElementById('monthlyChartEmptyState');
+        const categoryChartEmptyState = document.getElementById('categoryChartEmptyState');
+
+
         // --- Global Variables ---
         let currentUserId = null;
         let expenses = [];
@@ -621,10 +674,30 @@
         function showLoading(msg = "Loading...") {
             loadingMessage.textContent = msg;
             loadingOverlay.classList.remove('hidden');
+            setTimeout(() => loadingOverlay.classList.add('visible'), 10); // Add visible class for transition
         }
 
         function hideLoading() {
-            loadingOverlay.classList.add('hidden');
+            loadingOverlay.classList.remove('visible');
+            loadingOverlay.addEventListener('transitionend', () => {
+                if (!loadingOverlay.classList.contains('visible')) {
+                    loadingOverlay.classList.add('hidden');
+                }
+            }, { once: true });
+        }
+
+        function showModal(modalElement) {
+            modalElement.classList.remove('hidden');
+            setTimeout(() => modalElement.classList.add('visible'), 10);
+        }
+
+        function hideModal(modalElement) {
+            modalElement.classList.remove('visible');
+            modalElement.addEventListener('transitionend', () => {
+                if (!modalElement.classList.contains('visible')) {
+                    modalElement.classList.add('hidden');
+                }
+            }, { once: true });
         }
 
         // --- Firebase Auth Functions ---
@@ -635,7 +708,8 @@
                 await signInWithPopup(auth, googleProvider);
             } catch (error) {
                 console.error("Google Sign-In Error:", error);
-                showMessage(`Sign-in failed: ${error.message}`, "error");
+                const errorMessage = error.code === 'auth/popup-closed-by-user' ? 'Sign-in cancelled.' : `Sign-in failed: ${error.message}`;
+                showMessage(errorMessage, "error");
             } finally {
                 hideLoading();
             }
@@ -681,22 +755,23 @@
             localStorage.setItem('userSettings', JSON.stringify(userSettings));
             showMessage('Settings saved!', 'success');
             renderExpenses(); // Re-render to apply new currency
+            hideModal(settingsModal); // Close modal after saving
         }
 
         settingsLink.addEventListener('click', (event) => {
             event.preventDefault();
             profileDropdownContent.classList.remove('show'); // Close profile dropdown
-            settingsModal.classList.remove('hidden');
+            showModal(settingsModal);
             defaultCurrencySelect.value = userSettings.defaultCurrency; // Ensure current setting is displayed
         });
 
         closeSettingsModalBtn.addEventListener('click', () => {
-            settingsModal.classList.add('hidden');
+            hideModal(settingsModal);
         });
 
         settingsModal.addEventListener('click', (event) => {
             if (event.target === settingsModal) {
-                settingsModal.classList.add('hidden');
+                hideModal(settingsModal);
             }
         });
 
@@ -707,9 +782,9 @@
         async function loadAndSetInitialDataset() {
             showLoading("Loading your datasets...");
             try {
-                const q = query(collection(db, `users/${currentUserId}/datasets`));
+                const q = query(collection(db, `users/${currentUserId}/datasets`), orderBy('createdAt', 'asc'));
                 // Use onSnapshot to get real-time updates for datasets themselves
-                const unsubscribeDatasets = onSnapshot(q, (snapshot) => {
+                onSnapshot(q, (snapshot) => {
                     const fetchedDatasets = [];
                     snapshot.forEach((doc) => {
                         fetchedDatasets.push({ id: doc.id, ...doc.data() });
@@ -743,7 +818,9 @@
                         renderExpenses(); // Render empty table
                         updateDatasetUI();
                         showMessage("Welcome! Please create your first dataset to start tracking expenses.", "info");
-                        manageDatasetsBtn.click(); // Automatically open dataset modal
+                        if (!datasetModal.classList.contains('visible')) { // Only open if not already open
+                             showModal(datasetModal); // Automatically open dataset modal
+                        }
                     }
                     hideLoading();
                 }, (error) => {
@@ -751,8 +828,6 @@
                     showMessage("Error loading datasets. Please try again.", "error");
                     hideLoading();
                 });
-                // Note: We don't need to return unsubscribeDatasets here, as the auth state change will handle clearing the main expense listener.
-                // This listener ensures the dataset dropdown and modal list are always up-to-date.
             } catch (e) {
                 console.error("Error loading and setting initial dataset:", e);
                 showMessage("Failed to load initial dataset.", "error");
@@ -763,7 +838,7 @@
         function populateDatasetSelect() {
             currentDatasetSelect.innerHTML = '';
             if (datasets.length === 0) {
-                currentDatasetSelect.innerHTML = '<option value="">No Datasets</option>';
+                currentDatasetSelect.innerHTML = '<option value="">No Datasets Available</option>';
                 currentDatasetSelect.disabled = true;
             } else {
                 currentDatasetSelect.disabled = false;
@@ -787,14 +862,14 @@
                 noDatasetsMessage.classList.add('hidden');
                 datasets.forEach(dataset => {
                     const li = document.createElement('li');
-                    li.className = 'p-3 bg-white rounded-lg shadow-sm flex items-center justify-between text-gray-800';
+                    li.className = 'p-4 bg-white rounded-lg shadow-sm flex items-center justify-between text-gray-800 border border-gray-100 hover:shadow-md transition-shadow duration-200';
                     li.innerHTML = `
-                        <div>
-                            <p class="font-semibold">${dataset.name}</p>
+                        <div class="flex-1 mr-4">
+                            <p class="font-bold text-lg">${dataset.name}</p>
                             <p class="text-sm text-gray-500">${dataset.description || 'No description'}</p>
                         </div>
-                        <button data-id="${dataset.id}" class="delete-dataset-btn text-red-500 hover:text-red-700 ml-4">
-                            <i class="fas fa-trash-alt"></i>
+                        <button data-id="${dataset.id}" class="delete-dataset-btn text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors">
+                            <i class="fas fa-trash-alt text-lg"></i>
                         </button>
                     `;
                     datasetsList.appendChild(li);
@@ -821,33 +896,34 @@
         }
 
         function updateDatasetUI() {
-            if (currentDatasetInfo) {
+            if (currentDatasetInfo && currentDatasetInfo.id) {
                 currentDatasetSelect.value = currentDatasetInfo.id;
                 currentDatasetDescription.textContent = currentDatasetInfo.description || '';
                 currentDatasetDescription.classList.remove('hidden');
             } else {
                 currentDatasetSelect.innerHTML = '<option value="">No Dataset Selected</option>';
                 currentDatasetSelect.disabled = true;
-                currentDatasetDescription.textContent = 'Please create a new dataset.';
+                currentDatasetDescription.textContent = 'Please create a new dataset to start tracking expenses.';
                 currentDatasetDescription.classList.remove('hidden');
             }
         }
 
         manageDatasetsBtn.addEventListener('click', () => {
             profileDropdownContent.classList.remove('show'); // Close main dropdown
-            datasetModal.classList.remove('hidden');
+            showModal(datasetModal);
             renderDatasetsList(); // Ensure list is fresh
+            newDatasetNameInput.focus(); // Focus on first input in modal
         });
 
         closeDatasetModal.addEventListener('click', () => {
-            datasetModal.classList.add('hidden');
+            hideModal(datasetModal);
         });
         doneDatasetBtn.addEventListener('click', () => {
-            datasetModal.classList.add('hidden');
+            hideModal(datasetModal);
         });
         datasetModal.addEventListener('click', (event) => {
             if (event.target === datasetModal) {
-                datasetModal.classList.add('hidden');
+                hideModal(datasetModal);
             }
         });
 
@@ -861,6 +937,7 @@
 
             if (!name) {
                 showMessage("Dataset name cannot be empty.", "error");
+                newDatasetNameInput.focus();
                 return;
             }
 
@@ -869,7 +946,7 @@
                 const docRef = await addDoc(collection(db, `users/${currentUserId}/datasets`), {
                     name,
                     description,
-                    createdAt: new Date()
+                    createdAt: new Date().toISOString() // Store ISO string for consistent sorting
                 });
                 showMessage(`Dataset "${name}" created successfully!`, 'success');
                 newDatasetNameInput.value = '';
@@ -903,17 +980,17 @@
                     try {
                         // Delete the dataset document itself
                         await deleteDoc(doc(db, `users/${currentUserId}/datasets`, datasetIdToDelete));
-                        // IMPORTANT: Firestore does NOT automatically delete subcollections.
-                        // The expenses themselves will remain in Firebase but won't be accessible via this UI
-                        // once the parent dataset document is gone.
-                        // For a complete cleanup, a Firebase Cloud Function would be needed.
+                        
+                        // For complete cleanup of subcollection (expenses), Firebase Cloud Functions are recommended.
+                        // However, the UI will no longer display these expenses once the parent dataset is gone.
                         
                         showMessage(`Dataset "${datasetNameToDelete}" deleted.`, 'success');
 
                         // If the current dataset was deleted, switch to another or prompt for new
                         if (currentDatasetId === datasetIdToDelete) {
                             localStorage.removeItem('currentDatasetId');
-                            await loadAndSetInitialDataset(); // Reload datasets and pick new active
+                            // Reload datasets and pick new active or prompt for new
+                            await loadAndSetInitialDataset(); 
                         } else {
                             renderDatasetsList(); // Just refresh the list
                         }
@@ -938,13 +1015,14 @@
             if (!currentDatasetId) {
                 expenses = []; // Clear expenses if no dataset is active
                 renderExpenses();
+                hideLoading();
                 return;
             }
             
             showLoading(`Loading expenses for "${currentDatasetInfo.name}"...`);
             // Ensure the path includes the currentDatasetId
             const expensesCollectionRef = collection(db, `users/${userId}/datasets/${currentDatasetId}/expenses`);
-            const q = query(expensesCollectionRef, orderBy('date', 'desc')); // Order by date, newest first
+            const q = query(expensesCollectionRef, orderBy('date', 'desc'), orderBy('timestamp', 'desc')); // Order by date then by timestamp for stable sort
             
             unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
                 const fetchedExpenses = [];
@@ -986,7 +1064,11 @@
                 return matchesCategory && matchesPaymentMethod && matchesSource;
             });
 
-            // No need to sort again here, as `listenToExpenses` already sorts by date.
+            if (filteredExpenses.length === 0) {
+                expenseTableEmptyState.classList.remove('hidden');
+            } else {
+                expenseTableEmptyState.classList.add('hidden');
+            }
 
             filteredExpenses.forEach(expense => {
                 const amountCad = parseFloat(expense.amount);
@@ -995,34 +1077,25 @@
                 const amountAED = (amountCad * EXCHANGE_RATE_CAD_TO_AED).toFixed(2);
                 const amountINR = (amountCad * EXCHANGE_RATE_CAD_TO_INR).toFixed(2);
 
-                let displayAmount;
-                switch(userSettings.defaultCurrency) {
-                    case 'AED':
-                        displayAmount = `AED ${amountAED}`;
-                        break;
-                    case 'INR':
-                        displayAmount = `INR ${amountINR}`;
-                        break;
-                    case 'CAD':
-                    default:
-                        displayAmount = `C$${amountCad.toFixed(2)}`;
-                        break;
-                }
+                let displayAmountCAD = `C$${amountCad.toFixed(2)}`;
+                let displayAmountAED = `AED ${amountAED}`;
+                let displayAmountINR = `INR ${amountINR}`;
 
                 const row = expenseTableBody.insertRow();
+                row.className = 'hover:bg-gray-50 transition-colors duration-150'; // Add hover effect
                 row.innerHTML = `
-                    <td class="whitespace-nowrap">${expense.date}</td>
-                    <td class="whitespace-nowrap">${expense.category}</td>
-                    <td class="whitespace-nowrap">${expense.description}</td>
-                    <td class="whitespace-nowrap">C$${amountCad.toFixed(2)}</td>
-                    <td class="whitespace-nowrap">AED ${amountAED}</td>
-                    <td class="whitespace-nowrap">INR ${amountINR}</td>
-                    <td class="whitespace-nowrap">${expense.paymentMethod || 'N/A'}</td>
-                    <td class="whitespace-nowrap">${expense.paidBy || 'N/A'}</td>
-                    <td class="whitespace-nowrap">${expense.hasBill ? 'Yes' : 'No'}</td>
-                    <td class="whitespace-nowrap">${expense.hasBill ? (expense.billType || 'N/A') : 'N/A'}</td>
+                    <td>${expense.date}</td>
+                    <td>${expense.category}</td>
+                    <td>${expense.description}</td>
+                    <td>${displayAmountCAD}</td>
+                    <td>${displayAmountAED}</td>
+                    <td>${displayAmountINR}</td>
+                    <td>${expense.paymentMethod || 'N/A'}</td>
+                    <td>${expense.paidBy || 'N/A'}</td>
+                    <td class="text-center">${expense.hasBill ? '<i class="fas fa-check-circle text-green-500"></i>' : '<i class="fas fa-times-circle text-red-500"></i>'}</td>
+                    <td>${expense.hasBill ? (expense.billType || 'N/A') : 'N/A'}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button data-id="${expense.id}" class="text-red-600 hover:text-red-900 ml-2 delete-btn">
+                        <button data-id="${expense.id}" class="text-red-600 hover:text-red-900 ml-2 delete-btn p-1 rounded-full hover:bg-red-50 transition-colors" title="Delete Expense">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </td>
@@ -1031,16 +1104,23 @@
 
             totalExpenditureSpan.textContent = `C$${totalExpenditure.toFixed(2)}`;
             
-            // Charts will always display all data from the current dataset, not just filtered table data
             const allMonthlyExpenses = {};
             const allCategoryExpenses = {};
-            expenses.forEach(expense => {
-                const amountCad = parseFloat(expense.amount);
-                const monthYear = new Date(expense.date).toLocaleString('en-US', { month: 'short', year: 'numeric' });
-                allMonthlyExpenses[monthYear] = (allMonthlyExpenses[monthYear] || 0) + amountCad;
-                const category = expense.category || 'Uncategorized';
-                allCategoryExpenses[category] = (allCategoryExpenses[category] || 0) + amountCad;
-            });
+            if (expenses.length > 0) {
+                expenses.forEach(expense => {
+                    const amountCad = parseFloat(expense.amount);
+                    const monthYear = new Date(expense.date).toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                    allMonthlyExpenses[monthYear] = (allMonthlyExpenses[monthYear] || 0) + amountCad;
+                    const category = expense.category || 'Uncategorized';
+                    allCategoryExpenses[category] = (allCategoryExpenses[category] || 0) + amountCad;
+                });
+                monthlyChartEmptyState.classList.add('hidden');
+                categoryChartEmptyState.classList.add('hidden');
+            } else {
+                monthlyChartEmptyState.classList.remove('hidden');
+                categoryChartEmptyState.classList.remove('hidden');
+            }
+
 
             updateCharts(allMonthlyExpenses, allCategoryExpenses);
             populateMonthSelect();
@@ -1057,10 +1137,10 @@
             const category = expenseCategoryInput.value.trim();
             const description = expenseDescriptionInput.value.trim();
             const amount = parseFloat(expenseAmountInput.value);
-            const paymentMethod = paymentMethodInput.value;
+            const paymentMethod = paymentMethodInput.value.trim();
             const paidBy = paidByInput.value.trim();
             const hasBill = hasBillInput.checked;
-            const billType = hasBill ? billTypeInput.value : '';
+            const billType = hasBill ? billTypeInput.value.trim() : '';
 
             if (!date || !category || !description || isNaN(amount) || amount <= 0 || !paymentMethod || !paidBy || (hasBill && !billType)) {
                 showMessage('Please fill in all required fields and ensure the amount is a positive number.', 'error');
@@ -1078,11 +1158,12 @@
                     paidBy,
                     hasBill,
                     billType,
-                    source: 'manual', // Set source as 'manual'
-                    timestamp: new Date()
+                    source: 'manual',
+                    timestamp: new Date().toISOString() // Use ISO string for consistent sorting
                 });
                 showMessage('Expense added successfully!', 'success');
-                expenseDateInput.value = '';
+                // Clear inputs and reset UI
+                expenseDateInput.value = new Date().toISOString().slice(0, 10); // Reset to today
                 expenseCategoryInput.value = '';
                 expenseDescriptionInput.value = '';
                 expenseAmountInput.value = '';
@@ -1090,7 +1171,8 @@
                 paidByInput.value = '';
                 hasBillInput.checked = false;
                 billTypeInput.value = '';
-                billTypeContainer.style.display = 'none';
+                billTypeContainer.classList.add('hidden');
+                expenseCategoryInput.focus(); // Focus back to category for quick entry
             } catch (e) {
                 console.error("Error adding document: ", e);
                 showMessage('Error adding expense. Please try again.', 'error');
@@ -1123,9 +1205,11 @@
         });
 
         hasBillInput.addEventListener('change', () => {
-            billTypeContainer.style.display = hasBillInput.checked ? 'block' : 'none';
+            billTypeContainer.classList.toggle('hidden', !hasBillInput.checked);
             if (!hasBillInput.checked) {
-                billTypeInput.value = ''; // Clear bill type if "Has Bill?" is unchecked
+                billTypeInput.value = '';
+            } else {
+                billTypeInput.focus();
             }
         });
 
@@ -1146,9 +1230,10 @@
                     datasets: [{
                         label: 'Total CAD Expenditure',
                         data: monthlyValues,
-                        backgroundColor: 'rgba(59, 130, 246, 0.6)', // Tailwind blue-500
-                        borderColor: 'rgba(37, 99, 235, 1)',    // Tailwind blue-600
-                        borderWidth: 1
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)', /* blue-500 with more opacity */
+                        borderColor: 'rgba(37, 99, 235, 1)',    /* blue-600 */
+                        borderWidth: 1,
+                        borderRadius: 4 /* Rounded bars */
                     }]
                 },
                 options: {
@@ -1159,14 +1244,33 @@
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Amount (CAD)'
+                                text: 'Amount (CAD)',
+                                font: { size: 14, weight: 'bold' },
+                                color: '#4b5563'
+                            },
+                            grid: {
+                                color: '#e5e7eb' /* Light gray grid lines */
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false /* No vertical grid lines */
                             }
                         }
                     },
                     plugins: {
                         title: {
-                            display: true,
-                            text: 'Monthly Expenditure'
+                            display: false, /* Title handled by HTML h2 */
+                        },
+                        legend: {
+                            display: false /* No legend needed for single dataset */
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `C$${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
                         }
                     }
                 }
@@ -1180,26 +1284,28 @@
                 categoryChartInstance.destroy();
             }
             categoryChartInstance = new Chart(categoryChartCanvas, {
-                type: 'pie',
+                type: 'doughnut', /* Doughnut chart for a modern look */
                 data: {
                     labels: categoryLabels,
                     datasets: [{
                         label: 'Expenses by Category',
                         data: categoryValues,
                         backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)', // Red
-                            'rgba(54, 162, 235, 0.7)', // Blue
-                            'rgba(255, 206, 86, 0.7)', // Yellow
-                            'rgba(75, 192, 192, 0.7)', // Green
-                            'rgba(153, 102, 255, 0.7)',// Purple
-                            'rgba(255, 159, 64, 0.7)', // Orange
-                            'rgba(199, 199, 199, 0.7)',// Grey
-                            'rgba(83, 102, 255, 0.7)', // Indigo
-                            'rgba(170, 204, 0, 0.7)',  // Lime
-                            'rgba(0, 153, 153, 0.7)'   // Teal
+                            '#60a5fa', /* blue-400 */
+                            '#34d399', /* emerald-400 */
+                            '#fcd34d', /* amber-300 */
+                            '#a78bfa', /* violet-400 */
+                            '#f87171', /* red-400 */
+                            '#a3a3a3', /* gray-400 */
+                            '#818cf8', /* indigo-400 */
+                            '#fb923c', /* orange-400 */
+                            '#c084fc', /* purple-400 */
+                            '#22d3ee', /* cyan-400 */
+                            '#ef4444', /* red-500 */
+                            '#eab308', /* yellow-500 */
                         ],
                         borderColor: 'white',
-                        borderWidth: 1
+                        borderWidth: 2
                     }]
                 },
                 options: {
@@ -1207,8 +1313,7 @@
                     maintainAspectRatio: false,
                     plugins: {
                         title: {
-                            display: true,
-                            text: 'Expenses by Category'
+                            display: false, /* Title handled by HTML h2 */
                         },
                         tooltip: {
                             callbacks: {
@@ -1219,12 +1324,24 @@
                                     }
                                     if (context.parsed !== null) {
                                         label += 'C$' + context.parsed.toFixed(2);
+                                        const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        label += ` (${percentage}%)`;
                                     }
                                     return label;
                                 }
                             }
+                        },
+                        legend: {
+                            position: 'right', /* Move legend to the right */
+                            labels: {
+                                font: {
+                                    size: 12
+                                }
+                            }
                         }
-                    }
+                    },
+                    cutout: '60%', /* For doughnut hole size */
                 }
             });
         }
@@ -1242,8 +1359,11 @@
                 return;
             }
 
-            uploadStatus.classList.add('hidden'); // Clear previous status
-            uploadStatus.classList.remove('message-success', 'message-error', 'message-info');
+            // Clear previous status and prepare for new
+            uploadStatus.classList.add('hidden'); 
+            uploadStatus.classList.remove('border-green-300', 'border-red-300', 'border-blue-300');
+            uploadStatus.innerHTML = '';
+
 
             showLoading("Processing Excel file...");
 
@@ -1259,6 +1379,9 @@
 
                 if (jsonExpenses.length === 0) {
                     showMessage('The selected Excel file contains no data.', 'info');
+                    uploadStatus.classList.remove('hidden');
+                    uploadStatus.classList.add('border-blue-300');
+                    uploadStatus.innerHTML = '<p class="text-blue-700">The selected Excel file contains no data.</p>';
                     hideLoading();
                     return;
                 }
@@ -1266,116 +1389,155 @@
                 const validExpenses = [];
                 const invalidRows = [];
 
-                // Validate and format data
+                // Define expected headers and their mapping
+                const expectedHeaders = {
+                    'Date': 'date',
+                    'Category': 'category',
+                    'Description': 'description',
+                    'Amount': 'amount',
+                    'Payment Method': 'paymentMethod',
+                    'Paid By': 'paidBy',
+                    'Has Bill?': 'hasBill',
+                    'Bill Type': 'billType'
+                };
+                const altHeaders = {
+                    'PaymentMethod': 'paymentMethod',
+                    'PaidBy': 'paidBy',
+                    'HasBill': 'hasBill', // For files with no '?'
+                    'BillType': 'billType'
+                };
+
                 jsonExpenses.forEach((row, index) => {
                     const expense = {};
                     let isValid = true;
                     let validationErrors = [];
 
-                    // Mapping and validation
-                    expense.date = row.Date; // Assuming 'YYYY-MM-DD' or similar compatible format
-                    if (!expense.date || !/^\d{4}-\d{2}-\d{2}$/.test(expense.date)) {
-                        isValid = false;
-                        validationErrors.push('Invalid Date (expected YYYY-MM-DD)');
-                    }
+                    // Map and validate using both primary and alternative headers
+                    for (const headerKey in expectedHeaders) {
+                        const propName = expectedHeaders[headerKey];
+                        let value = row[headerKey];
+                        if (value === undefined && altHeaders[headerKey]) { // Check alt header if primary not found
+                            value = row[altHeaders[headerKey]];
+                        }
+                        
+                        // Basic trim for string values
+                        if (typeof value === 'string') {
+                            value = value.trim();
+                        }
 
-                    expense.category = (row.Category || '').trim();
-                    if (!expense.category) {
-                        isValid = false;
-                        validationErrors.push('Missing Category');
-                    }
-
-                    expense.description = (row.Description || '').trim();
-                    if (!expense.description) {
-                        isValid = false;
-                        validationErrors.push('Missing Description');
-                    }
-
-                    const amount = parseFloat(row.Amount);
-                    if (isNaN(amount) || amount <= 0) {
-                        isValid = false;
-                        validationErrors.push('Invalid Amount (must be a positive number)');
-                    }
-                    expense.amount = amount;
-
-                    expense.paymentMethod = (row['Payment Method'] || row['PaymentMethod'] || '').trim(); // Handle variations
-                    if (!expense.paymentMethod) {
-                        isValid = false;
-                        validationErrors.push('Missing Payment Method');
-                    }
-
-                    expense.paidBy = (row['Paid By'] || row['PaidBy'] || '').trim(); // Handle variations
-                    if (!expense.paidBy) {
-                        isValid = false;
-                        validationErrors.push('Missing Paid By');
-                    }
-
-                    // 'Has Bill?' can be 'Yes'/'No', 'TRUE'/'FALSE', 1/0
-                    const hasBillRaw = String(row['Has Bill?'] || row['HasBill?'] || '').toLowerCase();
-                    expense.hasBill = ['yes', 'true', '1'].includes(hasBillRaw);
-                    
-                    expense.billType = (row['Bill Type'] || row['BillType'] || '').trim();
-                    if (expense.hasBill && !expense.billType) {
-                        isValid = false;
-                        validationErrors.push('Bill Type required if Has Bill? is "Yes"');
+                        switch (propName) {
+                            case 'date':
+                                // Attempt to convert numeric dates (Excel's default) to YYYY-MM-DD
+                                if (typeof value === 'number') {
+                                    try {
+                                        const excelDate = new Date(1899, 11, 30); // Excel's epoch start (adjust for 1900 leap year bug if needed)
+                                        excelDate.setDate(excelDate.getDate() + value);
+                                        expense.date = excelDate.toISOString().slice(0, 10);
+                                    } catch (e) {
+                                        isValid = false;
+                                        validationErrors.push('Invalid Date format (numeric)');
+                                    }
+                                } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                                    expense.date = value;
+                                } else {
+                                    isValid = false;
+                                    validationErrors.push('Invalid Date (expected YYYY-MM-DD or numeric Excel date)');
+                                }
+                                break;
+                            case 'category':
+                            case 'description':
+                            case 'paymentMethod':
+                            case 'paidBy':
+                                if (!value) {
+                                    isValid = false;
+                                    validationErrors.push(`Missing ${headerKey}`);
+                                }
+                                expense[propName] = value;
+                                break;
+                            case 'amount':
+                                const amount = parseFloat(value);
+                                if (isNaN(amount) || amount <= 0) {
+                                    isValid = false;
+                                    validationErrors.push('Invalid Amount (must be a positive number)');
+                                }
+                                expense.amount = amount;
+                                break;
+                            case 'hasBill':
+                                // Normalize 'Yes'/'No', 'TRUE'/'FALSE', 1/0
+                                const hasBillRaw = String(value || '').toLowerCase();
+                                expense.hasBill = ['yes', 'true', '1'].includes(hasBillRaw);
+                                break;
+                            case 'billType':
+                                expense.billType = value;
+                                if (expense.hasBill && !expense.billType) {
+                                    isValid = false;
+                                    validationErrors.push('Bill Type required if Has Bill? is "Yes"');
+                                }
+                                break;
+                        }
                     }
 
                     expense.source = 'uploaded'; // Tag uploaded expenses
+                    expense.timestamp = new Date().toISOString(); // Add timestamp for order
 
                     if (isValid) {
                         validExpenses.push(expense);
                     } else {
-                        invalidRows.push({ rowNumber: index + 2, data: row, errors: validationErrors.join(', ') }); // +2 for 1-based index and header row
+                        invalidRows.push({ rowNumber: index + 2, data: row, errors: validationErrors.join('; ') }); // +2 for 1-based index and header row
                     }
                 });
 
                 if (validExpenses.length === 0) {
                     uploadStatus.classList.remove('hidden');
-                    uploadStatus.classList.add('message-error');
+                    uploadStatus.classList.add('border-red-300', 'text-red-700');
                     uploadStatus.innerHTML = `
-                        <p>No valid expenses found in the file.</p>
-                        ${invalidRows.length > 0 ? `<p class="mt-2 font-bold">Details for Invalid Rows:</p><ul>${invalidRows.map(r => `<li>Row ${r.rowNumber}: ${JSON.stringify(r.data)} - Errors: ${r.errors}</li>`).join('')}</ul>` : ''}
+                        <p class="font-bold">No valid expenses found in the file.</p>
+                        ${invalidRows.length > 0 ? `<p class="mt-2 text-sm font-semibold">Details for Invalid Rows (${invalidRows.length}):</p><ul class="list-disc list-inside text-xs max-h-24 overflow-y-auto">${invalidRows.map(r => `<li>Row ${r.rowNumber}: ${r.errors}</li>`).join('')}</ul>` : ''}
+                        <p class="mt-2 text-xs text-gray-600">Please check your Excel file for correct column headers and data format.</p>
                     `;
+                    showMessage('Excel upload failed: No valid expenses.', 'error');
                     hideLoading();
                     return;
                 }
 
                 // Batch write to Firestore
-                const batch = writeBatch(db); // Use writeBatch from firebase/firestore
+                const batch = writeBatch(db);
                 const expensesCollectionRef = collection(db, `users/${currentUserId}/datasets/${currentDatasetId}/expenses`);
                 validExpenses.forEach(expense => {
-                    const newDocRef = doc(expensesCollectionRef); // Create a new document reference
-                    batch.set(newDocRef, { ...expense, timestamp: new Date() }); // Add timestamp
+                    const newDocRef = doc(expensesCollectionRef);
+                    batch.set(newDocRef, expense);
                 });
 
                 await batch.commit();
 
-                let successMessage = `Successfully uploaded ${validExpenses.length} expense(s).`;
+                let messageType = 'success';
+                let messageText = '';
                 if (invalidRows.length > 0) {
-                    successMessage += ` However, ${invalidRows.length} row(s) were invalid and skipped.`;
+                    messageType = 'info';
+                    messageText = `Successfully uploaded ${validExpenses.length} expense(s). However, ${invalidRows.length} row(s) were invalid and skipped.`;
                     uploadStatus.classList.remove('hidden');
-                    uploadStatus.classList.add('message-info');
+                    uploadStatus.classList.add('border-blue-300', 'text-blue-700');
                     uploadStatus.innerHTML = `
-                        <p>${successMessage}</p>
-                        <p class="mt-2 font-bold">Details for Skipped Rows:</p>
-                        <ul class="list-disc list-inside">${invalidRows.map(r => `<li>Row ${r.rowNumber}: ${r.errors}</li>`).join('')}</ul>
+                        <p class="font-bold">${messageText}</p>
+                        <p class="mt-2 text-sm font-semibold">Details for Skipped Rows (${invalidRows.length}):</p>
+                        <ul class="list-disc list-inside text-xs max-h-24 overflow-y-auto">${invalidRows.map(r => `<li>Row ${r.rowNumber}: ${r.errors}</li>`).join('')}</ul>
                         <p class="mt-2 text-xs text-gray-600">Please check your Excel file for correct column headers and data format.</p>
                     `;
-                    showMessage('Excel upload completed with some invalid rows.', 'info');
                 } else {
-                    showMessage(successMessage, 'success');
+                    messageText = `Successfully uploaded ${validExpenses.length} expense(s)!`;
                     uploadStatus.classList.remove('hidden');
-                    uploadStatus.classList.add('message-success');
-                    uploadStatus.innerHTML = `<p>${successMessage}</p>`;
+                    uploadStatus.classList.add('border-green-300', 'text-green-700');
+                    uploadStatus.innerHTML = `<p class="font-bold">${messageText}</p>`;
                 }
                 
+                showMessage(messageText, messageType);
                 excelUploadInput.value = ''; // Clear the file input
             } catch (error) {
                 console.error('Error uploading Excel file:', error);
                 showMessage('Error processing Excel file. Please ensure it is a valid .xlsx or .xls file and check console for details.', 'error');
                 uploadStatus.classList.remove('hidden');
-                uploadStatus.classList.add('message-error');
-                uploadStatus.innerHTML = `<p>Failed to upload Excel file: ${error.message}</p>`;
+                uploadStatus.classList.add('border-red-300', 'text-red-700');
+                uploadStatus.innerHTML = `<p class="font-bold">Failed to upload Excel file: ${error.message}</p>`;
             } finally {
                 hideLoading();
             }
@@ -1395,8 +1557,7 @@
                 return;
             }
 
-            // Create a worksheet from the expenses array
-            const ws = XLSX.utils.json_to_sheet(expenses.map(expense => ({
+            const dataToExport = expenses.map(expense => ({
                 Date: expense.date,
                 Category: expense.category,
                 Description: expense.description,
@@ -1405,13 +1566,15 @@
                 'Paid By': expense.paidBy,
                 'Has Bill?': expense.hasBill ? 'Yes' : 'No',
                 'Bill Type': expense.billType,
-                Source: expense.source // Include source in export
-            })));
+                Source: expense.source
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "All Expenses");
 
-            const fileName = `All_Expenses_${currentDatasetInfo.name.replace(/ /g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+            const fileName = `All_Expenses_${(currentDatasetInfo?.name || 'MyData').replace(/ /g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
             showMessage('All expenses from current dataset exported to Excel!', 'success');
         });
@@ -1419,8 +1582,11 @@
         function populateMonthSelect() {
             const months = new Set();
             expenses.forEach(expense => {
+                // Ensure date is a valid string for Date constructor
                 const date = new Date(expense.date);
-                months.add(date.toLocaleString('en-US', { year: 'numeric', month: 'long' }));
+                if (!isNaN(date.getTime())) { // Check if date is valid
+                    months.add(date.toLocaleString('en-US', { year: 'numeric', month: 'long' }));
+                }
             });
 
             monthSelect.innerHTML = '<option value="">Select Month</option>';
@@ -1430,6 +1596,13 @@
                 option.textContent = month;
                 monthSelect.appendChild(option);
             });
+            // Keep the previously selected month if it exists
+            const currentSelectedMonth = monthSelect.value;
+            if (currentSelectedMonth && months.has(currentSelectedMonth)) {
+                monthSelect.value = currentSelectedMonth;
+            } else {
+                monthSelect.value = ''; // Reset if previously selected month is no longer available
+            }
         }
 
         downloadExcelBtn.addEventListener('click', () => {
@@ -1445,7 +1618,8 @@
 
             const filteredByMonth = expenses.filter(expense => {
                 const date = new Date(expense.date);
-                return date.toLocaleString('en-US', { year: 'numeric', month: 'long' }) === selectedMonth;
+                // Ensure date is valid before comparing
+                return !isNaN(date.getTime()) && date.toLocaleString('en-US', { year: 'numeric', month: 'long' }) === selectedMonth;
             });
 
             if (filteredByMonth.length === 0) {
@@ -1453,7 +1627,7 @@
                 return;
             }
 
-            const ws = XLSX.utils.json_to_sheet(filteredByMonth.map(expense => ({
+            const dataToExport = filteredByMonth.map(expense => ({
                 Date: expense.date,
                 Category: expense.category,
                 Description: expense.description,
@@ -1463,12 +1637,14 @@
                 'Has Bill?': expense.hasBill ? 'Yes' : 'No',
                 'Bill Type': expense.billType,
                 Source: expense.source
-            })));
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, `${selectedMonth} Expenses`);
 
-            const fileName = `Expenses_${currentDatasetInfo.name.replace(/ /g, '_')}_${selectedMonth.replace(/ /g, '_')}.xlsx`;
+            const fileName = `Expenses_${(currentDatasetInfo?.name || 'MyData').replace(/ /g, '_')}_${selectedMonth.replace(/ /g, '_')}.xlsx`;
             XLSX.writeFile(wb, fileName);
             showMessage(`Expenses for ${selectedMonth} from current dataset downloaded as Excel!`, "success");
         });
@@ -1535,13 +1711,16 @@
         });
 
         // --- Profile Dropdown ---
-        profileButton.addEventListener('click', () => {
+        profileButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from closing it immediately
             profileDropdownContent.classList.toggle('show');
         });
 
         // Close the dropdown if the user clicks outside of it
         window.addEventListener('click', (event) => {
-            if (!event.target.closest('.profile-dropdown-container') && !event.target.closest('#settingsModal')) {
+            if (!event.target.closest('.profile-dropdown-container') && 
+                !event.target.closest('#settingsModal') && 
+                !event.target.closest('#datasetModal')) {
                 profileDropdownContent.classList.remove('show');
             }
         });
@@ -1554,7 +1733,7 @@
             const dd = String(today.getDate()).padStart(2, '0');
             expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
 
-            // Initial chart setup
+            // Initial chart setup to prevent errors before data loads
             updateCharts({}, {}); 
 
             // Firebase Auth State Listener
@@ -1563,7 +1742,7 @@
                 if (user) {
                     currentUserId = user.uid;
                     
-                    let displayEmail = user.email || 'Guest User';
+                    let displayEmail = user.email || (user.isAnonymous ? 'Guest User' : 'Unknown User');
                     let displayName = user.displayName || 'Guest';
                     let initial = displayName.charAt(0).toUpperCase();
 
@@ -1581,17 +1760,6 @@
                         avatarInitial.classList.remove('hidden');
                     }
 
-                    if (user.isAnonymous) {
-                        displayEmail = 'guest@example.com'; 
-                        displayName = 'Guest';
-                        initial = 'G';
-                        // userInfoDiv.textContent = 'Welcome, Guest!'; // REMOVED
-                        mainAppUserInfo.textContent = 'Guest User'; // Using mainAppUserInfo instead
-                    } else {
-                        // userInfoDiv.textContent = `Welcome, ${displayName}!`; // REMOVED
-                        // mainAppUserInfo already set to displayEmail below
-                    }
-
                     mainAppUserInfo.textContent = displayEmail; 
                     profileIconText.textContent = initial;      
                     avatarInitial.textContent = initial;        
@@ -1602,16 +1770,14 @@
                     console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
                     
                     loadUserSettings();
-                    await loadAndSetInitialDataset(); // Load and set the active dataset
-                    // listenToExpenses will now be called by loadAndSetInitialDataset
+                    await loadAndSetInitialDataset(); 
                 } else {
                     currentUserId = null;
-                    currentDatasetId = null; // Clear dataset on sign out
+                    currentDatasetId = null; 
                     datasets = [];
                     currentDatasetInfo = null;
-                    updateDatasetUI(); // Clear UI
+                    updateDatasetUI(); 
                     
-                    // userInfoDiv.textContent = 'Please sign in to save your data.'; // REMOVED
                     mainAppUserInfo.textContent = ''; 
 
                     profilePicture.classList.add('hidden');
@@ -1636,14 +1802,19 @@
                     showMessage('Your data will be available when you sign in.', 'info');
                     userSettings = { defaultCurrency: 'CAD' }; 
                     localStorage.removeItem('userSettings'); 
-                    localStorage.removeItem('currentDatasetId'); // Clear saved dataset
+                    localStorage.removeItem('currentDatasetId'); 
                 }
                 console.log("Auth state check complete, hiding loading overlay.");
+                hideLoading(); // Ensure loading is hidden after auth check completes
+            }, (error) => {
+                console.error("Auth state change error:", error);
+                showMessage("Authentication error. Please refresh the page.", "error");
                 hideLoading();
             });
         });
 
-        showLoading("Starting application..."); // Show loading spinner initially
+        // Show loading spinner immediately on page load
+        showLoading("Starting application..."); 
     </script>
 </body>
 </html>
