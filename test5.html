@@ -8,433 +8,152 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* Lighter gray background */
-        }
-        .app-card {
-            background-color: #ffffff;
-            border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); /* Enhanced shadow */
-            padding: 2rem; /* p-8 */
-            margin-bottom: 1.5rem; /* mb-6 */
-            transition: all 0.3s ease-in-out;
-        }
-        .app-card:hover {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-        }
-        .btn-primary {
-            @apply bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-70 font-semibold;
-        }
-        .btn-secondary {
-            @apply bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-70 font-semibold;
-        }
-        .btn-danger {
-            @apply bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 font-semibold;
-        }
-        .app-input {
-            @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
-        }
-        .app-select {
-            @apply w-full p-3 border border-gray-300 rounded-lg bg-white appearance-none focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 1.5em 1.5em;
-        }
-        .app-table {
-            @apply min-w-full divide-y divide-gray-200;
-        }
-        .app-table th {
-            @apply px-6 py-4 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider;
-        }
-        .app-table td {
-            @apply px-6 py-4 whitespace-nowrap text-sm text-gray-800;
-        }
-        .section-header {
-            @apply text-3xl font-extrabold text-gray-900 mb-6;
-        }
-        .sub-section-header {
-            @apply text-xl font-semibold text-gray-800 mb-4;
-        }
-        .message-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .message {
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            color: white;
-            font-weight: 500;
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-            min-width: 280px; /* Slightly wider */
-            max-width: 400px;
-        }
-        .message.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .message-success { background-color: #28a745; } /* Darker green */
-        .message-error { background-color: #dc3545; } /* Darker red */
-        .message-info { background-color: #007bff; } /* Darker blue */
+    </head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1001;
-            color: white;
-            font-size: 1.75rem; /* Larger text */
-            flex-direction: column;
-            gap: 15px; /* More space */
-            pointer-events: all;
-            transition: opacity 0.3s ease-in-out;
-            opacity: 0; /* Start hidden for transition */
-        }
-        .loading-overlay.visible {
-            opacity: 1;
-        }
-        .loading-spinner {
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid #3498db;
-            border-radius: 50%;
-            width: 70px; /* Larger spinner */
-            height: 70px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .profile-dropdown-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        .profile-button {
-            background-color: #e0f2fe; /* blue-100 */
-            color: #1e40af; /* blue-800 */
-            width: 52px; /* Slightly larger */
-            height: 52px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.35rem; /* Larger font */
-            cursor: pointer;
-            border: 2px solid #93c5fd; /* blue-300 */
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* Slightly stronger shadow */
-            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-
-        .profile-button:hover {
-            background-color: #bfdbfe; /* blue-200 */
-            border-color: #60a5fa; /* blue-400 */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .profile-picture {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .profile-dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background-color: white;
-            min-width: 280px; /* Slightly wider */
-            box-shadow: 0px 8px 20px 0px rgba(0,0,0,0.2); /* Stronger shadow */
-            z-index: 10; /* Ensure it's above other content */
-            border-radius: 0.75rem; /* rounded-xl */
-            overflow: hidden;
-            margin-top: 0.75rem; /* More space */
-            animation: fadeInScale 0.2s ease-out forwards; /* Add animation */
-            transform-origin: top right;
-        }
-        @keyframes fadeInScale {
-            from { opacity: 0; transform: scale(0.95) translateY(-5px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .profile-dropdown-content.show {
-            display: block;
-        }
-
-        .dropdown-item {
-            padding: 14px 20px; /* More padding */
-            display: flex;
-            align-items: center;
-            gap: 12px; /* More space */
-            text-decoration: none;
-            color: #333; /* Darker text */
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .dropdown-item:hover {
-            background-color: #f5f5f5; /* Lighter hover */
-        }
-        
-        .avatar-small {
-            width: 36px; /* Slightly larger */
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #bfdbfe; /* blue-200 */
-            color: #1e40af; /* blue-800 */
-            font-weight: bold;
-            font-size: 0.95rem; /* Slightly larger font */
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            opacity: 0; /* Start hidden for transition */
-            transition: opacity 0.3s ease-in-out;
-        }
-        .modal-overlay.visible {
-            opacity: 1;
-        }
-
-        .modal-content {
-            background-color: #fff;
-            padding: 3rem; /* p-12 */
-            border-radius: 1rem; /* rounded-2xl */
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25); /* Stronger shadow */
-            position: relative;
-            width: 95%; /* Wider on small screens */
-            max-width: 650px; /* Max width */
-            max-height: 90vh;
-            overflow-y: auto;
-            transform: scale(0.95) translateY(20px); /* Start slightly smaller and lower */
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-            opacity: 0;
-        }
-        .modal-overlay.visible .modal-content {
-            transform: scale(1) translateY(0);
-            opacity: 1;
-        }
-
-
-        .modal-close-btn {
-            position: absolute;
-            top: 1.25rem; /* More space */
-            right: 1.25rem;
-            background: none;
-            border: none;
-            font-size: 2.25rem; /* Larger icon */
-            color: #9ca3af; /* gray-400 */
-            cursor: pointer;
-            line-height: 1;
-            transition: color 0.2s ease-in-out;
-        }
-        .modal-close-btn:hover {
-            color: #6b7280; /* gray-500 */
-        }
-
-        /* Empty state for tables/lists */
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            color: #6b7280;
-            font-style: italic;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 sm:p-6 md:p-8">
-
-    <div id="loadingOverlay" class="loading-overlay hidden">
-        <div class="loading-spinner"></div>
-        <p id="loadingMessage" class="text-xl font-semibold mt-4">Loading...</p>
+    <div id="loadingOverlay" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex flex-col justify-center items-center z-[1000] text-white text-2xl hidden opacity-0 transition-opacity duration-300">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+        <p id="loadingMessage" class="mt-4">Loading...</p>
     </div>
 
-    <div id="messageContainer" class="message-container"></div>
+    <div id="messageContainer" class="fixed top-4 right-4 z-[1001] flex flex-col space-y-2"></div>
 
-    <div id="loginScreen" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
-        <h1 class="text-4xl font-bold mb-6 text-gray-900">Welcome to Expense Tracker</h1>
-        <p class="text-gray-600 mb-8 text-lg">Sign in to manage your expenses.</p>
-        <button id="googleSignInBtn" class="w-full btn-primary py-3 flex items-center justify-center gap-3 mb-4">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon" class="w-6 h-6">
+    <div id="loginScreen" class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
+        <h1 class="text-3xl font-bold mb-4">Welcome to Expense Tracker</h1>
+        <p class="text-gray-600 mb-6">Sign in to manage your expenses.</p>
+        <button id="googleSignInBtn" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 flex items-center justify-center gap-2 mb-3">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon" class="w-5 h-5">
             Sign in with Google
         </button>
-        <button id="guestSignInBtn" class="w-full btn-secondary py-3 flex items-center justify-center gap-3">
-            <i class="fas fa-user text-gray-600 text-lg"></i>
+        <button id="guestSignInBtn" class="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 flex items-center justify-center gap-2">
+            <i class="fas fa-user text-gray-600"></i>
             Continue as Guest
         </button>
     </div>
 
-    <div id="mainAppContainer" class="hidden w-full max-w-7xl mx-auto">
-        <div class="app-card flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 md:text-left mb-4 md:mb-0">Expense Tracker</h1>
+    <div id="mainAppContainer" class="hidden w-full max-w-6xl mx-auto space-y-6">
+        <div class="bg-white p-6 rounded-lg shadow-md flex items-center justify-between">
+            <h1 class="text-3xl font-bold text-gray-800">Expense Tracker</h1>
             
-            <div class="flex flex-col items-center md:items-start gap-2">
-                <label for="currentDatasetSelect" class="text-sm font-medium text-gray-600">Current Dataset:</label>
-                <div class="flex items-center gap-3 w-full">
-                    <select id="currentDatasetSelect" class="app-input app-select px-4 py-2 rounded-lg text-lg font-semibold w-full md:w-auto min-w-[180px]">
-                        </select>
-                    <button id="manageDatasetsBtn" class="btn-secondary p-3 rounded-full text-gray-700 hover:text-gray-900">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                </div>
-                <p id="currentDatasetDescription" class="text-gray-500 text-sm mt-1 text-center md:text-left hidden"></p>
-            </div>
-            
-            <div class="profile-dropdown-container">
-                <button id="profileButton" class="profile-button">
-                    <img id="profilePicture" class="profile-picture hidden" alt="Profile Picture">
+            <div class="relative inline-block text-left">
+                <button id="profileButton" class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-800 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                     <span id="profileIconText">G</span>
                 </button>
-                <div id="profileDropdownContent" class="profile-dropdown-content">
-                    <div class="dropdown-item">
-                        <img id="avatarPicture" class="avatar-small hidden" alt="Avatar">
-                        <span id="avatarInitial" class="avatar-small">G</span>
-                        <span id="mainAppUserInfo" class="font-semibold text-gray-800 break-words max-w-[150px] overflow-hidden text-ellipsis">Guest User</span>
+                <div id="profileDropdownContent" class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="profile-button">
+                        <div class="flex items-center px-4 py-2 text-sm text-gray-700">
+                            <span id="avatarInitial" class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-bold text-md mr-2">G</span>
+                            <span id="mainAppUserInfo" class="font-semibold break-words max-w-[150px] overflow-hidden text-ellipsis">Guest User</span>
+                        </div>
+                        <a href="#" id="settingsLink" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                            <i class="fas fa-sliders-h mr-2"></i> Settings
+                        </a>
+                        <a href="#" id="signOutBtn" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Sign Out
+                        </a>
                     </div>
-                    <hr class="border-gray-200 my-1">
-                    <a href="#" id="settingsLink" class="dropdown-item">
-                        <i class="fas fa-sliders-h w-5 text-gray-600"></i> Settings
-                    </a>
-                    <a href="#" id="signOutBtn" class="dropdown-item text-red-600 hover:bg-red-50">
-                        <i class="fas fa-sign-out-alt w-5"></i> Sign Out
-                    </a>
                 </div>
             </div>
         </div>
 
-        <div class="app-card">
-            <h2 class="sub-section-header">Add New Expense</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Add New Expense</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 <div>
-                    <label for="expenseDate" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                    <input type="date" id="expenseDate" class="app-input">
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-700">Date</label>
+                    <input type="date" id="expenseDate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                 </div>
                 <div>
-                    <label for="expenseCategory" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Transport" class="app-input">
+                    <label for="expenseCategory" class="block text-sm font-medium text-gray-700">Category</label>
+                    <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Transport" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                 </div>
                 <div>
-                    <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping, Uber ride" class="app-input">
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                    <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping, Uber ride" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                 </div>
                 <div>
-                    <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Amount (CAD)</label>
-                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="app-input">
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-700">Amount (CAD)</label>
+                    <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                 </div>
                 <div>
-                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                    <input type="text" id="paymentMethod" placeholder="e.g., Credit Card, Cash" class="app-input">
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700">Payment Method</label>
+                    <input type="text" id="paymentMethod" placeholder="e.g., Credit Card, Cash" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                 </div>
                 <div>
-                    <label for="paidBy" class="block text-sm font-medium text-gray-700 mb-1">Paid By</label>
-                    <input type="text" id="paidBy" placeholder="e.g., John, Jane" class="app-input">
+                    <label for="paidBy" class="block text-sm font-medium text-gray-700">Paid By</label>
+                    <input type="text" id="paidBy" placeholder="e.g., John, Jane" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                 </div>
-                <div class="flex items-center col-span-1 md:col-span-2 lg:col-span-1 mt-2">
-                    <input type="checkbox" id="hasBill" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <label for="hasBill" class="ml-2 block text-base text-gray-900">Has Bill?</label>
+                <div class="flex items-center col-span-1 md:col-span-2 lg:col-span-1">
+                    <input type="checkbox" id="hasBill" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    <label for="hasBill" class="ml-2 block text-sm text-gray-900">Has Bill?</label>
                 </div>
                 <div id="billTypeContainer" class="hidden col-span-1 md:col-span-2 lg:col-span-1">
-                    <label for="billType" class="block text-sm font-medium text-gray-700 mb-1">Bill Type</label>
-                    <input type="text" id="billType" placeholder="e.g., Digital, Physical" class="app-input">
+                    <label for="billType" class="block text-sm font-medium text-gray-700">Bill Type</label>
+                    <input type="text" id="billType" placeholder="e.g., Digital, Physical" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                 </div>
             </div>
-            <button id="addExpenseBtn" class="btn-primary w-full mt-4">Add Expense</button>
+            <button id="addExpenseBtn" class="mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">Add Expense</button>
         </div>
 
-        <div class="app-card grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow-md grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <h2 class="sub-section-header">Monthly Expenditure</h2>
-                <div class="chart-container relative h-64 md:h-80">
+                <h2 class="text-2xl font-semibold mb-4">Monthly Expenditure</h2>
+                <div class="relative h-64">
                     <canvas id="monthlyChart"></canvas>
                 </div>
-                <p id="monthlyChartEmptyState" class="empty-state hidden">No monthly expense data to display.</p>
+                <p id="monthlyChartEmptyState" class="text-gray-500 text-center italic mt-4 hidden">No monthly expense data to display.</p>
             </div>
             <div>
-                <h2 class="sub-section-header">Expenses by Category</h2>
-                <div class="chart-container relative h-64 md:h-80">
+                <h2 class="text-2xl font-semibold mb-4">Expenses by Category</h2>
+                <div class="relative h-64">
                     <canvas id="categoryChart"></canvas>
                 </div>
-                <p id="categoryChartEmptyState" class="empty-state hidden">No category expense data to display.</p>
+                <p id="categoryChartEmptyState" class="text-gray-500 text-center italic mt-4 hidden">No category expense data to display.</p>
             </div>
         </div>
 
-        <div class="app-card">
-            <h2 class="sub-section-header">Upload Expenses from Excel</h2>
-            <p class="text-gray-700 mb-4 text-base">Upload an Excel file (.xlsx, .xls) containing your expenses. Ensure your file has columns like 'Date', 'Category', 'Description', 'Amount', 'Payment Method', 'Paid By', 'Has Bill?', and 'Bill Type'.</p>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Upload Expenses from Excel</h2>
+            <p class="text-gray-700 mb-4 text-sm">Upload an Excel file (.xlsx, .xls) containing your expenses. Ensure your file has columns like 'Date', 'Category', 'Description', 'Amount', 'Payment Method', 'Paid By', 'Has Bill?', and 'Bill Type'.</p>
             <div class="flex flex-col md:flex-row items-center gap-4">
-                <input type="file" id="excelUploadInput" accept=".xlsx, .xls" class="app-input flex-grow">
-                <button id="uploadExcelBtn" class="btn-primary w-full md:w-auto mt-3 md:mt-0">
+                <input type="file" id="excelUploadInput" accept=".xlsx, .xls" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                <button id="uploadExcelBtn" class="mt-2 md:mt-0 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 w-full md:w-auto">
                     <i class="fas fa-upload mr-2"></i> Upload Expenses
                 </button>
             </div>
-            <div id="uploadStatus" class="mt-4 p-3 text-sm rounded-lg border hidden"></div>
+            <div id="uploadStatus" class="mt-4 p-3 text-sm rounded-md border hidden"></div>
         </div>
 
-        <div class="app-card">
-            <h2 class="sub-section-header">Export Data</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Export Data</h2>
             <div class="flex flex-col md:flex-row items-center gap-4">
-                <button id="exportAllDataBtn" class="btn-secondary w-full md:w-auto">
-                    <i class="fas fa-file-excel mr-2"></i> Export All Data (Current Dataset)
+                <button id="exportAllDataBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 w-full md:w-auto">
+                    <i class="fas fa-file-excel mr-2"></i> Export All Data
                 </button>
-                <div class="flex-grow">
-                    <label for="monthSelect" class="sr-only">Select Month</label>
-                    <select id="monthSelect" class="app-select">
-                        <option value="">Select Month</option>
-                    </select>
-                </div>
-                <button id="downloadExcelBtn" class="btn-primary w-full md:w-auto mt-3 md:mt-0">
+                <select id="monthSelect" class="mt-1 block w-full md:w-auto border border-gray-300 rounded-md shadow-sm p-2 text-gray-700">
+                    <option value="">Select Month</option>
+                </select>
+                <button id="downloadExcelBtn" class="mt-2 md:mt-0 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 w-full md:w-auto">
                     <i class="fas fa-download mr-2"></i> Download Monthly Data
                 </button>
             </div>
         </div>
 
-        <div class="app-card">
-            <h2 class="sub-section-header">Your Expenses</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Your Expenses</h2>
 
-            <div class="mb-6 p-5 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 class="text-lg font-semibold mb-3 text-blue-800"><i class="fas fa-filter mr-2"></i> Filter Expenses</h3>
+            <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 class="text-lg font-semibold mb-3 text-gray-800"><i class="fas fa-filter mr-2"></i> Filter Expenses</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div>
-                        <label for="filterCategory" class="block text-sm font-medium text-gray-700 mb-1">Filter by Category</label>
-                        <select id="filterCategory" class="app-input app-select">
+                        <label for="filterCategory" class="block text-sm font-medium text-gray-700">Filter by Category</label>
+                        <select id="filterCategory" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                             <option value="">All Categories</option>
                             </select>
                     </div>
                     <div>
-                        <label for="filterPaymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Filter by Payment Method</label>
-                        <select id="filterPaymentMethod" class="app-input app-select">
+                        <label for="filterPaymentMethod" class="block text-sm font-medium text-gray-700">Filter by Payment Method</label>
+                        <select id="filterPaymentMethod" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                             <option value="">All Methods</option>
                             </select>
                     </div>
@@ -442,96 +161,68 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">View Data From</label>
                         <div class="flex items-center space-x-4 flex-wrap gap-2">
                             <label class="inline-flex items-center">
-                                <input type="radio" name="dataSourceFilter" value="" checked class="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <input type="radio" name="dataSourceFilter" value="" checked class="form-radio h-4 w-4 text-blue-600 border-gray-300">
                                 <span class="ml-2 text-gray-800 text-sm">All Sources</span>
                             </label>
                             <label class="inline-flex items-center">
-                                <input type="radio" name="dataSourceFilter" value="manual" class="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <input type="radio" name="dataSourceFilter" value="manual" class="form-radio h-4 w-4 text-blue-600 border-gray-300">
                                 <span class="ml-2 text-gray-800 text-sm">Manual Entry</span>
                             </label>
                             <label class="inline-flex items-center">
-                                <input type="radio" name="dataSourceFilter" value="uploaded" class="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <input type="radio" name="dataSourceFilter" value="uploaded" class="form-radio h-4 w-4 text-blue-600 border-gray-300">
                                 <span class="ml-2 text-gray-800 text-sm">Uploaded File</span>
                             </label>
                         </div>
                     </div>
                     <div class="col-span-full flex justify-start md:justify-end">
-                        <button id="clearFiltersBtn" class="btn-secondary w-full md:w-auto">
+                        <button id="clearFiltersBtn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 w-full md:w-auto">
                             <i class="fas fa-times-circle mr-2"></i> Clear All Filters
                         </button>
                     </div>
                 </div>
             </div>
-            <div class="overflow-x-auto rounded-xl border border-gray-200 table-container shadow-sm">
-                <table class="app-table">
-                    <thead>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th>Date</th>
-                            <th>Category</th>
-                            <th>Description</th>
-                            <th>Amount (CAD)</th>
-                            <th>Amount (AED)</th>
-                            <th>Amount (INR)</th>
-                            <th>Payment Method</th>
-                            <th>Paid By</th>
-                            <th>Has Bill?</th>
-                            <th>Bill Type</th>
-                            <th>Actions</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (CAD)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (AED)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (INR)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Method</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid By</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Has Bill?</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bill Type</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="expenseTableBody" class="divide-y divide-gray-200">
+                    <tbody id="expenseTableBody" class="bg-white divide-y divide-gray-200">
                         </tbody>
                 </table>
-                <p id="expenseTableEmptyState" class="empty-state hidden">No expenses to display for the current filters.</p>
+                <p id="expenseTableEmptyState" class="text-gray-500 text-center italic mt-4 hidden">No expenses to display for the current filters.</p>
             </div>
-            <div class="mt-6 p-4 bg-blue-100 rounded-lg text-blue-800 font-bold text-xl flex justify-between items-center shadow-inner">
+            <div class="mt-4 p-3 bg-blue-50 text-blue-700 font-bold text-lg flex justify-between items-center rounded-md">
                 <span>Total Expenditure (CAD):</span>
                 <span id="totalExpenditureSpan">C$0.00</span>
             </div>
         </div>
     </div>
 
-    <div id="settingsModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <button id="closeSettingsModal" class="modal-close-btn">&times;</button>
-            <h2 class="section-header text-3xl mb-6">Settings</h2>
-            <div class="mb-6">
-                <label for="defaultCurrencySelect" class="block text-base font-medium text-gray-700 mb-2">Default Display Currency:</label>
-                <select id="defaultCurrencySelect" class="app-select">
+    <div id="settingsModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-[1000] hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md relative scale-95 opacity-0 transition-all duration-300">
+            <button id="closeSettingsModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            <h2 class="text-2xl font-semibold mb-4">Settings</h2>
+            <div class="mb-4">
+                <label for="defaultCurrencySelect" class="block text-sm font-medium text-gray-700">Default Display Currency:</label>
+                <select id="defaultCurrencySelect" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
                     <option value="CAD">CAD - Canadian Dollar</option>
                     <option value="AED">AED - United Arab Emirates Dirham</option>
                     <option value="INR">INR - Indian Rupee</option>
                 </select>
             </div>
-            <button id="saveSettingsBtn" class="btn-primary w-full"><i class="fas fa-save mr-2"></i> Save Settings</button>
-        </div>
-    </div>
-
-    <div id="datasetModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <button id="closeDatasetModal" class="modal-close-btn">&times;</button>
-            <h2 class="section-header text-3xl mb-6">Manage Datasets</h2>
-            <div class="space-y-8">
-                <div class="p-6 bg-blue-50 rounded-lg border border-blue-200">
-                    <h3 class="sub-section-header text-xl mb-4 text-blue-800"><i class="fas fa-plus-circle mr-2"></i> Create New Dataset</h3>
-                    <label for="newDatasetName" class="block text-sm font-medium text-gray-700 mb-1">Dataset Name</label>
-                    <input type="text" id="newDatasetName" placeholder="e.g., Summer Vacation 2024" class="app-input mb-3">
-                    <label for="newDatasetDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                    <textarea id="newDatasetDescription" placeholder="e.g., Expenses for my trip to Hawaii" class="app-input resize-y min-h-[80px] mb-4"></textarea>
-                    <button id="createDatasetBtn" class="btn-primary w-full"><i class="fas fa-plus mr-2"></i> Create Dataset</button>
-                </div>
-
-                <div>
-                    <h3 class="sub-section-header text-xl mb-4 text-gray-800"><i class="fas fa-list-alt mr-2"></i> Your Datasets</h3>
-                    <ul id="datasetsList" class="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                        <li class="p-4 bg-gray-50 rounded-lg flex items-center justify-between text-gray-800 shadow-sm">
-                            <span>Loading datasets...</span>
-                        </li>
-                    </ul>
-                    <p id="noDatasetsMessage" class="empty-state mt-4 hidden">You haven't created any datasets yet.</p>
-                </div>
-            </div>
-            <button id="doneDatasetBtn" class="btn-primary w-full mt-10">Done</button>
+            <button id="saveSettingsBtn" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">Save Settings</button>
         </div>
     </div>
 
@@ -544,12 +235,12 @@
         // !!! IMPORTANT: REPLACE WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION !!!
         const firebaseConfig = {
             apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
-  authDomain: "my-expenese-tracker.firebaseapp.com",
-  projectId: "my-expenese-tracker",
-  storageBucket: "my-expenese-tracker.firebasestorage.app",
-  messagingSenderId: "466782350290",
-  appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
-  measurementId: "G-1CF1ZNLPC2"
+            authDomain: "my-expenese-tracker.firebaseapp.com",
+            projectId: "my-expenese-tracker",
+            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            messagingSenderId: "466782350290",
+            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
+            measurementId: "G-1CF1ZNLPC2"
         };
 
         // Initialize Firebase
@@ -580,10 +271,8 @@
         const categoryChartCanvas = document.getElementById('categoryChart');
         const profileButton = document.getElementById('profileButton');
         const profileDropdownContent = document.getElementById('profileDropdownContent');
-        const profilePicture = document.getElementById('profilePicture');
         const profileIconText = document.getElementById('profileIconText');
         const mainAppUserInfo = document.getElementById('mainAppUserInfo');
-        const avatarPicture = document.getElementById('avatarPicture');
         const avatarInitial = document.getElementById('avatarInitial');
         const settingsLink = document.getElementById('settingsLink');
         const settingsModal = document.getElementById('settingsModal');
@@ -605,19 +294,6 @@
         const filterPaymentMethodSelect = document.getElementById('filterPaymentMethod');
         const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         const dataSourceFilterRadios = document.querySelectorAll('input[name="dataSourceFilter"]');
-
-        // Dataset Management Elements
-        const currentDatasetSelect = document.getElementById('currentDatasetSelect');
-        const manageDatasetsBtn = document.getElementById('manageDatasetsBtn');
-        const currentDatasetDescription = document.getElementById('currentDatasetDescription');
-        const datasetModal = document.getElementById('datasetModal');
-        const closeDatasetModal = document.getElementById('closeDatasetModal');
-        const newDatasetNameInput = document.getElementById('newDatasetName');
-        const newDatasetDescriptionInput = document.getElementById('newDatasetDescription');
-        const createDatasetBtn = document.getElementById('createDatasetBtn');
-        const datasetsList = document.getElementById('datasetsList');
-        const noDatasetsMessage = document.getElementById('noDatasetsMessage');
-        const doneDatasetBtn = document.getElementById('doneDatasetBtn');
 
         // Empty state messages for elements
         const expenseTableEmptyState = document.getElementById('expenseTableEmptyState');
@@ -646,25 +322,43 @@
         let currentFilterPaymentMethod = '';
         let currentDataSourceFilter = '';
 
-        // Dataset state
-        let currentDatasetId = null;
-        let datasets = [];
-        let currentDatasetInfo = null;
+        // Fixed, default dataset ID
+        const DEFAULT_DATASET_ID = 'default';
 
         // --- Utility Functions ---
 
+        /**
+         * Debounce function to limit how often a function can run.
+         * Useful for event listeners that fire frequently (e.g., input, scroll).
+         * @param {Function} func The function to debounce.
+         * @param {number} delay The delay in milliseconds.
+         * @returns {Function} The debounced function.
+         */
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
         function showMessage(msg, type) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message message-${type}`;
+            messageDiv.className = `p-3 rounded-md shadow-md text-white ${
+                type === 'success' ? 'bg-green-500' :
+                type === 'error' ? 'bg-red-500' :
+                'bg-blue-500'
+            } opacity-0 transition-opacity duration-300`;
             messageDiv.textContent = msg;
             messageContainer.appendChild(messageDiv);
 
             setTimeout(() => {
-                messageDiv.classList.add('show');
+                messageDiv.classList.add('opacity-100');
             }, 10); // Small delay to trigger CSS transition
 
             setTimeout(() => {
-                messageDiv.classList.remove('show');
+                messageDiv.classList.remove('opacity-100');
                 messageDiv.addEventListener('transitionend', () => {
                     messageDiv.remove();
                 });
@@ -674,13 +368,13 @@
         function showLoading(msg = "Loading...") {
             loadingMessage.textContent = msg;
             loadingOverlay.classList.remove('hidden');
-            setTimeout(() => loadingOverlay.classList.add('visible'), 10); // Add visible class for transition
+            setTimeout(() => loadingOverlay.classList.add('opacity-100'), 10); // Add visible class for transition
         }
 
         function hideLoading() {
-            loadingOverlay.classList.remove('visible');
+            loadingOverlay.classList.remove('opacity-100');
             loadingOverlay.addEventListener('transitionend', () => {
-                if (!loadingOverlay.classList.contains('visible')) {
+                if (!loadingOverlay.classList.contains('opacity-100')) {
                     loadingOverlay.classList.add('hidden');
                 }
             }, { once: true });
@@ -688,17 +382,22 @@
 
         function showModal(modalElement) {
             modalElement.classList.remove('hidden');
-            setTimeout(() => modalElement.classList.add('visible'), 10);
+            setTimeout(() => {
+                modalElement.classList.add('opacity-100');
+                modalElement.querySelector('.bg-white').classList.add('scale-100', 'opacity-100');
+            }, 10);
         }
 
         function hideModal(modalElement) {
-            modalElement.classList.remove('visible');
+            modalElement.classList.remove('opacity-100');
+            modalElement.querySelector('.bg-white').classList.remove('scale-100', 'opacity-100');
             modalElement.addEventListener('transitionend', () => {
-                if (!modalElement.classList.contains('visible')) {
+                if (!modalElement.classList.contains('opacity-100')) {
                     modalElement.classList.add('hidden');
                 }
             }, { once: true });
         }
+
 
         // --- Firebase Auth Functions ---
 
@@ -706,7 +405,8 @@
             showLoading("Signing in with Google...");
             try {
                 await signInWithPopup(auth, googleProvider);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Google Sign-In Error:", error);
                 const errorMessage = error.code === 'auth/popup-closed-by-user' ? 'Sign-in cancelled.' : `Sign-in failed: ${error.message}`;
                 showMessage(errorMessage, "error");
@@ -719,7 +419,8 @@
             showLoading("Signing in as Guest...");
             try {
                 await signInAnonymously(auth);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Guest Sign-In Error:", error);
                 showMessage(`Guest sign-in failed: ${error.message}`, "error");
             } finally {
@@ -732,7 +433,8 @@
             try {
                 await signOut(auth);
                 showMessage('Signed out successfully!', 'info');
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Sign-Out Error:", error);
                 showMessage(`Sign-out failed: ${error.message}`, "error");
             } finally {
@@ -775,255 +477,27 @@
             }
         });
 
-        saveSettingsBtn.addEventListener('click', saveUserSettings);
+        saveSettingsBtn.addEventListener('click', saveSettings);
 
-        // --- Dataset Management ---
-
-        async function loadAndSetInitialDataset() {
-            showLoading("Loading your datasets...");
-            try {
-                const q = query(collection(db, `users/${currentUserId}/datasets`), orderBy('createdAt', 'asc'));
-                // Use onSnapshot to get real-time updates for datasets themselves
-                onSnapshot(q, (snapshot) => {
-                    const fetchedDatasets = [];
-                    snapshot.forEach((doc) => {
-                        fetchedDatasets.push({ id: doc.id, ...doc.data() });
-                    });
-                    datasets = fetchedDatasets;
-                    populateDatasetSelect();
-                    renderDatasetsList(); // Update modal list
-
-                    const storedDatasetId = localStorage.getItem('currentDatasetId');
-                    let foundDataset = null;
-
-                    if (storedDatasetId) {
-                        foundDataset = datasets.find(d => d.id === storedDatasetId);
-                    }
-
-                    if (foundDataset) {
-                        switchDataset(foundDataset.id, foundDataset.name, foundDataset.description);
-                    } else if (datasets.length > 0) {
-                        // If stored ID not found or no stored ID, pick the first dataset
-                        const firstDataset = datasets[0];
-                        switchDataset(firstDataset.id, firstDataset.name, firstDataset.description);
-                    } else {
-                        // No datasets exist, prompt to create one
-                        currentDatasetId = null;
-                        currentDatasetInfo = null;
-                        if (unsubscribeFromExpenses) {
-                            unsubscribeFromExpenses();
-                            unsubscribeFromExpenses = null;
-                        }
-                        expenses = []; // Clear expenses if no dataset
-                        renderExpenses(); // Render empty table
-                        updateDatasetUI();
-                        showMessage("Welcome! Please create your first dataset to start tracking expenses.", "info");
-                        if (!datasetModal.classList.contains('visible')) { // Only open if not already open
-                             showModal(datasetModal); // Automatically open dataset modal
-                        }
-                    }
-                    hideLoading();
-                }, (error) => {
-                    console.error("Error fetching datasets:", error);
-                    showMessage("Error loading datasets. Please try again.", "error");
-                    hideLoading();
-                });
-            } catch (e) {
-                console.error("Error loading and setting initial dataset:", e);
-                showMessage("Failed to load initial dataset.", "error");
-                hideLoading();
-            }
-        }
-
-        function populateDatasetSelect() {
-            currentDatasetSelect.innerHTML = '';
-            if (datasets.length === 0) {
-                currentDatasetSelect.innerHTML = '<option value="">No Datasets Available</option>';
-                currentDatasetSelect.disabled = true;
-            } else {
-                currentDatasetSelect.disabled = false;
-                datasets.forEach(dataset => {
-                    const option = document.createElement('option');
-                    option.value = dataset.id;
-                    option.textContent = dataset.name;
-                    currentDatasetSelect.appendChild(option);
-                });
-                if (currentDatasetId) {
-                    currentDatasetSelect.value = currentDatasetId;
-                }
-            }
-        }
-
-        function renderDatasetsList() {
-            datasetsList.innerHTML = '';
-            if (datasets.length === 0) {
-                noDatasetsMessage.classList.remove('hidden');
-            } else {
-                noDatasetsMessage.classList.add('hidden');
-                datasets.forEach(dataset => {
-                    const li = document.createElement('li');
-                    li.className = 'p-4 bg-white rounded-lg shadow-sm flex items-center justify-between text-gray-800 border border-gray-100 hover:shadow-md transition-shadow duration-200';
-                    li.innerHTML = `
-                        <div class="flex-1 mr-4">
-                            <p class="font-bold text-lg">${dataset.name}</p>
-                            <p class="text-sm text-gray-500">${dataset.description || 'No description'}</p>
-                        </div>
-                        <button data-id="${dataset.id}" class="delete-dataset-btn text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors">
-                            <i class="fas fa-trash-alt text-lg"></i>
-                        </button>
-                    `;
-                    datasetsList.appendChild(li);
-                });
-            }
-        }
-
-        function switchDataset(id, name, description) {
-            if (currentDatasetId === id) return; // Already on this dataset
-
-            currentDatasetId = id;
-            currentDatasetInfo = { id, name, description };
-            localStorage.setItem('currentDatasetId', id); // Persist selection
-
-            updateDatasetUI(); // Update display
-            
-            // Stop listening to old expenses and start listening to new ones
-            if (unsubscribeFromExpenses) {
-                unsubscribeFromExpenses();
-                unsubscribeFromExpenses = null;
-            }
-            listenToExpenses(currentUserId); // Restart listener for the new dataset
-            showMessage(`Switched to dataset: "${name}"`, 'info');
-        }
-
-        function updateDatasetUI() {
-            if (currentDatasetInfo && currentDatasetInfo.id) {
-                currentDatasetSelect.value = currentDatasetInfo.id;
-                currentDatasetDescription.textContent = currentDatasetInfo.description || '';
-                currentDatasetDescription.classList.remove('hidden');
-            } else {
-                currentDatasetSelect.innerHTML = '<option value="">No Dataset Selected</option>';
-                currentDatasetSelect.disabled = true;
-                currentDatasetDescription.textContent = 'Please create a new dataset to start tracking expenses.';
-                currentDatasetDescription.classList.remove('hidden');
-            }
-        }
-
-        manageDatasetsBtn.addEventListener('click', () => {
-            profileDropdownContent.classList.remove('show'); // Close main dropdown
-            showModal(datasetModal);
-            renderDatasetsList(); // Ensure list is fresh
-            newDatasetNameInput.focus(); // Focus on first input in modal
-        });
-
-        closeDatasetModal.addEventListener('click', () => {
-            hideModal(datasetModal);
-        });
-        doneDatasetBtn.addEventListener('click', () => {
-            hideModal(datasetModal);
-        });
-        datasetModal.addEventListener('click', (event) => {
-            if (event.target === datasetModal) {
-                hideModal(datasetModal);
-            }
-        });
-
-        createDatasetBtn.addEventListener('click', async () => {
-            if (!currentUserId) {
-                showMessage("Please sign in to create datasets.", "error");
-                return;
-            }
-            const name = newDatasetNameInput.value.trim();
-            const description = newDatasetDescriptionInput.value.trim();
-
-            if (!name) {
-                showMessage("Dataset name cannot be empty.", "error");
-                newDatasetNameInput.focus();
-                return;
-            }
-
-            showLoading("Creating dataset...");
-            try {
-                const docRef = await addDoc(collection(db, `users/${currentUserId}/datasets`), {
-                    name,
-                    description,
-                    createdAt: new Date().toISOString() // Store ISO string for consistent sorting
-                });
-                showMessage(`Dataset "${name}" created successfully!`, 'success');
-                newDatasetNameInput.value = '';
-                newDatasetDescriptionInput.value = '';
-                // Automatically switch to the newly created dataset
-                switchDataset(docRef.id, name, description);
-            } catch (e) {
-                console.error("Error creating dataset:", e);
-                showMessage("Error creating dataset. Please try again.", "error");
-            } finally {
-                hideLoading();
-            }
-        });
-
-        currentDatasetSelect.addEventListener('change', (event) => {
-            const selectedDatasetId = event.target.value;
-            const selectedDataset = datasets.find(d => d.id === selectedDatasetId);
-            if (selectedDataset) {
-                switchDataset(selectedDataset.id, selectedDataset.name, selectedDataset.description);
-            }
-        });
-
-        datasetsList.addEventListener('click', async (event) => {
-            if (event.target.closest('.delete-dataset-btn')) {
-                const btn = event.target.closest('.delete-dataset-btn');
-                const datasetIdToDelete = btn.dataset.id;
-                const datasetNameToDelete = datasets.find(d => d.id === datasetIdToDelete)?.name || 'this dataset';
-
-                if (confirm(`Are you sure you want to delete the dataset "${datasetNameToDelete}" and ALL its expenses? This action cannot be undone.`)) {
-                    showLoading(`Deleting "${datasetNameToDelete}"...`);
-                    try {
-                        // Delete the dataset document itself
-                        await deleteDoc(doc(db, `users/${currentUserId}/datasets`, datasetIdToDelete));
-                        
-                        // For complete cleanup of subcollection (expenses), Firebase Cloud Functions are recommended.
-                        // However, the UI will no longer display these expenses once the parent dataset is gone.
-                        
-                        showMessage(`Dataset "${datasetNameToDelete}" deleted.`, 'success');
-
-                        // If the current dataset was deleted, switch to another or prompt for new
-                        if (currentDatasetId === datasetIdToDelete) {
-                            localStorage.removeItem('currentDatasetId');
-                            // Reload datasets and pick new active or prompt for new
-                            await loadAndSetInitialDataset(); 
-                        } else {
-                            renderDatasetsList(); // Just refresh the list
-                        }
-
-                    } catch (e) {
-                        console.error("Error deleting dataset:", e);
-                        showMessage("Error deleting dataset. Please try again.", "error");
-                    } finally {
-                        hideLoading();
-                    }
-                }
-            }
-        });
-
-        // --- Core Expense Functions (MODIFIED FOR DATASETS) ---
+        // --- Core Expense Functions (SIMPLIFIED FOR SINGLE DATASET) ---
 
         function listenToExpenses(userId) {
             if (unsubscribeFromExpenses) {
                 unsubscribeFromExpenses(); // Stop listening to old expenses
             }
 
-            if (!currentDatasetId) {
-                expenses = []; // Clear expenses if no dataset is active
+            if (!userId) {
+                expenses = []; // Clear expenses if no user
                 renderExpenses();
                 hideLoading();
                 return;
             }
-            
-            showLoading(`Loading expenses for "${currentDatasetInfo.name}"...`);
-            // Ensure the path includes the currentDatasetId
-            const expensesCollectionRef = collection(db, `users/${userId}/datasets/${currentDatasetId}/expenses`);
+
+            showLoading("Loading your expenses...");
+            // Direct reference to the 'expenses' subcollection under the 'default' dataset for the current user
+            const expensesCollectionRef = collection(db, `users/${userId}/datasets/${DEFAULT_DATASET_ID}/expenses`);
             const q = query(expensesCollectionRef, orderBy('date', 'desc'), orderBy('timestamp', 'desc')); // Order by date then by timestamp for stable sort
-            
+
             unsubscribeFromExpenses = onSnapshot(q, (snapshot) => {
                 const fetchedExpenses = [];
                 snapshot.forEach((doc) => {
@@ -1044,16 +518,17 @@
                 expenses = fetchedExpenses;
                 renderExpenses(); // Render and update charts
                 hideLoading();
-                showMessage(`Expenses for "${currentDatasetInfo.name}" synchronized!`, 'success');
+                showMessage(`Expenses synchronized!`, 'success');
             }, (error) => {
                 console.error("Error fetching Firestore expenses:", error);
-                showMessage("Error loading expenses for this dataset. Check console for details.", "error");
+                showMessage("Error loading expenses. Check console for details.", "error");
                 hideLoading();
             });
         }
 
         function renderExpenses() {
-            expenseTableBody.innerHTML = '';
+            // Create a document fragment to build table rows efficiently
+            const fragment = document.createDocumentFragment();
             let totalExpenditure = 0;
 
             // Filter expenses based on current selections
@@ -1081,29 +556,36 @@
                 let displayAmountAED = `AED ${amountAED}`;
                 let displayAmountINR = `INR ${amountINR}`;
 
-                const row = expenseTableBody.insertRow();
-                row.className = 'hover:bg-gray-50 transition-colors duration-150'; // Add hover effect
+                const row = document.createElement('tr'); // Create tr element
+                row.className = 'hover:bg-gray-50'; // Add hover effect
                 row.innerHTML = `
-                    <td>${expense.date}</td>
-                    <td>${expense.category}</td>
-                    <td>${expense.description}</td>
-                    <td>${displayAmountCAD}</td>
-                    <td>${displayAmountAED}</td>
-                    <td>${displayAmountINR}</td>
-                    <td>${expense.paymentMethod || 'N/A'}</td>
-                    <td>${expense.paidBy || 'N/A'}</td>
-                    <td class="text-center">${expense.hasBill ? '<i class="fas fa-check-circle text-green-500"></i>' : '<i class="fas fa-times-circle text-red-500"></i>'}</td>
-                    <td>${expense.hasBill ? (expense.billType || 'N/A') : 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${expense.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${expense.category}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${expense.description}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${displayAmountCAD}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${displayAmountAED}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${displayAmountINR}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${expense.paymentMethod || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${expense.paidBy || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">${expense.hasBill ? '<i class="fas fa-check-circle text-green-500"></i>' : '<i class="fas fa-times-circle text-red-500"></i>'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${expense.hasBill ? (expense.billType || 'N/A') : 'N/A'}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button data-id="${expense.id}" class="text-red-600 hover:text-red-900 ml-2 delete-btn p-1 rounded-full hover:bg-red-50 transition-colors" title="Delete Expense">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </td>
                 `;
+                fragment.appendChild(row); // Append to fragment, not directly to DOM
             });
 
+            // Clear the actual table body once
+            expenseTableBody.innerHTML = '';
+            // Append the entire fragment to the table body in a single DOM operation
+            expenseTableBody.appendChild(fragment);
+
+
             totalExpenditureSpan.textContent = `C$${totalExpenditure.toFixed(2)}`;
-            
+
             const allMonthlyExpenses = {};
             const allCategoryExpenses = {};
             if (expenses.length > 0) {
@@ -1118,7 +600,7 @@
                 categoryChartEmptyState.classList.add('hidden');
             } else {
                 monthlyChartEmptyState.classList.remove('hidden');
-                categoryChartEmptyState.classList.remove('hidden');
+                categoryChartEmptyState.classList.add('hidden');
             }
 
 
@@ -1128,8 +610,8 @@
         }
 
         addExpenseBtn.addEventListener('click', async () => {
-            if (!currentUserId || !currentDatasetId) {
-                showMessage("Please select or create a dataset to add expenses.", "error");
+            if (!currentUserId) {
+                showMessage("Please sign in to add expenses.", "error");
                 return;
             }
 
@@ -1149,7 +631,8 @@
 
             showLoading("Adding expense...");
             try {
-                await addDoc(collection(db, `users/${currentUserId}/datasets/${currentDatasetId}/expenses`), {
+                // Use the fixed DEFAULT_DATASET_ID
+                await addDoc(collection(db, `users/${currentUserId}/datasets/${DEFAULT_DATASET_ID}/expenses`), {
                     date,
                     category,
                     description,
@@ -1158,7 +641,7 @@
                     paidBy,
                     hasBill,
                     billType,
-                    source: 'manual',
+                    source: 'manual', // Mark as manual entry
                     timestamp: new Date().toISOString() // Use ISO string for consistent sorting
                 });
                 showMessage('Expense added successfully!', 'success');
@@ -1173,7 +656,8 @@
                 billTypeInput.value = '';
                 billTypeContainer.classList.add('hidden');
                 expenseCategoryInput.focus(); // Focus back to category for quick entry
-            } catch (e) {
+            }
+            catch (e) {
                 console.error("Error adding document: ", e);
                 showMessage('Error adding expense. Please try again.', 'error');
             } finally {
@@ -1183,8 +667,8 @@
 
         expenseTableBody.addEventListener('click', async (event) => {
             if (event.target.classList.contains('delete-btn') || event.target.closest('.delete-btn')) {
-                if (!currentUserId || !currentDatasetId) {
-                    showMessage("Please select a dataset to delete expenses.", "error");
+                if (!currentUserId) {
+                    showMessage("Please sign in to delete expenses.", "error");
                     return;
                 }
                 const btn = event.target.closest('.delete-btn');
@@ -1192,9 +676,11 @@
                 if (confirm('Are you sure you want to delete this expense?')) {
                     showLoading("Deleting expense...");
                     try {
-                        await deleteDoc(doc(db, `users/${currentUserId}/datasets/${currentDatasetId}/expenses`, expenseId));
+                        // Use the fixed DEFAULT_DATASET_ID
+                        await deleteDoc(doc(db, `users/${currentUserId}/datasets/${DEFAULT_DATASET_ID}/expenses`, expenseId));
                         showMessage('Expense deleted successfully!', 'success');
-                    } catch (e) {
+                    }
+                    catch (e) {
                         console.error("Error deleting document: ", e);
                         showMessage('Error deleting expense. Please try again.', 'error');
                     } finally {
@@ -1230,10 +716,9 @@
                     datasets: [{
                         label: 'Total CAD Expenditure',
                         data: monthlyValues,
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)', /* blue-500 with more opacity */
-                        borderColor: 'rgba(37, 99, 235, 1)',    /* blue-600 */
-                        borderWidth: 1,
-                        borderRadius: 4 /* Rounded bars */
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)', /* blue-500 */
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
                     }]
                 },
                 options: {
@@ -1241,36 +726,12 @@
                     maintainAspectRatio: false,
                     scales: {
                         y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Amount (CAD)',
-                                font: { size: 14, weight: 'bold' },
-                                color: '#4b5563'
-                            },
-                            grid: {
-                                color: '#e5e7eb' /* Light gray grid lines */
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false /* No vertical grid lines */
-                            }
+                            beginAtZero: true
                         }
                     },
                     plugins: {
-                        title: {
-                            display: false, /* Title handled by HTML h2 */
-                        },
                         legend: {
-                            display: false /* No legend needed for single dataset */
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `C$${context.parsed.y.toFixed(2)}`;
-                                }
-                            }
+                            display: false
                         }
                     }
                 }
@@ -1284,37 +745,23 @@
                 categoryChartInstance.destroy();
             }
             categoryChartInstance = new Chart(categoryChartCanvas, {
-                type: 'doughnut', /* Doughnut chart for a modern look */
+                type: 'pie',
                 data: {
                     labels: categoryLabels,
                     datasets: [{
                         label: 'Expenses by Category',
                         data: categoryValues,
                         backgroundColor: [
-                            '#60a5fa', /* blue-400 */
-                            '#34d399', /* emerald-400 */
-                            '#fcd34d', /* amber-300 */
-                            '#a78bfa', /* violet-400 */
-                            '#f87171', /* red-400 */
-                            '#a3a3a3', /* gray-400 */
-                            '#818cf8', /* indigo-400 */
-                            '#fb923c', /* orange-400 */
-                            '#c084fc', /* purple-400 */
-                            '#22d3ee', /* cyan-400 */
-                            '#ef4444', /* red-500 */
-                            '#eab308', /* yellow-500 */
+                            '#4299E1', '#48BB78', '#F6E05E', '#ED8936', '#9F7AEA',
+                            '#ECC94B', '#63B3ED', '#FC8181', '#A0AEC0', '#48BB78'
                         ],
-                        borderColor: 'white',
-                        borderWidth: 2
+                        borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        title: {
-                            display: false, /* Title handled by HTML h2 */
-                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -1331,25 +778,16 @@
                                     return label;
                                 }
                             }
-                        },
-                        legend: {
-                            position: 'right', /* Move legend to the right */
-                            labels: {
-                                font: {
-                                    size: 12
-                                }
-                            }
                         }
-                    },
-                    cutout: '60%', /* For doughnut hole size */
+                    }
                 }
             });
         }
 
         // --- Excel Upload Function ---
         async function handleExcelUpload() {
-            if (!currentUserId || !currentDatasetId) {
-                showMessage("Please select or create a dataset to upload expenses.", "error");
+            if (!currentUserId) {
+                showMessage("Please sign in to upload expenses.", "error");
                 return;
             }
 
@@ -1360,7 +798,7 @@
             }
 
             // Clear previous status and prepare for new
-            uploadStatus.classList.add('hidden'); 
+            uploadStatus.classList.add('hidden');
             uploadStatus.classList.remove('border-green-300', 'border-red-300', 'border-blue-300');
             uploadStatus.innerHTML = '';
 
@@ -1380,8 +818,8 @@
                 if (jsonExpenses.length === 0) {
                     showMessage('The selected Excel file contains no data.', 'info');
                     uploadStatus.classList.remove('hidden');
-                    uploadStatus.classList.add('border-blue-300');
-                    uploadStatus.innerHTML = '<p class="text-blue-700">The selected Excel file contains no data.</p>';
+                    uploadStatus.classList.add('border-blue-300', 'text-blue-700');
+                    uploadStatus.innerHTML = '<p>The selected Excel file contains no data.</p>';
                     hideLoading();
                     return;
                 }
@@ -1389,92 +827,125 @@
                 const validExpenses = [];
                 const invalidRows = [];
 
-                // Define expected headers and their mapping
-                const expectedHeaders = {
-                    'Date': 'date',
-                    'Category': 'category',
-                    'Description': 'description',
-                    'Amount': 'amount',
-                    'Payment Method': 'paymentMethod',
-                    'Paid By': 'paidBy',
-                    'Has Bill?': 'hasBill',
-                    'Bill Type': 'billType'
+                // Define expected headers and their mapping with possible variations
+                const headerMap = {
+                    date: ['Date', 'Expense Date', 'Transaction Date'],
+                    category: ['Category', 'Expense Category'],
+                    description: ['Description', 'Expense Description', 'Details'],
+                    amount: ['Amount', 'Expense Amount', 'Total Amount'],
+                    paymentMethod: ['Payment Method', 'PaymentMethod', 'Method of Payment'],
+                    paidBy: ['Paid By', 'PaidBy', 'Payer'],
+                    hasBill: ['Has Bill?', 'HasBill', 'Bill Available'],
+                    billType: ['Bill Type', 'BillType', 'Type of Bill']
                 };
-                const altHeaders = {
-                    'PaymentMethod': 'paymentMethod',
-                    'PaidBy': 'paidBy',
-                    'HasBill': 'hasBill', // For files with no '?'
-                    'BillType': 'billType'
+
+                // Helper to find column value by trying multiple header names
+                const findColumnValue = (row, possibleHeaders) => {
+                    for (const header of possibleHeaders) {
+                        if (row[header] !== undefined) {
+                            return String(row[header]).trim();
+                        }
+                    }
+                    return ''; // Return empty string if no header matches
                 };
+
+                // Helper to convert Excel date number to YYYY-MM-DD
+                const excelDateToISODate = (excelDateNumber) => {
+                    // Excel's epoch for 1900-based date system (most common)
+                    const excelEpoch = new Date(1899, 11, 30); // Dec 30, 1899
+                    const date = new Date(excelEpoch.getTime() + excelDateNumber * 24 * 60 * 60 * 1000);
+                    // Handle potential time zone issues by getting UTC values
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
 
                 jsonExpenses.forEach((row, index) => {
                     const expense = {};
                     let isValid = true;
                     let validationErrors = [];
 
-                    // Map and validate using both primary and alternative headers
-                    for (const headerKey in expectedHeaders) {
-                        const propName = expectedHeaders[headerKey];
-                        let value = row[headerKey];
-                        if (value === undefined && altHeaders[headerKey]) { // Check alt header if primary not found
-                            value = row[altHeaders[headerKey]];
+                    // Extract and validate each field using the headerMap
+                    // Date
+                    const dateRaw = findColumnValue(row, headerMap.date);
+                    if (!dateRaw) {
+                        isValid = false;
+                        validationErrors.push('Missing Date');
+                    } else {
+                        let parsedDate = '';
+                        // Find which specific header was used and get its raw value for type checking
+                        const actualDateHeader = headerMap.date.find(h => row[h] !== undefined);
+                        if (typeof row[actualDateHeader] === 'number') {
+                            // It's an Excel numeric date
+                            try {
+                                parsedDate = excelDateToISODate(row[actualDateHeader]);
+                            } catch (e) {
+                                isValid = false;
+                                validationErrors.push('Invalid Date format (numeric)');
+                            }
+                        } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
+                            parsedDate = dateRaw; // Already in YYYY-MM-DD
+                        } else {
+                            // Try parsing other common date formats
+                            const d = new Date(dateRaw);
+                            if (!isNaN(d.getTime())) {
+                                parsedDate = d.toISOString().slice(0, 10);
+                            } else {
+                                isValid = false;
+                                validationErrors.push('Invalid Date format (expected YYYY-MM-DD or readable date string)');
+                            }
                         }
-                        
-                        // Basic trim for string values
-                        if (typeof value === 'string') {
-                            value = value.trim();
-                        }
+                        expense.date = parsedDate;
+                    }
 
-                        switch (propName) {
-                            case 'date':
-                                // Attempt to convert numeric dates (Excel's default) to YYYY-MM-DD
-                                if (typeof value === 'number') {
-                                    try {
-                                        const excelDate = new Date(1899, 11, 30); // Excel's epoch start (adjust for 1900 leap year bug if needed)
-                                        excelDate.setDate(excelDate.getDate() + value);
-                                        expense.date = excelDate.toISOString().slice(0, 10);
-                                    } catch (e) {
-                                        isValid = false;
-                                        validationErrors.push('Invalid Date format (numeric)');
-                                    }
-                                } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                                    expense.date = value;
-                                } else {
-                                    isValid = false;
-                                    validationErrors.push('Invalid Date (expected YYYY-MM-DD or numeric Excel date)');
-                                }
-                                break;
-                            case 'category':
-                            case 'description':
-                            case 'paymentMethod':
-                            case 'paidBy':
-                                if (!value) {
-                                    isValid = false;
-                                    validationErrors.push(`Missing ${headerKey}`);
-                                }
-                                expense[propName] = value;
-                                break;
-                            case 'amount':
-                                const amount = parseFloat(value);
-                                if (isNaN(amount) || amount <= 0) {
-                                    isValid = false;
-                                    validationErrors.push('Invalid Amount (must be a positive number)');
-                                }
-                                expense.amount = amount;
-                                break;
-                            case 'hasBill':
-                                // Normalize 'Yes'/'No', 'TRUE'/'FALSE', 1/0
-                                const hasBillRaw = String(value || '').toLowerCase();
-                                expense.hasBill = ['yes', 'true', '1'].includes(hasBillRaw);
-                                break;
-                            case 'billType':
-                                expense.billType = value;
-                                if (expense.hasBill && !expense.billType) {
-                                    isValid = false;
-                                    validationErrors.push('Bill Type required if Has Bill? is "Yes"');
-                                }
-                                break;
-                        }
+                    // Category
+                    expense.category = findColumnValue(row, headerMap.category);
+                    if (!expense.category) {
+                        isValid = false;
+                        validationErrors.push('Missing Category');
+                    }
+
+                    // Description
+                    expense.description = findColumnValue(row, headerMap.description);
+                    if (!expense.description) {
+                        isValid = false;
+                        validationErrors.push('Missing Description');
+                    }
+
+                    // Amount
+                    const amountRaw = findColumnValue(row, headerMap.amount);
+                    const amount = parseFloat(amountRaw);
+                    if (isNaN(amount) || amount <= 0) {
+                        isValid = false;
+                        validationErrors.push('Invalid Amount (must be a positive number)');
+                    }
+                    expense.amount = amount;
+
+                    // Payment Method
+                    expense.paymentMethod = findColumnValue(row, headerMap.paymentMethod);
+                    if (!expense.paymentMethod) {
+                        isValid = false;
+                        validationErrors.push('Missing Payment Method');
+                    }
+
+                    // Paid By
+                    expense.paidBy = findColumnValue(row, headerMap.paidBy);
+                    if (!expense.paidBy) {
+                        isValid = false;
+                        validationErrors.push('Missing Paid By');
+                    }
+
+                    // Has Bill?
+                    const hasBillRaw = findColumnValue(row, headerMap.hasBill).toLowerCase();
+                    expense.hasBill = ['yes', 'true', '1'].includes(hasBillRaw);
+
+                    // Bill Type
+                    expense.billType = findColumnValue(row, headerMap.billType);
+                    if (expense.hasBill && !expense.billType) {
+                        isValid = false;
+                        validationErrors.push('Bill Type required if Has Bill? is "Yes"');
                     }
 
                     expense.source = 'uploaded'; // Tag uploaded expenses
@@ -1502,7 +973,8 @@
 
                 // Batch write to Firestore
                 const batch = writeBatch(db);
-                const expensesCollectionRef = collection(db, `users/${currentUserId}/datasets/${currentDatasetId}/expenses`);
+                // Use the fixed DEFAULT_DATASET_ID for the collection path
+                const expensesCollectionRef = collection(db, `users/${currentUserId}/datasets/${DEFAULT_DATASET_ID}/expenses`);
                 validExpenses.forEach(expense => {
                     const newDocRef = doc(expensesCollectionRef);
                     batch.set(newDocRef, expense);
@@ -1529,10 +1001,11 @@
                     uploadStatus.classList.add('border-green-300', 'text-green-700');
                     uploadStatus.innerHTML = `<p class="font-bold">${messageText}</p>`;
                 }
-                
+
                 showMessage(messageText, messageType);
                 excelUploadInput.value = ''; // Clear the file input
-            } catch (error) {
+            }
+            catch (error) {
                 console.error('Error uploading Excel file:', error);
                 showMessage('Error processing Excel file. Please ensure it is a valid .xlsx or .xls file and check console for details.', 'error');
                 uploadStatus.classList.remove('hidden');
@@ -1548,12 +1021,12 @@
         // --- Excel Export Functions ---
 
         exportAllDataBtn.addEventListener('click', () => {
-            if (!currentDatasetId) {
-                showMessage('No dataset selected to export data from.', 'info');
+            if (!currentUserId) {
+                showMessage('Please sign in to export data.', 'info');
                 return;
             }
             if (expenses.length === 0) {
-                showMessage('No data to export in the current dataset!', 'info');
+                showMessage('No data to export!', 'info');
                 return;
             }
 
@@ -1574,9 +1047,9 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "All Expenses");
 
-            const fileName = `All_Expenses_${(currentDatasetInfo?.name || 'MyData').replace(/ /g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+            const fileName = `All_Expenses_${new Date().toISOString().slice(0, 10)}.xlsx`;
             XLSX.writeFile(wb, fileName);
-            showMessage('All expenses from current dataset exported to Excel!', 'success');
+            showMessage('All expenses exported to Excel!', 'success');
         });
 
         function populateMonthSelect() {
@@ -1606,8 +1079,8 @@
         }
 
         downloadExcelBtn.addEventListener('click', () => {
-            if (!currentDatasetId) {
-                showMessage('No dataset selected to download data from.', 'info');
+            if (!currentUserId) {
+                showMessage('Please sign in to download data.', 'info');
                 return;
             }
             const selectedMonth = monthSelect.value;
@@ -1623,7 +1096,7 @@
             });
 
             if (filteredByMonth.length === 0) {
-                showMessage(`No expenses found for ${selectedMonth} in the current dataset.`, 'info');
+                showMessage(`No expenses found for ${selectedMonth}.`, 'info');
                 return;
             }
 
@@ -1644,9 +1117,9 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, `${selectedMonth} Expenses`);
 
-            const fileName = `Expenses_${(currentDatasetInfo?.name || 'MyData').replace(/ /g, '_')}_${selectedMonth.replace(/ /g, '_')}.xlsx`;
+            const fileName = `Expenses_${selectedMonth.replace(/ /g, '_')}.xlsx`;
             XLSX.writeFile(wb, fileName);
-            showMessage(`Expenses for ${selectedMonth} from current dataset downloaded as Excel!`, "success");
+            showMessage(`Expenses for ${selectedMonth} downloaded as Excel!`, "success");
         });
 
         // --- Filtering Functions ---
@@ -1681,20 +1154,23 @@
             filterPaymentMethodSelect.value = currentFilterPaymentMethod; // Set selected value
         }
 
+        // Debounced version of renderExpenses for filters
+        const debouncedRenderExpenses = debounce(renderExpenses, 300); // 300ms debounce
+
         filterCategorySelect.addEventListener('change', (event) => {
             currentFilterCategory = event.target.value;
-            renderExpenses(); // Re-render table with new filter
+            debouncedRenderExpenses();
         });
 
         filterPaymentMethodSelect.addEventListener('change', (event) => {
             currentFilterPaymentMethod = event.target.value;
-            renderExpenses(); // Re-render table with new filter
+            debouncedRenderExpenses();
         });
 
         dataSourceFilterRadios.forEach(radio => {
             radio.addEventListener('change', (event) => {
                 currentDataSourceFilter = event.target.value;
-                renderExpenses(); // Re-render table with new source filter
+                debouncedRenderExpenses();
             });
         });
 
@@ -1706,22 +1182,20 @@
             filterPaymentMethodSelect.value = '';
             // Reset radio buttons to 'All Sources'
             document.querySelector('input[name="dataSourceFilter"][value=""]').checked = true;
-            renderExpenses();
+            renderExpenses(); // Call directly as it's a single click action
             showMessage('All filters cleared!', 'info');
         });
 
         // --- Profile Dropdown ---
         profileButton.addEventListener('click', (event) => {
             event.stopPropagation(); // Prevent document click from closing it immediately
-            profileDropdownContent.classList.toggle('show');
+            profileDropdownContent.classList.toggle('hidden'); // Toggle hidden class
         });
 
         // Close the dropdown if the user clicks outside of it
         window.addEventListener('click', (event) => {
-            if (!event.target.closest('.profile-dropdown-container') && 
-                !event.target.closest('#settingsModal') && 
-                !event.target.closest('#datasetModal')) {
-                profileDropdownContent.classList.remove('show');
+            if (!event.target.closest('#profileDropdownContent') && !event.target.closest('#profileButton')) {
+                profileDropdownContent.classList.add('hidden');
             }
         });
 
@@ -1734,59 +1208,41 @@
             expenseDateInput.value = `${yyyy}-${mm}-${dd}`;
 
             // Initial chart setup to prevent errors before data loads
-            updateCharts({}, {}); 
+            updateCharts({}, {});
 
             // Firebase Auth State Listener
             onAuthStateChanged(auth, async (user) => {
                 console.log("onAuthStateChanged fired. User:", user);
                 if (user) {
                     currentUserId = user.uid;
-                    
+
                     let displayEmail = user.email || (user.isAnonymous ? 'Guest User' : 'Unknown User');
                     let displayName = user.displayName || 'Guest';
                     let initial = displayName.charAt(0).toUpperCase();
 
-                    if (user.photoURL) {
-                        profilePicture.src = user.photoURL;
-                        avatarPicture.src = user.photoURL;
-                        profilePicture.classList.remove('hidden');
-                        avatarPicture.classList.remove('hidden');
-                        profileIconText.classList.add('hidden');
-                        avatarInitial.classList.add('hidden');
-                    } else {
-                        profilePicture.classList.add('hidden');
-                        avatarPicture.classList.add('hidden');
-                        profileIconText.classList.remove('hidden');
-                        avatarInitial.classList.remove('hidden');
-                    }
+                    // Always show the initial/fallback icon
+                    profileIconText.textContent = initial;
+                    avatarInitial.textContent = initial;
 
-                    mainAppUserInfo.textContent = displayEmail; 
-                    profileIconText.textContent = initial;      
-                    avatarInitial.textContent = initial;        
+                    mainAppUserInfo.textContent = displayEmail;
+                    // In this simplified styling, profileIconText and avatarInitial don't have 'hidden' to remove
+                    // They are always visible as the profile button content.
 
                     loginScreen.classList.add('hidden');
                     mainAppContainer.classList.remove('hidden');
 
                     console.log('User signed in:', user.uid, 'Anonymous:', user.isAnonymous);
-                    
+
                     loadUserSettings();
-                    await loadAndSetInitialDataset(); 
+                    listenToExpenses(currentUserId); // Directly start listening to expenses
                 } else {
                     currentUserId = null;
-                    currentDatasetId = null; 
-                    datasets = [];
-                    currentDatasetInfo = null;
-                    updateDatasetUI(); 
-                    
-                    mainAppUserInfo.textContent = ''; 
 
-                    profilePicture.classList.add('hidden');
-                    avatarPicture.classList.add('hidden');
-                    profileIconText.classList.remove('hidden'); 
-                    avatarInitial.classList.remove('hidden');   
+                    mainAppUserInfo.textContent = '';
 
-                    profileIconText.textContent = 'G'; 
-                    avatarInitial.textContent = 'G';    
+                    // Always show the 'G' for guest/signed out
+                    profileIconText.textContent = 'G';
+                    avatarInitial.textContent = 'G';
 
                     mainAppContainer.classList.add('hidden');
                     loginScreen.classList.remove('hidden');
@@ -1797,12 +1253,11 @@
                     renderExpenses();
                     if (unsubscribeFromExpenses) {
                         unsubscribeFromExpenses();
-                        unsubscribeFromExpenses = null; 
+                        unsubscribeFromExpenses = null;
                     }
                     showMessage('Your data will be available when you sign in.', 'info');
-                    userSettings = { defaultCurrency: 'CAD' }; 
-                    localStorage.removeItem('userSettings'); 
-                    localStorage.removeItem('currentDatasetId'); 
+                    userSettings = { defaultCurrency: 'CAD' };
+                    localStorage.removeItem('userSettings');
                 }
                 console.log("Auth state check complete, hiding loading overlay.");
                 hideLoading(); // Ensure loading is hidden after auth check completes
@@ -1814,7 +1269,7 @@
         });
 
         // Show loading spinner immediately on page load
-        showLoading("Starting application..."); 
+        showLoading("Starting application...");
     </script>
 </body>
 </html>
