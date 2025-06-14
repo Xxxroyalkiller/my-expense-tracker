@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
-    <!-- XLSX library import -->
     <script type="module">
         import * as XLSX from "https://unpkg.com/xlsx/xlsx.mjs";
         window.XLSX = XLSX; 
@@ -278,7 +277,6 @@
         <hr style="margin: 20px 0;">
 
         <h2>Your Expenses</h2>
-        <!-- New Excel Upload Section -->
         <div id="uploadExcelSection" style="margin-bottom: 15px;">
             <p style="margin-bottom: 5px;">Upload Expenses from Excel File:</p>
             <input type="file" id="uploadExcelInput" accept=".xlsx, .xls" class="hidden">
@@ -287,8 +285,6 @@
                 Expected columns: Date, Category, Description, Amount (CAD), Payment Method, Paid By, Has Bill (Yes/No), Bill Type (Physical/Digital).
             </p>
         </div>
-        <!------------------------------->
-
         <div style="overflow-x: auto;">
             <table id="expenseTable">
                 <thead>
@@ -305,8 +301,7 @@
                     </tr>
                 </thead>
                 <tbody id="expenseTableBody">
-                    <!-- Expense rows will be inserted here -->
-                </tbody>
+                    </tbody>
             </table>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
@@ -331,7 +326,6 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
     <div id="settingsModal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="closeSettingsModal" class="modal-close-btn">&times;</button>
@@ -373,7 +367,7 @@
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        // IMPORTANT: Added 'getDoc' here
+        // IMPORTANT: Added 'getDoc' here for single document fetching
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
         // XLSX is already globally available via the script tag in the head, no need to import here again
@@ -382,20 +376,20 @@
         // Initialize Firebase (replace with your actual Firebase config)
         const firebaseConfig = {
             apiKey: "AIzaSyA_x5ENsCsHpcdYxgxi1a3vPs_vUR6Hkts",
-  authDomain: "my-expenese-tracker.firebaseapp.com",
-  projectId: "my-expenese-tracker",
-  storageBucket: "my-expenese-tracker.firebasestorage.app",
-  messagingSenderId: "466782350290",
-  appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
-  measurementId: "G-1CF1ZNLPC2"
+            authDomain: "my-expenese-tracker.firebaseapp.com",
+            projectId: "my-expenese-tracker",
+            storageBucket: "my-expenese-tracker.firebasestorage.app",
+            messagingSenderId: "466782350290",
+            appId: "466782350290-0cljann4p9h7oqnboark3a5bj6ruilu0.apps.googleusercontent.com",
+            measurementId: "G-1CF1ZNLPC2" // This line was added based on your input
         };
 
         // Check if Firebase config is default (user hasn't replaced it)
-        const isDefaultConfig = firebaseConfig.apiKey === "YOUR_API_KEY";
+        const isDefaultConfig = firebaseConfig.apiKey === "YOUR_API_KEY"; // This will now be false as you've provided a real key
 
         let app, auth, db;
 
-        if (isDefaultConfig) {
+        if (isDefaultConfig) { // This block will likely not be entered anymore, which is good
             console.warn("Firebase configuration is not set. Running in guest-only mode. Please update firebaseConfig with your project details for full functionality.");
             // Disable Firebase-related UI elements
             document.getElementById('authButton').style.display = 'none';
@@ -448,11 +442,13 @@
 
         // --- Utility Functions ---
         function showLoading(message = "Loading...") {
+            console.log(`[Loading] SHOW: ${message}`); // Debug log
             document.querySelector('#loadingOverlay p').textContent = message;
             loadingOverlay.classList.remove('hidden');
         }
 
         function hideLoading() {
+            console.log("[Loading] HIDE"); // Debug log
             loadingOverlay.classList.add('hidden');
         }
 
@@ -959,7 +955,7 @@
         }
         // --- Authentication & App Flow ---
         authButton.addEventListener('click', () => {
-            if (isDefaultConfig) {
+            if (isDefaultConfig) { // This check will still be here but will evaluate to false
                 showMessage("Firebase is not configured. Cannot sign in with Google.", "error");
                 return;
             }
@@ -975,12 +971,12 @@
                     loginScreen.classList.add('hidden');
                     mainAppContainer.classList.remove('hidden');
                     updateProfileUI(result.user.email, result.user.displayName);
-                    hideLoading();
+                    // hideLoading() is called by loadData()
                     showMessage(`Welcome, ${result.user.displayName || result.user.email}!`, "success");
                 })
                 .catch((error) => {
                     console.error("Google Sign-In Error:", error);
-                    hideLoading();
+                    hideLoading(); // Ensure loading is hidden on error
                     showMessage(`Sign-in failed: ${error.message}`, "error");
                 });
         });
@@ -992,29 +988,30 @@
             loginScreen.classList.add('hidden');
             mainAppContainer.classList.remove('hidden');
             updateProfileUI("guest@example.com", "Guest User");
-            hideLoading();
+            // hideLoading() is called by loadData()
             showMessage("Continuing as guest. Data will be saved locally.", "info");
         });
 
         if (!isDefaultConfig) {
+            // Firebase initialized, listen to auth state changes
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     currentUserId = user.uid;
                     isGuestMode = false;
-                    loadData();
+                    loadData(); // Load user data if signed in
                     loginScreen.classList.add('hidden');
                     mainAppContainer.classList.remove('hidden');
                     updateProfileUI(user.email, user.displayName);
-                    hideLoading();
-                    showMessage(`Welcome back, ${user.displayName || user.email}!`, "success");
+                    // hideLoading() is called by loadData()
                 } else {
                     currentUserId = null;
                     loginScreen.classList.remove('hidden');
                     mainAppContainer.classList.add('hidden');
-                    hideLoading();
+                    hideLoading(); // Ensure the overlay is hidden if auth state changes to logged out
                 }
             });
         } else {
+            // Firebase not configured, immediately hide loading and show login (guest mode only)
             hideLoading();
             loginScreen.classList.remove('hidden');
             document.getElementById('authButton').style.display = 'none';
@@ -1076,8 +1073,10 @@
         // --- Settings Modal Logic ---
         settingsButton.addEventListener('click', () => {
             profileDropdownContent.classList.remove('active');
-            updateSettingsModal();
+            updateSettingsModal(); // Ensure settings inputs reflect current values
             settingsModal.classList.remove('hidden');
+            // If the spinner appears here, it means a background load initiated by loadData() or similar
+            // is not completing. Check console logs.
         });
 
         closeSettingsModal.addEventListener('click', () => {
@@ -1094,7 +1093,7 @@
                 showMessage("Please enter a valid positive number for exchange rate.", "error");
                 return;
             } else {
-                cadToAedRate = 2.68;
+                cadToAedRate = 2.68; // Reset to default if explicitly cleared or invalid and not a number
             }
 
             if (!isNaN(newBudget) && newBudget >= 0) {
@@ -1103,17 +1102,18 @@
                 showMessage("Please enter a valid non-negative number for monthly budget.", "error");
                 return;
             } else {
-                monthlyBudget = 0;
+                monthlyBudget = 0; // Reset to default (no budget) if explicitly cleared or invalid and not a number
             }
 
-            await saveData();
-            updateUI();
+            await saveData(); // Save updated settings
+            updateUI(); // Refresh UI to reflect any changes like budget
             settingsModal.classList.add('hidden');
             showMessage("Settings saved successfully!", "success");
         });
 
         clearAllDataButton.addEventListener('click', clearAllData);
 
+        // Set today's date for the expense date input field
         const today = new Date();
         const currentYear = today.getFullYear();
         const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
