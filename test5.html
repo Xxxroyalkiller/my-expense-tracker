@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
+    <!-- XLSX library import -->
     <script type="module">
         import * as XLSX from "https://unpkg.com/xlsx/xlsx.mjs";
         window.XLSX = XLSX; 
@@ -277,6 +278,7 @@
         <hr style="margin: 20px 0;">
 
         <h2>Your Expenses</h2>
+        <!-- New Excel Upload Section -->
         <div id="uploadExcelSection" style="margin-bottom: 15px;">
             <p style="margin-bottom: 5px;">Upload Expenses from Excel File:</p>
             <input type="file" id="uploadExcelInput" accept=".xlsx, .xls" class="hidden">
@@ -285,6 +287,8 @@
                 Expected columns: Date, Category, Description, Amount (CAD), Payment Method, Paid By, Has Bill (Yes/No), Bill Type (Physical/Digital).
             </p>
         </div>
+        <!------------------------------->
+
         <div style="overflow-x: auto;">
             <table id="expenseTable">
                 <thead>
@@ -301,7 +305,8 @@
                     </tr>
                 </thead>
                 <tbody id="expenseTableBody">
-                    </tbody>
+                    <!-- Expense rows will be inserted here -->
+                </tbody>
             </table>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
@@ -326,6 +331,7 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
     <div id="settingsModal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="closeSettingsModal" class="modal-close-btn">&times;</button>
@@ -364,13 +370,14 @@
     </div>
 
     <script type="module">
-        // Import Firebase modules if not already globally available
+        // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        // IMPORTANT: Added 'getDoc' here
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
         // XLSX is already globally available via the script tag in the head, no need to import here again
-        // import * as XLSX from "https://unpkg.com/xlsx/xlsx.mjs"; 
+        // window.XLSX is used directly in the handleExcelUpload function.
 
         // Initialize Firebase (replace with your actual Firebase config)
         const firebaseConfig = {
@@ -478,7 +485,7 @@
                 showMessage("Guest data saved locally!", "success");
             } else if (currentUserId && db) {
                 try {
-                    // Save expenses
+                    // Save expenses and settings to the user's document
                     await setDoc(doc(db, "users", currentUserId), { expenses: expenses, settings: { cadToAedRate, monthlyBudget } });
                     hideLoading();
                     showMessage("Data saved to cloud!", "success");
@@ -499,4 +506,619 @@
                     expenses = JSON.parse(storedExpenses);
                 }
                 if (storedSettings) {
-                    const settings = JSON.parse(storedSettings
+                    const settings = JSON.parse(storedSettings);
+                    cadToAedRate = settings.cadToAedRate || 2.68;
+                    monthlyBudget = settings.monthlyBudget || 0;
+                }
+                hideLoading();
+                showMessage("Guest data loaded!", "info");
+            } else if (currentUserId && db) {
+                try {
+                    // Corrected: Directly fetch the user's specific document
+                    const docRef = doc(db, "users", currentUserId);
+                    const docSnap = await getDoc(docRef); // Use getDoc, not getDocs
+
+                    if (docSnap.exists()) { // Check if the document exists
+                        const userData = docSnap.data();
+                        expenses = userData.expenses || [];
+                        cadToAedRate = userData.settings?.cadToAedRate || 2.68;
+                        monthlyBudget = userData.settings?.monthlyBudget || 0;
+                        showMessage("Data loaded from cloud!", "success");
+                    } else {
+                        expenses = []; // No data found for user, start with empty
+                        showMessage("No existing data found for your account. Starting fresh!", "info");
+                        // Also, save initial empty data to create the document
+                        await setDoc(doc(db, "users", currentUserId), { expenses: [], settings: { cadToAedRate, monthlyBudget } });
+                    }
+                    hideLoading();
+                } catch (e) {
+                    console.error("Error loading document: ", e);
+                    hideLoading();
+                    showMessage("Error loading data!", "error");
+                }
+            }
+            updateUI();
+        }
+
+        async function clearAllData() {
+            // Using a simple confirm dialog as per the previous basic design request
+            if (confirm("Are you sure you want to delete ALL your expense data? This action cannot be undone.")) {
+                showLoading("Clearing data...");
+                expenses = [];
+                if (isGuestMode) {
+                    localStorage.removeItem('guestExpenses');
+                    localStorage.removeItem('guestSettings');
+                    hideLoading();
+                    showMessage("All guest data cleared!", "success");
+                } else if (currentUserId && db) {
+                    try {
+                        // Overwrite with empty data to clear, rather than deleting the doc,
+                        // to maintain the user document for future settings/expenses.
+                        await setDoc(doc(db, "users", currentUserId), { expenses: [], settings: { cadToAedRate, monthlyBudget } }); 
+                        hideLoading();
+                        showMessage("All cloud data cleared!", "success");
+                    } catch (e) {
+                        console.error("Error clearing data: ", e);
+                        hideLoading();
+                        showMessage("Error clearing data!", "error");
+                    }
+                }
+                updateUI();
+                closeSettingsModal.click(); // Close modal
+            }
+        }
+
+        // --- UI Update Functions ---
+        function updateUI() {
+            renderExpenses();
+            updateTotals();
+            updateCharts();
+            updateSettingsModal(); // Refresh settings in modal
+        }
+
+        function updateSettingsModal() {
+            currencyExchangeRateInput.value = cadToAedRate;
+            monthlyBudgetInput.value = monthlyBudget;
+        }
+
+        function renderExpenses() {
+            expenseTableBody.innerHTML = '';
+            if (expenses.length === 0) {
+                expenseTableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 10px; color: #555;">No expenses added yet.</td></tr>';
+                return;
+            }
+
+            expenses.forEach((expense, index) => {
+                const row = expenseTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${expense.date}</td>
+                    <td>${expense.category}</td>
+                    <td>${expense.description}</td>
+                    <td>${formatCurrency(expense.amount, 'CAD')}</td>
+                    <td>${formatCurrency(expense.amount * cadToAedRate, 'AED')}</td>
+                    <td>${expense.paymentMethod}</td>
+                    <td>${expense.paidBy}</td>
+                    <td>${expense.hasBill ? (expense.billType || 'Yes') : 'No'}</td>
+                    <td>
+                        <button onclick="editExpense(${index})" style="background-color: #28a745;"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteExpense(${index})" style="background-color: #dc3545;"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                `;
+            });
+        }
+
+        function updateTotals() {
+            const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            totalExpenditureSpan.textContent = formatCurrency(total, 'CAD');
+
+            // Budget tracking
+            const currentMonthTotal = expenses
+                .filter(expense => {
+                    const expenseDate = new Date(expense.date);
+                    const now = new Date();
+                    return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
+                })
+                .reduce((sum, expense) => sum + expense.amount, 0);
+
+            if (monthlyBudget > 0) {
+                const remaining = monthlyBudget - currentMonthTotal;
+                let budgetMessage = `Monthly Budget: ${formatCurrency(monthlyBudget, 'CAD')} | Spent this month: ${formatCurrency(currentMonthTotal, 'CAD')}`;
+                if (remaining >= 0) {
+                    budgetMessage += ` | Remaining: ${formatCurrency(remaining, 'CAD')}`;
+                    totalExpenditureSpan.style.color = '#007bff'; 
+                } else {
+                    budgetMessage += ` | Over budget by: ${formatCurrency(Math.abs(remaining), 'CAD')}`;
+                    totalExpenditureSpan.style.color = '#dc3545'; 
+                }
+            } else {
+                totalExpenditureSpan.style.color = '#333'; /* Default color if no budget */
+            }
+        }
+
+        function updateCharts() {
+            const categories = {};
+            const paymentMethods = {};
+
+            expenses.forEach(expense => {
+                categories[expense.category] = (categories[expense.category] || 0) + expense.amount;
+                paymentMethods[expense.paymentMethod] = (paymentMethods[expense.paymentMethod] || 0) + expense.amount;
+            });
+
+            // Category Chart
+            if (categoryChart) categoryChart.destroy();
+            categoryChart = new Chart(document.getElementById('categoryChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(categories),
+                    datasets: [{
+                        data: Object.values(categories),
+                        backgroundColor: [
+                            '#007bff', '#28a745', '#dc3545', '#ffc107', '#6f42c1', '#20c997', '#fd7e14', '#e83e8c', '#6c757d'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Expense Distribution by Category',
+                        }
+                    }
+                }
+            });
+
+            // Payment Method Chart
+            if (paymentMethodChart) paymentMethodChart.destroy();
+            paymentMethodChart = new Chart(document.getElementById('paymentMethodChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(paymentMethods),
+                    datasets: [{
+                        label: 'Amount (CAD)',
+                        data: Object.values(paymentMethods),
+                        backgroundColor: '#007bff',
+                        borderColor: '#0056b3',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Expense Distribution by Payment Method',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Amount (CAD)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Payment Method'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Event Handlers ---
+        addExpenseBtn.addEventListener('click', async () => {
+            const expenseDate = document.getElementById('expenseDate').value;
+            const expenseCategory = document.getElementById('expenseCategory').value.trim();
+            const expenseDescription = document.getElementById('expenseDescription').value.trim();
+            const expenseAmount = parseFloat(document.getElementById('expenseAmount').value);
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paidBy = document.getElementById('paidBy').value.trim();
+            const hasBill = hasBillCheckbox.checked;
+            const billType = hasBill ? billTypeSelect.value : '';
+
+            if (!expenseDate || !expenseCategory || !expenseDescription || isNaN(expenseAmount) || expenseAmount <= 0 || !paymentMethod || !paidBy || (hasBill && !billType)) {
+                showMessage('Please fill in all required fields correctly, including bill type if checked.', 'error');
+                return;
+            }
+
+            const newExpense = {
+                date: expenseDate,
+                category: expenseCategory,
+                description: expenseDescription,
+                amount: expenseAmount,
+                paymentMethod: paymentMethod,
+                paidBy: paidBy,
+                hasBill: hasBill,
+                billType: billType,
+                timestamp: new Date().toISOString()
+            };
+
+            expenses.push(newExpense);
+            await saveData();
+            updateUI();
+
+            // Clear form
+            document.getElementById('expenseDate').value = '';
+            document.getElementById('expenseCategory').value = '';
+            document.getElementById('expenseDescription').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('paidBy').value = '';
+            hasBillCheckbox.checked = false;
+            billTypeContainer.classList.add('hidden');
+            billTypeSelect.value = '';
+
+            showMessage('Expense added successfully!', 'success');
+        });
+
+        window.deleteExpense = async (index) => {
+            if (confirm('Are you sure you want to delete this expense?')) {
+                expenses.splice(index, 1);
+                await saveData();
+                updateUI();
+                showMessage('Expense deleted!', 'info');
+            }
+        };
+
+        window.editExpense = (index) => {
+            const expense = expenses[index];
+            document.getElementById('expenseDate').value = expense.date;
+            document.getElementById('expenseCategory').value = expense.category;
+            document.getElementById('expenseDescription').value = expense.description;
+            document.getElementById('expenseAmount').value = expense.amount;
+            document.getElementById('paymentMethod').value = expense.paymentMethod;
+            document.getElementById('paidBy').value = expense.paidBy;
+            hasBillCheckbox.checked = expense.hasBill;
+            if (expense.hasBill) {
+                billTypeContainer.classList.remove('hidden');
+                billTypeSelect.value = expense.billType;
+            } else {
+                billTypeContainer.classList.add('hidden');
+                billTypeSelect.value = '';
+            }
+
+            // Remove the expense after loading it into the form for editing.
+            // It will be re-added when the user clicks 'Add Expense' again.
+            expenses.splice(index, 1); 
+            updateUI(); // Update UI to reflect immediate deletion from table
+            showMessage('Expense loaded for editing. Please modify and add again.', 'info');
+        };
+
+        hasBillCheckbox.addEventListener('change', () => {
+            billTypeContainer.classList.toggle('hidden', !hasBillCheckbox.checked);
+            if (!hasBillCheckbox.checked) {
+                billTypeSelect.value = '';
+            }
+        });
+
+        exportExcelBtn.addEventListener('click', () => {
+            if (expenses.length === 0) {
+                showMessage("No data to export!", "info");
+                return;
+            }
+
+            const dataToExport = expenses.map(e => ({
+                Date: e.date,
+                Category: e.category,
+                Description: e.description,
+                'Amount (CAD)': e.amount,
+                'Amount (AED)': (e.amount * cadToAedRate).toFixed(2),
+                'Payment Method': e.paymentMethod,
+                'Paid By': e.paidBy,
+                'Has Bill': e.hasBill ? 'Yes' : 'No',
+                'Bill Type': e.billType || ''
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Expenses");
+            XLSX.writeFile(wb, "Monthly_Expenses.xlsx");
+            showMessage("Expenses exported to Excel!", "success");
+        });
+
+        // --- Excel Upload Logic ---
+        uploadExcelBtn.addEventListener('click', () => {
+            uploadExcelInput.click(); // Trigger the hidden file input
+        });
+
+        uploadExcelInput.addEventListener('change', handleExcelUpload);
+
+        async function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            showLoading("Reading Excel file...");
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    // Ensure XLSX is accessible as a global object
+                    const workbook = window.XLSX.read(data, { type: 'array', cellDates: true });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = window.XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays
+
+                    if (json.length < 2) {
+                        showMessage("Excel file is empty or has no data rows.", "error");
+                        hideLoading();
+                        return;
+                    }
+
+                    // Assuming the first row is headers
+                    const headers = json[0].map(h => String(h || '').trim()); // Ensure header is string and trim
+                    const expectedHeaders = ['Date', 'Category', 'Description', 'Amount (CAD)', 'Payment Method', 'Paid By', 'Has Bill', 'Bill Type'];
+
+                    // Basic header validation
+                    const missingHeaders = expectedHeaders.filter(header => !headers.includes(header));
+                    if (missingHeaders.length > 0) {
+                        showMessage(`Missing expected columns in Excel: ${missingHeaders.join(', ')}. Please ensure your file matches the expected format.`, "error");
+                        hideLoading();
+                        return;
+                    }
+
+                    const newExpenses = [];
+                    for (let i = 1; i < json.length; i++) { // Start from the second row for data
+                        const row = json[i];
+                        const expenseData = {};
+                        headers.forEach((header, index) => {
+                            expenseData[header] = row[index];
+                        });
+
+                        // Map Excel data to our expense object format
+                        const dateValue = expenseData['Date'];
+                        let formattedDate;
+                        if (dateValue instanceof Date) {
+                            formattedDate = dateValue.toISOString().split('T')[0];
+                        } else if (typeof dateValue === 'string') {
+                            // Try to parse string dates, handle common formats
+                            try {
+                                formattedDate = new Date(dateValue).toISOString().split('T')[0];
+                                if (isNaN(new Date(formattedDate).getTime())) { // Check for invalid date
+                                     throw new Error("Invalid date string");
+                                }
+                            } catch (error) {
+                                console.warn(`Could not parse date: ${dateValue}. Using current date.`);
+                                formattedDate = new Date().toISOString().split('T')[0]; // Fallback to current date
+                            }
+                        } else if (typeof dateValue === 'number') {
+                             // Assume it's a number (Excel date), convert it
+                             // Excel dates are numbers representing days since 1900-01-01 (or 1904 for Mac)
+                             // 25569 is the difference in days between 1900-01-01 and 1970-01-01
+                             formattedDate = new Date(Math.round((dateValue - 25569) * 86400 * 1000)).toISOString().split('T')[0];
+                        } else {
+                            console.warn(`Invalid date format for value: ${dateValue}. Using current date.`);
+                            formattedDate = new Date().toISOString().split('T')[0];
+                        }
+                        
+                        const amount = parseFloat(expenseData['Amount (CAD)']);
+                        // Convert 'Yes'/'No' (case-insensitive) to boolean
+                        const hasBillBool = String(expenseData['Has Bill'] || '').toLowerCase() === 'yes';
+
+                        if (!formattedDate || isNaN(amount) || amount <= 0 || !expenseData['Category'] || !expenseData['Description'] || !expenseData['Payment Method'] || !expenseData['Paid By']) {
+                            console.warn(`Skipping invalid row ${i + 1} due to missing or invalid data:`, expenseData);
+                            showMessage(`Skipped row ${i + 1} due to missing or invalid data.`, "error");
+                            continue;
+                        }
+
+                        newExpenses.push({
+                            date: formattedDate,
+                            category: String(expenseData['Category'] || '').trim(),
+                            description: String(expenseData['Description'] || '').trim(),
+                            amount: amount,
+                            paymentMethod: String(expenseData['Payment Method'] || '').trim(),
+                            paidBy: String(expenseData['Paid By'] || '').trim(),
+                            hasBill: hasBillBool,
+                            billType: hasBillBool ? String(expenseData['Bill Type'] || '').trim() : '',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+
+                    if (newExpenses.length === 0) {
+                        showMessage("No valid expenses found in the uploaded file.", "info");
+                        hideLoading();
+                        return;
+                    }
+
+                    expenses.push(...newExpenses); // Add new expenses to existing ones
+                    await saveData();
+                    updateUI();
+                    showMessage(`${newExpenses.length} expenses imported successfully from Excel!`, "success");
+
+                } catch (error) {
+                    console.error("Error reading or parsing Excel file:", error);
+                    showMessage(`Error processing Excel file: ${error.message}. Please check file format and console for details.`, "error");
+                } finally {
+                    hideLoading();
+                    event.target.value = ''; // Clear the file input
+                }
+            };
+
+            reader.onerror = (error) => {
+                console.error("FileReader error:", error);
+                showMessage("Failed to read file.", "error");
+                hideLoading();
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+        // --- Authentication & App Flow ---
+        authButton.addEventListener('click', () => {
+            if (isDefaultConfig) {
+                showMessage("Firebase is not configured. Cannot sign in with Google.", "error");
+                return;
+            }
+            showLoading("Signing in...");
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    currentUserId = result.user.uid;
+                    isGuestMode = false;
+                    localStorage.removeItem('guestExpenses');
+                    localStorage.removeItem('guestSettings');
+                    loadData();
+                    loginScreen.classList.add('hidden');
+                    mainAppContainer.classList.remove('hidden');
+                    updateProfileUI(result.user.email, result.user.displayName);
+                    hideLoading();
+                    showMessage(`Welcome, ${result.user.displayName || result.user.email}!`, "success");
+                })
+                .catch((error) => {
+                    console.error("Google Sign-In Error:", error);
+                    hideLoading();
+                    showMessage(`Sign-in failed: ${error.message}`, "error");
+                });
+        });
+
+        guestButton.addEventListener('click', () => {
+            currentUserId = 'guest';
+            isGuestMode = true;
+            loadData();
+            loginScreen.classList.add('hidden');
+            mainAppContainer.classList.remove('hidden');
+            updateProfileUI("guest@example.com", "Guest User");
+            hideLoading();
+            showMessage("Continuing as guest. Data will be saved locally.", "info");
+        });
+
+        if (!isDefaultConfig) {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                    isGuestMode = false;
+                    loadData();
+                    loginScreen.classList.add('hidden');
+                    mainAppContainer.classList.remove('hidden');
+                    updateProfileUI(user.email, user.displayName);
+                    hideLoading();
+                    showMessage(`Welcome back, ${user.displayName || user.email}!`, "success");
+                } else {
+                    currentUserId = null;
+                    loginScreen.classList.remove('hidden');
+                    mainAppContainer.classList.add('hidden');
+                    hideLoading();
+                }
+            });
+        } else {
+            hideLoading();
+            loginScreen.classList.remove('hidden');
+            document.getElementById('authButton').style.display = 'none';
+        }
+
+        profileToggleButton.addEventListener('click', () => {
+            profileDropdownContent.classList.toggle('active');
+        });
+
+        window.addEventListener('click', (event) => {
+            if (!profileToggleButton.contains(event.target) && !profileDropdownContent.contains(event.target)) {
+                profileDropdownContent.classList.remove('active');
+            }
+        });
+
+        signOutButton.addEventListener('click', async () => {
+            if (isGuestMode) {
+                currentUserId = null;
+                isGuestMode = false;
+                expenses = [];
+                cadToAedRate = 2.68;
+                monthlyBudget = 0;
+                updateUI();
+                loginScreen.classList.remove('hidden');
+                mainAppContainer.classList.add('hidden');
+                profileDropdownContent.classList.remove('active');
+                showMessage("Signed out of guest mode. Local data cleared.", "info");
+            } else if (auth) {
+                showLoading("Signing out...");
+                try {
+                    await signOut(auth);
+                    currentUserId = null;
+                    isGuestMode = false;
+                    expenses = [];
+                    cadToAedRate = 2.68;
+                    monthlyBudget = 0;
+                    updateUI();
+                    loginScreen.classList.remove('hidden');
+                    mainAppContainer.classList.add('hidden');
+                    profileDropdownContent.classList.remove('active');
+                    hideLoading();
+                    showMessage("Signed out successfully!", "success");
+                } catch (error) {
+                    console.error("Sign Out Error:", error);
+                    hideLoading();
+                    showMessage(`Sign-out failed: ${error.message}`, "error");
+                }
+            }
+        });
+
+        function updateProfileUI(email, displayName) {
+            const initial = displayName ? displayName.charAt(0).toUpperCase() : (email ? email.charAt(0).toUpperCase() : 'G');
+            profileIconText.textContent = initial;
+            avatarInitial.textContent = initial;
+            mainAppUserInfoDisplay.textContent = email;
+            userInfoDisplay.textContent = `You are currently signed in as: ${email}`;
+        }
+
+        // --- Settings Modal Logic ---
+        settingsButton.addEventListener('click', () => {
+            profileDropdownContent.classList.remove('active');
+            updateSettingsModal();
+            settingsModal.classList.remove('hidden');
+        });
+
+        closeSettingsModal.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+        });
+
+        saveSettingsButton.addEventListener('click', async () => {
+            const newRate = parseFloat(currencyExchangeRateInput.value);
+            const newBudget = parseFloat(monthlyBudgetInput.value);
+
+            if (!isNaN(newRate) && newRate > 0) {
+                cadToAedRate = newRate;
+            } else if (currencyExchangeRateInput.value !== "") {
+                showMessage("Please enter a valid positive number for exchange rate.", "error");
+                return;
+            } else {
+                cadToAedRate = 2.68;
+            }
+
+            if (!isNaN(newBudget) && newBudget >= 0) {
+                monthlyBudget = newBudget;
+            } else if (monthlyBudgetInput.value !== "") {
+                showMessage("Please enter a valid non-negative number for monthly budget.", "error");
+                return;
+            } else {
+                monthlyBudget = 0;
+            }
+
+            await saveData();
+            updateUI();
+            settingsModal.classList.add('hidden');
+            showMessage("Settings saved successfully!", "success");
+        });
+
+        clearAllDataButton.addEventListener('click', clearAllData);
+
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+        const currentDay = String(today.getDate()).padStart(2, '0');
+        document.getElementById('expenseDate').value = `${currentYear}-${currentMonth}-${currentDay}`;
+    </script>
+</body>
+</html>
