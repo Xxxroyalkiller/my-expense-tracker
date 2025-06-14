@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Expenditure Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script type="module">
+        import * as XLSX from "https://unpkg.com/xlsx/xlsx.mjs";
+        window.XLSX = XLSX; 
+    </script>
+
+    <style>
+        /* Minimal, performance-focused styles */
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-right: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+        }
+        .message-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .message-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        .message-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .profile-dropdown-container {
+            position: relative;
+            display: inline-block;
+            float: right;
+        }
+        .profile-toggle-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .profile-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            right: 0;
+            padding: 10px;
+        }
+        .profile-dropdown-content.active {
+            display: block;
+        }
+        .profile-dropdown-content button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 5px;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            color: #888;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Initializing app...</p>
+    </div>
+
+    <div id="loginScreen" class="container hidden">
+        <h1>Welcome to your Expense Tracker.</h1>
+        <p>Sign in with your Google account to effortlessly track your spending, or proceed as a guest.</p>
+        <div>
+            <button id="authButton">Sign In with Google</button>
+            <button id="guestButton">Continue as Guest</button>
+        </div>
+        <p style="font-size: 0.8em; color: #666; margin-top: 10px;">Guest data is temporary and not permanently stored. Consider signing in with Google for data persistence.</p>
+        <div id="userInfo" style="margin-top: 15px; font-size: 0.9em; color: #555;"></div>
+    </div>
+
+    <div id="mainAppContainer" class="container hidden">
+        <div style="overflow: auto;">
+            <h1 style="float: left;">Expense Tracker</h1>
+            <div class="profile-dropdown-container">
+                <button id="profileToggleButton" class="profile-toggle-button">
+                    <span id="profileIconText">G</span>
+                </button>
+                <div id="profileDropdownContent" class="profile-dropdown-content hidden">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: #007bff; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2em; font-weight: bold; margin-right: 10px;">
+                            <span id="avatarInitial">G</span>
+                        </div>
+                        <div id="mainAppUserInfo" style="font-size: 0.9em; color: #333; word-break: break-all;"></div>
+                    </div>
+                    <button id="settingsButton">Settings</button>
+                    <button id="signOutButton">Sign Out</button>
+                </div>
+            </div>
+        </div>
+
+        <hr style="margin: 20px 0;">
+
+        <h2>Add New Expense</h2>
+        <div>
+            <label for="expenseDate">Date</label>
+            <input type="date" id="expenseDate">
+
+            <label for="expenseCategory">Category</label>
+            <input type="text" id="expenseCategory" placeholder="e.g., Groceries, Rent">
+
+            <label for="expenseDescription">Description</label>
+            <input type="text" id="expenseDescription" placeholder="e.g., Weekly shopping">
+
+            <label for="expenseAmount">Amount (CAD)</label>
+            <input type="number" id="expenseAmount" placeholder="e.g., 50.00" step="0.01">
+            
+            <label for="paymentMethod">Payment Method</label>
+            <select id="paymentMethod">
+                <option value="">Select Method</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Debit Card">Debit Card</option>
+                <option value="Cash">Cash</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Online Payment">Online Payment</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label for="paidBy">Paid By</label>
+            <input type="text" id="paidBy" placeholder="e.g., John, Sarah">
+
+            <div style="margin-bottom: 10px;">
+                <input type="checkbox" id="hasBill">
+                <label for="hasBill">Do you have the bill?</label>
+            </div>
+            <div id="billTypeContainer" class="hidden">
+                <label for="billType">Bill Type</label>
+                <select id="billType">
+                    <option value="">Select Type</option>
+                    <option value="Physical">Physical</option>
+                    <option value="Digital">Digital</option>
+                </select>
+            </div>
+        </div>
+        <button id="addExpenseBtn" style="width: 100%;">Add Expense</button>
+
+        <hr style="margin: 20px 0;">
+
+        <h2>Your Expenses</h2>
+        <div id="uploadExcelSection" style="margin-bottom: 15px;">
+            <p style="margin-bottom: 5px;">Upload Expenses from Excel File:</p>
+            <input type="file" id="uploadExcelInput" accept=".xlsx, .xls" class="hidden">
+            <button id="uploadExcelBtn">Upload Excel</button>
+            <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                Expected columns: Date, Category, Description, Amount (CAD), Payment Method, Paid By, Has Bill (Yes/No), Bill Type (Physical/Digital).
+            </p>
+        </div>
+        <div style="overflow-x: auto;">
+            <table id="expenseTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Amount (CAD)</th>
+                        <th>Amount (AED)</th>
+                        <th>Payment Method</th>
+                        <th>Paid By</th>
+                        <th>Bill</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseTableBody">
+                    </tbody>
+            </table>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <div style="font-weight: bold;">
+                Total Expenditure: <span id="totalExpenditure">0.00 CAD</span>
+            </div>
+            <button id="exportExcelBtn">Export to Excel</button>
+        </div>
+
+        <hr style="margin: 20px 0;">
+
+        <h2>Expense Summary by Category</h2>
+        <div class="chart-container">
+            <canvas id="categoryChart"></canvas>
+        </div>
+
+        <hr style="margin: 20px 0;">
+
+        <h2>Expense Summary by Payment Method</h2>
+        <div class="chart-container">
+            <canvas id="paymentMethodChart"></canvas>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="closeSettingsModal" class="modal-close-btn">&times;</button>
+            <h2>Settings</h2>
+            
+            <div>
+                <label for="currencyExchangeRate">CAD to AED Exchange Rate</label>
+                <input type="number" id="currencyExchangeRate" step="0.0001" placeholder="e.g., 2.70">
+                <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                    Current approximate rate: 1 CAD ≈ 2.68 AED (as of June 2025). Please adjust if needed.
+                </p>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <label for="monthlyBudget">Monthly Budget (CAD)</label>
+                <input type="number" id="monthlyBudget" step="0.01" placeholder="e.g., 2000.00">
+                <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                    Set your target monthly spending limit.
+                </p>
+            </div>
+
+            <div style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9;">
+                <h3 style="margin-top: 0;">Danger Zone</h3>
+                <button id="clearAllDataButton" class="btn-danger" style="width: 100%;">
+                    Clear All Expense Data
+                </button>
+                <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                    This action is irreversible and will delete all your recorded expenses.
+                </p>
+            </div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button id="saveSettingsButton">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase modules if not already globally available
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // XLSX is already globally available via the script tag in the head, no need to import here again
+        // import * as XLSX from "https://unpkg.com/xlsx/xlsx.mjs"; 
+
+        // Initialize Firebase (replace with your actual Firebase config)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Check if Firebase config is default (user hasn't replaced it)
+        const isDefaultConfig = firebaseConfig.apiKey === "YOUR_API_KEY";
+
+        let app, auth, db;
+
+        if (isDefaultConfig) {
+            console.warn("Firebase configuration is not set. Running in guest-only mode. Please update firebaseConfig with your project details for full functionality.");
+            // Disable Firebase-related UI elements
+            document.getElementById('authButton').style.display = 'none';
+        } else {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
+
+        const authButton = document.getElementById('authButton');
+        const guestButton = document.getElementById('guestButton');
+        const loginScreen = document.getElementById('loginScreen');
+        const mainAppContainer = document.getElementById('mainAppContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const userInfoDisplay = document.getElementById('userInfo');
+        const mainAppUserInfoDisplay = document.getElementById('mainAppUserInfo');
+        const profileToggleButton = document.getElementById('profileToggleButton');
+        const profileDropdownContent = document.getElementById('profileDropdownContent');
+        const profileIconText = document.getElementById('profileIconText');
+        const avatarInitial = document.getElementById('avatarInitial');
+        const signOutButton = document.getElementById('signOutButton');
+        const settingsButton = document.getElementById('settingsButton');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsModal = document.getElementById('closeSettingsModal');
+        const currencyExchangeRateInput = document.getElementById('currencyExchangeRate');
+        const monthlyBudgetInput = document.getElementById('monthlyBudget');
+        const saveSettingsButton = document.getElementById('saveSettingsButton');
+        const clearAllDataButton = document.getElementById('clearAllDataButton');
+
+        const addExpenseBtn = document.getElementById('addExpenseBtn');
+        const expenseTableBody = document.getElementById('expenseTableBody');
+        const totalExpenditureSpan = document.getElementById('totalExpenditure');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const hasBillCheckbox = document.getElementById('hasBill');
+        const billTypeContainer = document.getElementById('billTypeContainer');
+        const billTypeSelect = document.getElementById('billType');
+
+        // New Excel Upload Elements
+        const uploadExcelInput = document.getElementById('uploadExcelInput');
+        const uploadExcelBtn = document.getElementById('uploadExcelBtn');
+
+        let expenses = [];
+        let currentUserId = null; // To store Firebase UID or 'guest'
+        let isGuestMode = false;
+        let categoryChart, paymentMethodChart;
+
+        // Default exchange rate and budget
+        let cadToAedRate = 2.68; 
+        let monthlyBudget = 0; // 0 means no budget set
+
+        // --- Utility Functions ---
+        function showLoading(message = "Loading...") {
+            document.querySelector('#loadingOverlay p').textContent = message;
+            loadingOverlay.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
+
+        function showMessage(message, type = 'info') {
+            const container = document.createElement('div');
+            container.className = `message message-${type}`;
+            container.textContent = message;
+            document.body.appendChild(container);
+            setTimeout(() => {
+                container.remove();
+            }, 3000);
+        }
+
+        function formatCurrency(amount, currency = 'CAD') {
+            return new Intl.NumberFormat('en-CA', {
+                style: 'currency',
+                currency: currency,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        // --- Data Persistence (Local Storage for Guests, Firestore for Signed-in Users) ---
+        async function saveData() {
+            showLoading("Saving data...");
+            if (isGuestMode) {
+                localStorage.setItem('guestExpenses', JSON.stringify(expenses));
+                localStorage.setItem('guestSettings', JSON.stringify({ cadToAedRate, monthlyBudget }));
+                hideLoading();
+                showMessage("Guest data saved locally!", "success");
+            } else if (currentUserId && db) {
+                try {
+                    // Save expenses
+                    await setDoc(doc(db, "users", currentUserId), { expenses: expenses, settings: { cadToAedRate, monthlyBudget } });
+                    hideLoading();
+                    showMessage("Data saved to cloud!", "success");
+                } catch (e) {
+                    console.error("Error saving document: ", e);
+                    hideLoading();
+                    showMessage("Error saving data!", "error");
+                }
+            }
+        }
+
+        async function loadData() {
+            showLoading("Loading data...");
+            if (isGuestMode) {
+                const storedExpenses = localStorage.getItem('guestExpenses');
+                const storedSettings = localStorage.getItem('guestSettings');
+                if (storedExpenses) {
+                    expenses = JSON.parse(storedExpenses);
+                }
+                if (storedSettings) {
+                    const settings = JSON.parse(storedSettings
